@@ -36,24 +36,37 @@ class UserService {
     return usersRegister;
   }
 
-  Future<String?> getUserIdByEmailOrUsername(String email, String username) async {
+  // Método privado que busca el usuario por email
+  Future<String?> getUserIdByEmail(String email) async {
     CollectionReference collectionReferenceUsers = db.collection('usuarios');
-    
-    QuerySnapshot queryByEmail = await collectionReferenceUsers.where('mail', isEqualTo: email).limit(1).get();
+    QuerySnapshot queryByEmail = await collectionReferenceUsers
+        .where('mail', isEqualTo: email)
+        .limit(1)
+        .get();
     if (queryByEmail.docs.isNotEmpty) {
       return queryByEmail.docs.first.id;
     }
-    
-    QuerySnapshot queryByUsername = await collectionReferenceUsers.where('username', isEqualTo: username).limit(1).get();
+    return null;
+  }
+
+  // Método privado que busca el usuario por username
+  Future<String?> getUserIdByUsername(String username) async {
+    CollectionReference collectionReferenceUsers = db.collection('usuarios');
+    QuerySnapshot queryByUsername = await collectionReferenceUsers
+        .where('username', isEqualTo: username)
+        .limit(1)
+        .get();
     if (queryByUsername.docs.isNotEmpty) {
       return queryByUsername.docs.first.id;
     }
-    
     return null;
   }
 
   Future<void> updateUser(User user) async {
-    String? userId = await getUserIdByEmailOrUsername(user.mail, user.username);
+    // Primero se intenta obtener el id por email; si no se encuentra, se busca por username
+    String? userId = await getUserIdByEmail(user.mail);
+    userId ??= await getUserIdByUsername(user.username);
+
     if (userId != null) {
       CollectionReference collectionReferenceUsers = db.collection('usuarios');
       await collectionReferenceUsers.doc(userId).update({
@@ -73,12 +86,32 @@ class UserService {
   }
 
   Future<void> deleteUserByEmailOrUsername(String email, String username) async {
-    String? userId = await getUserIdByEmailOrUsername(email, username);
+    // Primero se intenta obtener el id por email; si no se encuentra, se busca por username
+    String? userId = await getUserIdByEmail(email);
+    userId ??= await getUserIdByUsername(username);
+
     if (userId != null) {
       CollectionReference collectionReferenceUsers = db.collection('usuarios');
       await collectionReferenceUsers.doc(userId).delete();
     } else {
       throw Exception("Usuario no encontrado");
     }
+  }
+
+  Future<bool> authenticateUser(String email, String username, String password) async {
+    // Se busca el usuario por email; si no se encuentra, se intenta por username
+    String? userId = await getUserIdByEmail(email);
+    userId ??= await getUserIdByUsername(username);
+
+    if (userId != null) {
+      DocumentSnapshot doc = await db.collection('usuarios').doc(userId).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        if (data['password'] == password) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

@@ -95,6 +95,16 @@ class UserRegisterProvider extends ChangeNotifier {
         .hasMatch(password);
   }
 
+  Future<bool> mailExists(String email) async
+  {
+    return await userService.getUserIdByEmail(email) != null;
+  }
+
+  Future<bool> usernameExists(String username) async 
+  {
+    return await userService.getUserIdByUsername(username) != null;
+  }
+
   /// Registra al usuario en la base de datos.
   Future<void> registerUser({
     required String mail,

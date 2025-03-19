@@ -162,7 +162,8 @@ class _RegisterScreenState extends State<RegisterScreen>
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           backgroundColor: Colors.white,
           title: const Row(
             children: [
@@ -178,7 +179,8 @@ class _RegisterScreenState extends State<RegisterScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              style: TextButton.styleFrom(foregroundColor: const Color(0xFF063970)),
+              style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF063970)),
               child: const Text('Aceptar'),
             ),
           ],
@@ -372,6 +374,17 @@ class _RegisterScreenState extends State<RegisterScreen>
                   hint: 'ejemplo@correo.com',
                   controller: _mailController,
                   keyboardType: TextInputType.emailAddress,
+                  onChanged: (value) async {
+                    if (value.trim().isNotEmpty &&
+                        userRegisterProvider.isCorrectMail(value)) {
+                      bool exists = await userRegisterProvider.mailExists(value);
+                      if (exists) {
+                        userRegisterProvider.errorMail = "El correo ya existe";
+                      } else {
+                        userRegisterProvider.errorMail = "";
+                      }
+                    }
+                  },
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return "Este campo es obligatorio";
@@ -379,7 +392,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                     if (!userRegisterProvider.isCorrectMail(value)) {
                       return "Introduce un correo válido";
                     }
-                    if (userRegisterProvider.errorMail.trim() != "") {
+                    if (userRegisterProvider.errorMail.trim().isNotEmpty) {
                       return userRegisterProvider.errorMail.trim();
                     }
                     return null;
@@ -390,11 +403,22 @@ class _RegisterScreenState extends State<RegisterScreen>
                   label: 'Usuario',
                   hint: 'cartogar64',
                   controller: _usernameController,
+                  onChanged: (value) async {
+                    if (value.trim().isNotEmpty) {
+                      bool exists =
+                          await userRegisterProvider.usernameExists(value);
+                      if (exists) {
+                        userRegisterProvider.errorUser ="El usuario ya existe";
+                      } else {
+                        userRegisterProvider.errorUser = "";
+                      }
+                    }
+                  },
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return "Este campo es obligatorio";
                     }
-                    if (userRegisterProvider.errorUser.trim() != "") {
+                    if (userRegisterProvider.errorUser.trim().isNotEmpty) {
                       return userRegisterProvider.errorUser.trim();
                     }
                     return null;
@@ -609,7 +633,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                     },
                     child: const Text(
                       '¿Ya tienes cuenta? Inicia sesión',
-                      style: TextStyle(color: Color(0xFF063970), fontSize: 18),
+                      style:
+                          TextStyle(color: Color(0xFF063970), fontSize: 18),
                     ),
                   ),
                 ),
@@ -627,10 +652,12 @@ class _RegisterScreenState extends State<RegisterScreen>
     required TextEditingController controller,
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
+    void Function(String)? onChanged,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      onChanged: onChanged,
       cursorColor: const Color(0xFF063970),
       validator: validator,
       style: const TextStyle(fontSize: 18),
@@ -638,7 +665,8 @@ class _RegisterScreenState extends State<RegisterScreen>
         labelText: label,
         hintText: hint,
         floatingLabelBehavior: FloatingLabelBehavior.always,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         border: const OutlineInputBorder(
           borderSide: BorderSide(color: Color(0xFF063970)),
         ),
@@ -678,7 +706,8 @@ class _RegisterScreenState extends State<RegisterScreen>
         labelText: 'Contraseña',
         hintText: 'Contraseña',
         floatingLabelBehavior: FloatingLabelBehavior.always,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         border: const OutlineInputBorder(),
         focusedBorder: const OutlineInputBorder(
           borderSide: BorderSide(color: Color(0xFF063970), width: 2),
@@ -727,7 +756,8 @@ class _RegisterScreenState extends State<RegisterScreen>
         labelText: label,
         hintText: hint,
         floatingLabelBehavior: FloatingLabelBehavior.always,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         border: const OutlineInputBorder(),
         focusedBorder: const OutlineInputBorder(
           borderSide: BorderSide(color: Color(0xFF063970), width: 2),

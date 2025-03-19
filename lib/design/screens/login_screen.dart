@@ -2,9 +2,10 @@
 
 import 'dart:ui';
 import 'package:afa/logic/providers/loading_provider.dart';
+import 'package:afa/logic/providers/user_active_provider.dart';
+import 'package:afa/logic/router/path/path_url_afa.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:afa/logic/router/path/path_url_afa.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -121,15 +122,40 @@ class _LoginScreenState extends State<LoginScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (_formKey.currentState!.validate()) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Campos válidos. Iniciando sesión...'),
-                            backgroundColor: Colors.green,
-                            duration: Duration(seconds: 1),
-                          ),
+                        // Se utiliza el provider encargado de la autenticación
+                        final userActiveProvider = Provider.of<UserActiveProvider>(
+                          context,
+                          listen: false,
                         );
+                        // Se llama al método authenticateUser pasando el mismo valor para email y username
+                        bool isAuthenticated =
+                            await userActiveProvider.authenticateUser(
+                          _usernameController.text,
+                          _usernameController.text,
+                          _passwordController.text,
+                        );
+                        if (isAuthenticated) {
+                          loadingProvider.screenChange();
+                          context.go(PathUrlAfa().pathDashboard);
+                        } else {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Error de autenticación'),
+                              content: const Text(
+                                  'El usuario o la contraseña son incorrectos.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(),
+                                  child: const Text('Aceptar'),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -282,8 +308,8 @@ class _LoginScreenState extends State<LoginScreen> {
             // Reemplazamos el icon por la imagen en sí, sin fondo
             icon: Image.asset(
               'assets/images/logo.png',
-              width: 80,   // Ajusta el tamaño para hacerlo más grande
-              height: 80,  // Ajusta el tamaño para hacerlo más grande
+              width: 80,
+              height: 80,
               fit: BoxFit.contain,
             ),
             // Ajustamos el iconSize para que el hover sea más pequeño
