@@ -1,4 +1,5 @@
 import 'package:afa/design/screens/dashboard_screen.dart';
+import 'package:afa/design/screens/home_screen.dart';
 import 'package:afa/design/screens/login_screen.dart';
 import 'package:afa/design/screens/map_screen.dart';
 import 'package:afa/design/screens/not_found_screen.dart';
@@ -43,6 +44,11 @@ final GoRouter afaRouter = GoRouter(
       path: '/map',
       name: 'map',
       builder: (context, state) => const MapScreen(),
+    ),
+    GoRoute(
+      path: '/home',
+      name: 'home',
+      builder: (context, state) => const HomeScreen(),
     ),
   ],
   errorBuilder: (context, state) => const NotFoundScreen(),

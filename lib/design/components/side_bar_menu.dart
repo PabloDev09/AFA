@@ -69,7 +69,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
         {
           if(index==0){
             loadingProvider.screenChange();
-            context.go(PathUrlAfa().pathRegister);
+            context.go(PathUrlAfa().pathHome);
           }
           else if (index==1){
             loadingProvider.screenChange();
