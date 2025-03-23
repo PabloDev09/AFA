@@ -1,10 +1,13 @@
 import 'package:afa/design/components/pending_user_component.dart';
 import 'package:afa/design/components/active_user_component.dart';
 import 'package:afa/logic/providers/user_active_provider.dart';
-import 'package:afa/logic/providers/user_request_provider.dart';
+import 'package:afa/logic/providers/user_pending_provider.dart';
+import 'package:afa/design/components/side_bar_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:afa/design/components/side_bar_menu.dart'; 
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -17,6 +20,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     with SingleTickerProviderStateMixin {
   bool _showActiveUsers = false;
   bool _isMenuOpen = false;
+  bool _isLoading = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -44,21 +48,58 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
   }
 
+  Future<void> _uploadDocument() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+      if (result != null && result.files.isNotEmpty) {
+        setState(() => _isLoading = true);
+
+        var file = result.files.first;
+        String fileName = file.name;
+
+        Reference storageRef =
+            FirebaseStorage.instance.ref().child('documents/$fileName');
+        UploadTask uploadTask = storageRef.putData(file.bytes!);
+
+        TaskSnapshot snapshot = await uploadTask.whenComplete(() => {});
+        String downloadUrl = await snapshot.ref.getDownloadURL();
+
+        await FirebaseFirestore.instance.collection('documents').add({
+          'title': fileName,
+          'fileUrl': downloadUrl,
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Documento subido con éxito")),
+        );
+      }
+    } catch (e) {
+      print("❌ Error al subir documento: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error al subir el documento")),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
+    
     return Scaffold(
-      extendBodyBehindAppBar: true, 
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: _isMenuOpen ? const Color.fromARGB(30, 0, 0, 0) : Colors.transparent,
+        backgroundColor:
+            _isMenuOpen ? const Color.fromARGB(30, 0, 0, 0) : Colors.transparent,
         elevation: 0,
         title: Row(
           children: [
             IconButton(
               icon: Icon(
                 _isMenuOpen ? Icons.close : Icons.menu,
-                color: _isMenuOpen ?  Colors.blue[700] : Colors.white,
+                color: _isMenuOpen ? Colors.blue[700] : Colors.white,
               ),
               onPressed: _toggleMenu,
             ),
@@ -78,11 +119,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                       const SizedBox(width: 8),
                       LayoutBuilder(
                         builder: (context, constraints) {
-                          final textSize = constraints.maxWidth > 200 ? 24.0 : 20.0;
+                          final textSize =
+                              constraints.maxWidth > 200 ? 24.0 : 20.0;
                           return Text(
                             'Dashboard',
                             style: TextStyle(
-                              color: _isMenuOpen ? Colors.blue[700] : Colors.white,
+                              color:
+                                  _isMenuOpen ? Colors.blue[700] : Colors.white,
                               fontSize: textSize,
                               fontWeight: FontWeight.bold,
                             ),
@@ -104,12 +147,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                     builder: (context, constraints) {
                       return Row(
                         children: [
-                          Consumer<UserRequestProvider>(
-                            builder: (context, requestProvider, child) {
-                              final count = requestProvider.pendingUsers.length;
+                          Consumer<UserPendingProvider>(
+                            builder: (context, userPendingProvider, child) {
+                              final count = userPendingProvider.pendingUsers.length;
                               return count > 0
                                   ? Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 5, vertical: 2),
                                       decoration: BoxDecoration(
                                         color: Colors.red,
                                         borderRadius: BorderRadius.circular(10),
@@ -127,7 +171,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                             },
                           ),
                           const SizedBox(width: 6),
-                          const Icon(Icons.person_add_alt_rounded, color: Colors.white),
+                          const Icon(Icons.person_add_alt_rounded,
+                              color: Colors.white),
                           const SizedBox(width: 6),
                           Switch(
                             value: _showActiveUsers,
@@ -146,10 +191,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                           const SizedBox(width: 6),
                           Consumer<UserActiveProvider>(
                             builder: (context, activeProvider, child) {
-                              final activeCount = activeProvider.activeUsers.length;
+                              final activeCount =
+                                  activeProvider.activeUsers.length;
                               return activeCount > 0
                                   ? Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 5, vertical: 2),
                                       decoration: BoxDecoration(
                                         color: Colors.green,
                                         borderRadius: BorderRadius.circular(10),
@@ -166,6 +213,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   : const SizedBox();
                             },
                           ),
+                          const SizedBox(width: 10),
                         ],
                       );
                     },
@@ -175,6 +223,56 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
           ],
         ),
+        actions: [
+          Builder(
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              // Se define el contenido del botón según el ancho de la pantalla.
+              final Widget content = screenWidth >= 800
+                  ? const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.upload_file, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          'Subir Documento',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    )
+                  : const Icon(Icons.upload_file, color: Colors.white);
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: InkWell(
+                  onTap: _uploadDocument,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth >= 800 ? 16 : 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Colors.blueAccent, Colors.lightBlue],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          offset: Offset(0, 2),
+                          blurRadius: 6,
+                        )
+                      ],
+                    ),
+                    child: content,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -225,7 +323,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               top: 0,
               bottom: 0,
               child: SidebarMenu(
-                selectedIndex: 1, 
+                selectedIndex: 1,
                 userName: "Juan Pérez",
               ),
             ),
@@ -256,6 +354,10 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             ),
           ),
+          if (_isLoading)
+            const Positioned.fill(
+              child: Center(child: CircularProgressIndicator()),
+            ),
         ],
       ),
     );

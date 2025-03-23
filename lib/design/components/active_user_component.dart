@@ -10,7 +10,6 @@ class ActiveUserComponent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<UserActiveProvider>(
       builder: (context, activeUserProvider, _) {
-        final activeUsers = activeUserProvider.activeUsers;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -33,10 +32,10 @@ class ActiveUserComponent extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             // Si no hay usuarios, se muestra un mensaje centrado
-            if (activeUsers.isEmpty)
+            if (activeUserProvider.activeUsers.isEmpty)
               _buildNoUsersDirectly(context)
             else
-              _buildActiveUsersCards(context, activeUsers),
+              _buildActiveUsersCards(context, activeUserProvider.activeUsers),
             const SizedBox(height: 20),
           ],
         );
@@ -52,11 +51,11 @@ class ActiveUserComponent extends StatelessWidget {
 
     return SizedBox(
       height: screenHeight * 0.7,
-      child: Center(
+      child: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Ícono principal para usuarios activos con X roja superpuesta
+            // Ícono principal para usuarios activos con X roja superpuesta en la esquina superior derecha
             SizedBox(
               width: 120,
               height: 120,
@@ -67,37 +66,35 @@ class ActiveUserComponent extends StatelessWidget {
                     child: Icon(
                       Icons.people_alt_rounded,
                       size: 100,
-                      color: Colors.grey[400],
+                      color: Colors.white,
                     ),
                   ),
-                  const Align(
-                    alignment: Alignment.center,
+                  Align(
+                    alignment: Alignment.topRight,
                     child: Icon(
                       Icons.cancel_rounded,
-                      size: 100,
+                      size: 30,
                       color: Colors.redAccent,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
-            const Text(
+            SizedBox(height: 20),
+            Text(
               'No hay usuarios activos',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
-                fontFamily: 'Roboto',
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            SizedBox(height: 8),
+            Text(
               'En cuanto existan usuarios activos se mostrarán aquí.',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.black54,
-                fontFamily: 'Roboto',
               ),
               textAlign: TextAlign.center,
             ),
@@ -130,7 +127,7 @@ class ActiveUserComponent extends StatelessWidget {
           children: activeUsers.map((user) {
             return SizedBox(
               width: itemWidth,
-              height: 400, 
+              height: 400,
               child: _buildUserContainer(context, user, fontSize),
             );
           }).toList(),
@@ -139,16 +136,14 @@ class ActiveUserComponent extends StatelessWidget {
     );
   }
 
-  /// Contenedor interno para cada usuario activo, con gradiente y sombra distintiva.
+  /// Contenedor interno para cada usuario activo.
   Widget _buildUserContainer(BuildContext context, User user, double fontSize) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        decoration: const BoxDecoration
-        (
-          // Gradiente en tonos verdes para identificar usuarios activos
-          color: Colors.white
-          ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: _buildUserContent(context, user, fontSize),
@@ -157,7 +152,7 @@ class ActiveUserComponent extends StatelessWidget {
     );
   }
 
-  /// Muestra la información del usuario activo, incluyendo rol.
+  /// Muestra la información del usuario activo, incluyendo su rol.
   Widget _buildUserContent(BuildContext context, User user, double fontSize) {
     Map<IconData, Color> iconColors = {
       Icons.person: Colors.blue.shade300,
@@ -169,53 +164,30 @@ class ActiveUserComponent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Información principal con scroll si es necesario
-        Flexible(
-          fit: FlexFit.tight,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Nombre del usuario y botón para más detalles
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${user.name} ${user.surnames}',
-                        style: TextStyle(
-                          fontSize: fontSize,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.more_vert, color: Colors.black54),
-                      onPressed: () {
-                        _showUserDetailsDialog(context, user);
-                      },
-                    ),
-                  ],
-                ),
-                Text(
-                  'Datos personales',
-                  style: TextStyle(
-                    fontSize: fontSize * 0.9,
-                    color: Colors.black54,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-                const Divider(),
-                _buildUserInfoRow(Icons.person, 'Usuario:', user.username, fontSize, iconColors),
-                _buildUserInfoRow(Icons.email, 'Email:', user.mail, fontSize, iconColors),
-                _buildUserInfoRow(Icons.phone, 'Teléfono:', user.phoneNumber, fontSize, iconColors),
-                _buildUserInfoRow(Icons.location_on, 'Dirección:', user.address, fontSize, iconColors),
-                _buildUserInfoRow(Icons.security, 'Rol:', user.rol, fontSize, iconColors)
-              ],
-            ),
+        // Información principal: solo se muestra el nombre sin los tres puntitos
+        Text(
+          '${user.name} ${user.surnames}',
+          style: TextStyle(
+            fontSize: fontSize,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
           ),
         ),
-        // Botones de acción fijos en la parte inferior del contenedor
+        Text(
+          'Datos personales',
+          style: TextStyle(
+            fontSize: fontSize * 0.9,
+            color: Colors.black54,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+        const Divider(),
+        _buildUserInfoRow(Icons.person, 'Usuario:', user.username, fontSize, iconColors),
+        _buildUserInfoRow(Icons.email, 'Email:', user.mail, fontSize, iconColors),
+        _buildUserInfoRow(Icons.phone, 'Teléfono:', user.phoneNumber, fontSize, iconColors),
+        _buildUserInfoRow(Icons.location_on, 'Dirección:', user.address, fontSize, iconColors),
+        _buildUserInfoRow(Icons.security, 'Rol:', user.rol, fontSize, iconColors),
+        // Botones de acción en la parte inferior
         Align(
           alignment: Alignment.bottomCenter,
           child: _buildActionButtons(context, user),
@@ -224,7 +196,7 @@ class ActiveUserComponent extends StatelessWidget {
     );
   }
 
-  /// Fila de información para cada dato (usuario, email, etc.)
+  /// Fila de información para cada dato (usuario, email, etc.).
   Widget _buildUserInfoRow(
     IconData icon,
     String label,
@@ -242,7 +214,7 @@ class ActiveUserComponent extends StatelessWidget {
             label,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: const Color.fromARGB(255, 0, 0, 0),
+              color: Colors.black87,
               fontSize: fontSize,
             ),
           ),
@@ -265,7 +237,7 @@ class ActiveUserComponent extends StatelessWidget {
     );
   }
 
-  /// Botones de acción: Dar de baja y Eliminar
+  /// Botones de acción: Dar de baja, Editar y Eliminar.
   Widget _buildActionButtons(BuildContext context, User user) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -290,6 +262,10 @@ class ActiveUserComponent extends StatelessWidget {
               // Botón para dar de baja
               _buildIconButton(Icons.remove_circle_outline, 'Dar de baja', iconSize, () {
                 _deactivateUser(context, user);
+              }),
+              // Botón para editar
+              _buildIconButton(Icons.edit, 'Editar', iconSize, () {
+                _showUserDetailsDialog(context, user, isEditing: true);
               }),
               // Botón para eliminar
               _buildIconButton(Icons.delete, 'Eliminar', iconSize, () {
@@ -356,21 +332,22 @@ class ActiveUserComponent extends StatelessWidget {
     );
   }
 
-  void _showUserDetailsDialog(BuildContext context, User user) {
+  /// Abre un diálogo de detalles y edición del usuario.
+  void _showUserDetailsDialog(BuildContext context, User user, {bool isEditing = false}) {
     String name = user.name;
     String surnames = user.surnames;
     String username = user.username;
     String email = user.mail;
     String phone = user.phoneNumber;
     String address = user.address;
-    bool isEditing = false;
+    bool editing = isEditing;
 
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            if (!isEditing) {
+            if (!editing) {
               return AlertDialog(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 title: Text('$name $surnames', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -398,7 +375,7 @@ class ActiveUserComponent extends StatelessWidget {
                   TextButton(
                     onPressed: () {
                       setState(() {
-                        isEditing = true;
+                        editing = true;
                       });
                     },
                     child: const Text('Editar'),

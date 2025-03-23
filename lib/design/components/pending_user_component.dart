@@ -1,5 +1,5 @@
-import 'package:afa/logic/providers/user_request_provider.dart';
 import 'package:afa/logic/models/user.dart';
+import 'package:afa/logic/providers/user_pending_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -8,9 +8,9 @@ class PendingUserComponentContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<UserRequestProvider>(
-      builder: (context, userRequestProvider, _) {
-        final pendingUsers = userRequestProvider.pendingUsers;
+    return Consumer<UserPendingProvider>(
+      builder: (context, userPendingProvider, _) {
+        final pendingUsers = userPendingProvider.pendingUsers;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -50,17 +50,41 @@ class PendingUserComponentContent extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.person_off, size: fontSize * 4, color: Colors.grey),
-            SizedBox(height: fontSize),
-            Text(
+            // Ícono principal para peticiones pendientes con "X" pequeña en la esquina superior derecha
+            const SizedBox(
+              width: 120,
+              height: 120,
+              child: Stack(
+                children: [
+                  Align(
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.person_add_alt_1_rounded,
+                      size: 100,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: Icon(
+                      Icons.cancel_rounded,
+                      size: 30,
+                      color: Colors.redAccent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
               'No hay peticiones de registro',
               style: TextStyle(
-                fontSize: fontSize,
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
               ),
             ),
-            SizedBox(height: fontSize * 0.5),
+            const SizedBox(height: 8),
             Text(
               'En cuanto existan usuarios pendientes se mostrarán aquí.',
               style: TextStyle(
@@ -133,25 +157,14 @@ class PendingUserComponentContent extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${user.name} ${user.surnames}',
-                        style: TextStyle(
-                          fontSize: fontSize,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.more_vert, color: Colors.black54),
-                      onPressed: () {
-                        _showUserDetailsDialog(context, user);
-                      },
-                    ),
-                  ],
+                // Se elimina el botón de "más opciones"
+                Text(
+                  '${user.name} ${user.surnames}',
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
                 ),
                 Text(
                   'Datos personales',
@@ -218,7 +231,7 @@ class PendingUserComponentContent extends StatelessWidget {
     );
   }
 
-  /// Los botones de acción ahora abrirán el mismo diálogo de detalles del usuario.
+  /// Botones de acción que llaman directamente a los métodos de aceptar, editar y eliminar usuario.
   Widget _buildActionButtons(BuildContext context, User user) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -239,14 +252,18 @@ class PendingUserComponentContent extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
+              // Botón para aceptar usuario: muestra un diálogo para asignar rol
               _buildIconButton(Icons.check, 'Aprobar', iconSize, () {
-                _showUserDetailsDialog(context, user);
+                _showAcceptDialog(context, user);
               }),
+              // Botón para editar usuario
               _buildIconButton(Icons.edit, 'Editar', iconSize, () {
-                _showUserDetailsDialog(context, user);
+                _showUserDetailsDialog(context, user, isEditing: true);
               }),
-              _buildIconButton(Icons.close, 'Rechazar', iconSize, () {
-                _showUserDetailsDialog(context, user);
+              // Botón para eliminar usuario
+              _buildIconButton(Icons.delete, 'Eliminar', iconSize, () {
+                Provider.of<UserPendingProvider>(context, listen: false)
+                    .deleteUser(user);
               }),
             ],
           ),
@@ -263,22 +280,77 @@ class PendingUserComponentContent extends StatelessWidget {
     );
   }
 
-  /// Método único que abre el diálogo de detalles del usuario, igual que al pulsar los tres puntos.
-  void _showUserDetailsDialog(BuildContext context, User user) {
-    String name = user.name;
-    String surnames = user.surnames;
-    String username = user.username;
-    String email = user.mail;
-    String phone = user.phoneNumber;
-    String address = user.address;
-    bool isEditing = false;
+  /// Diálogo para aceptar al usuario, asignándole un rol de la lista.
+  void _showAcceptDialog(BuildContext context, User user) {
+    final roles = Provider.of<UserPendingProvider>(context, listen: false).roles;
+    String selectedRole = roles.isNotEmpty ? roles[0] : '';
 
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            if (!isEditing) {
+            return AlertDialog(
+              title: const Text('Asignar Rol'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Seleccione un rol para el usuario:'),
+                  const SizedBox(height: 10),
+                  DropdownButton<String>(
+                    value: selectedRole,
+                    isExpanded: true,
+                    items: roles.map((role) {
+                      return DropdownMenuItem(
+                        value: role,
+                        child: Text(role),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) {
+                      setState(() {
+                        selectedRole = newValue!;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Provider.of<UserPendingProvider>(context, listen: false)
+                        .acceptUser(user, selectedRole);
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Aceptar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Diálogo que muestra detalles del usuario y permite editarlo.
+  void _showUserDetailsDialog(BuildContext context, User user, {bool isEditing = false}) {
+    String name = user.name;
+    String surnames = user.surnames;
+    String username = user.username;
+    String email = user.mail;
+    String phone = user.phoneNumber;
+    String address = user.address;
+    bool editing = isEditing;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            if (!editing) {
               return AlertDialog(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 title: Text('$name $surnames', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -306,7 +378,7 @@ class PendingUserComponentContent extends StatelessWidget {
                   TextButton(
                     onPressed: () {
                       setState(() {
-                        isEditing = true;
+                        editing = true;
                       });
                     },
                     child: const Text('Editar'),
@@ -385,6 +457,20 @@ class PendingUserComponentContent extends StatelessWidget {
                   ),
                   ElevatedButton(
                     onPressed: () {
+                      // Se crea un usuario actualizado y se llama al método de actualización del provider
+                      final updatedUser = User(
+                        mail: email,
+                        username: username,
+                        password: user.password, // Se mantiene la contraseña original
+                        name: name,
+                        surnames: surnames,
+                        address: address,
+                        phoneNumber: phone,
+                        rol: user.rol,
+                        isActivate: user.isActivate,
+                      );
+                      Provider.of<UserPendingProvider>(context, listen: false)
+                          .updateUser(updatedUser, email, username);
                       Navigator.pop(context);
                     },
                     child: const Text('Guardar cambios'),

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 class UserActiveProvider extends ChangeNotifier 
 {
   final UserService userService = UserService();
-  
   List<User> activeUsers = [];
 
   Future<void> chargeUsers() async 
@@ -13,7 +12,7 @@ class UserActiveProvider extends ChangeNotifier
     List<User> users = await userService.getUsers();
     for (User user in users) 
     {
-      if (user.mail.trim().isNotEmpty && user.isActivate && user.rol.trim().isNotEmpty)
+      if (user.isActivate && user.rol.trim().isNotEmpty)
       {
         activeUsers.add(user);
       }
@@ -23,7 +22,7 @@ class UserActiveProvider extends ChangeNotifier
 
   Future<bool> authenticateUser(String email, String username, String password) async 
   {
-  return await userService.authenticateUser(email, username, password);
+    return await userService.authenticateUser(email, username, password);
   }
 
   void removeUser(User user) 

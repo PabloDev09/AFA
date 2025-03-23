@@ -18,14 +18,14 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _userController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _userController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -114,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 _buildFloatingTextField(
                   label: 'Usuario',
                   hint: 'Ingresa tu usuario',
-                  controller: _usernameController,
+                  controller: _userController,
                 ),
                 const SizedBox(height: 15),
                 _buildFloatingPasswordField(),
@@ -132,8 +132,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         // Se llama al método authenticateUser pasando el mismo valor para email y username
                         bool isAuthenticated =
                             await userActiveProvider.authenticateUser(
-                          _usernameController.text,
-                          _usernameController.text,
+                          _userController.text,
+                          _userController.text,
                           _passwordController.text,
                         );
                         if (isAuthenticated) {

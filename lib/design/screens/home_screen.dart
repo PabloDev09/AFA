@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:afa/design/components/side_bar_menu.dart';
 
@@ -14,7 +12,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   bool _isMenuOpen = false;
-  bool _isLoading = false;
+  final bool _isLoading = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   final CalendarFormat _calendarFormat = CalendarFormat.month;
@@ -70,36 +68,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
   }
 
-  Future<void> _uploadDocument() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles();
-
-      if (result != null && result.files.isNotEmpty) {
-        setState(() => _isLoading = true);
-
-        var file = result.files.first;
-        String fileName = file.name;
-
-        Reference storageRef = FirebaseStorage.instance.ref().child('documents/$fileName');
-        UploadTask uploadTask = storageRef.putData(file.bytes!);
-
-        TaskSnapshot snapshot = await uploadTask.whenComplete(() => {});
-        String downloadUrl = await snapshot.ref.getDownloadURL();
-
-        await FirebaseFirestore.instance.collection('documents').add({
-          'title': fileName,
-          'fileUrl': downloadUrl,
-        });
-
-        await _fetchDocuments();
-      }
-    } catch (e) {
-      print("❌ Error al subir documento: $e");
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -111,11 +79,44 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         title: Row(
           children: [
             IconButton(
-              icon: Icon(_isMenuOpen ? Icons.close : Icons.menu, color: Colors.white),
+              icon: Icon(
+                _isMenuOpen ? Icons.close : Icons.menu,
+                color: _isMenuOpen ? Colors.blue[700] : Colors.white,
+              ),
               onPressed: _toggleMenu,
             ),
-            const SizedBox(width: 10),
-            const Text('Inicio', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+            Expanded(
+              flex: 1,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.home,
+                        color: _isMenuOpen ? Colors.blue[700] : Colors.white,
+                        size: 30,
+                      ),
+                      const SizedBox(width: 8),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final textSize = constraints.maxWidth > 200 ? 24.0 : 20.0;
+                          return Text(
+                            'Inicio',
+                            style: TextStyle(
+                              color: _isMenuOpen ? Colors.blue[700] : Colors.white,
+                              fontSize: textSize,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -142,11 +143,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            FadeTransition(
-                              opacity: _fadeAnimation,
-                              child: Text(
-                                '${_getGreeting()}, Juan Pérez',
-                                style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                            Center(
+                              child: FadeTransition(
+                                opacity: _fadeAnimation,
+                                child: Text(
+                                  '${_getGreeting()}, Juan Pérez',
+                                  style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 20),
@@ -211,14 +214,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           const Text("📂 Compartición de Documentación", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 10),
           if (_isLoading) const Center(child: CircularProgressIndicator()),
-          ..._documents.map((doc) => _buildDocumentItem(doc["title"], doc["fileUrl"])).toList(),
-          const SizedBox(height: 10),
-          ElevatedButton.icon(
-            onPressed: _uploadDocument,
-            icon: const Icon(Icons.upload_file, color: Colors.white),
-            label: const Text("Subir Documento"),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-          ),
+          ..._documents.map((doc) => _buildDocumentItem(doc["title"], doc["fileUrl"])),
         ],
       ),
     );

@@ -3,7 +3,7 @@ import 'package:afa/logic/providers/loading_provider.dart';
 import 'package:afa/logic/providers/routes_provider.dart';
 import 'package:afa/logic/providers/theme_provider.dart';
 import 'package:afa/logic/providers/user_active_provider.dart';
-import 'package:afa/logic/providers/user_request_provider.dart';
+import 'package:afa/logic/providers/user_pending_provider.dart';
 import 'package:afa/design/themes/afa_theme.dart';
 import 'package:afa/design/screens/loading_screen.dart';
 import 'package:flutter/material.dart';
@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => UserRegisterProvider()),
-        ChangeNotifierProvider(create: (_) => UserRequestProvider()..chargeUsers()),
+        ChangeNotifierProvider(create: (_) => UserPendingProvider()..chargeUsers()),
         ChangeNotifierProvider(create: (_) => UserActiveProvider()..chargeUsers()),
         ChangeNotifierProvider(create: (_) => LoadingProvider()),
         ChangeNotifierProvider(create: (_) => BusProvider()),

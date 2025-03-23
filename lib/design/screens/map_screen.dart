@@ -97,41 +97,40 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-  backgroundColor: const Color.fromARGB(30, 0, 0, 0),
-  elevation: 0,
-  leading: IconButton(
-    icon: Icon(
-      _isMenuOpen ? Icons.close : Icons.menu,
-      color: _isMenuOpen ? Colors.blue[700] : Colors.white,
-      size: 30,
-    ),
-    onPressed: _toggleMenu,
-  ),
-  title: Row(
-    children: [
-      Icon(
-        Icons.map, // Aquí puedes poner el icono que desees
-        color: _isMenuOpen ? Colors.blue[700] : Colors.white,
-        size: 30,
-      ),
-      const SizedBox(width: 10), // Espacio entre el icono y el texto
-      Text(
-        'Mapa',
-        style: TextStyle(
-          color: _isMenuOpen ? Colors.blue[700] : Colors.white,
-          fontSize: screenWidth < 360 ? 18 : 24, // Ajusta el tamaño según el tamaño de pantalla
-          fontWeight: FontWeight.bold,
+        backgroundColor: const Color.fromARGB(30, 0, 0, 0),
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(
+            _isMenuOpen ? Icons.close : Icons.menu,
+            color: _isMenuOpen ? Colors.blue[700] : Colors.white,
+            size: 30,
+          ),
+          onPressed: _toggleMenu,
         ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.map, // Aquí puedes poner el icono que desees
+              color: _isMenuOpen ? Colors.blue[700] : Colors.white,
+              size: 30,
+            ),
+            const SizedBox(width: 10), // Espacio entre el icono y el texto
+            Text(
+              'Mapa',
+              style: TextStyle(
+                color: _isMenuOpen ? Colors.blue[700] : Colors.white,
+                fontSize: screenWidth < 360 ? 18 : 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          _buildMenuButton("Centrar", Icons.my_location, _determinePosition),
+          _buildMenuButton("Conductor", Icons.directions_car, _moveDriver),
+          _buildMenuButton("Distancia", Icons.location_on, _calculateDistance),
+        ],
       ),
-    ],
-  ),
-  actions: [
-    _buildMenuButton("Centrar", Icons.my_location, _determinePosition),
-    _buildMenuButton("Conductor", Icons.directions_car, _moveDriver),
-    _buildMenuButton("Distancia", Icons.location_on, _calculateDistance),
-  ],
-),
-
       body: Stack(
         children: [
           // Mapa
@@ -183,53 +182,7 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
               ),
             ),
 
-          // Texto de distancia y tiempo estimado
-          if (routeProvider.isLoading)
-            const Positioned(
-              bottom: 70,
-              left: 20,
-              right: 20,
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (routeProvider.hasError)
-            Positioned(
-              bottom: 70,
-              left: 20,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.redAccent,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Text(
-                  "Error al calcular la ruta",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            )
-          else if (routeProvider.distance > 0)
-            if (_showDistance)
-              Positioned(
-                bottom: 20,
-                left: 20,
-                right: 20,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.black87,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    "Distancia: ${routeProvider.distance.toStringAsFixed(2)} km | Tiempo estimado: ${routeProvider.estimatedTime.toStringAsFixed(0)} min",
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-
-          // Footer con fondo degradado
+          // Footer con fondo degradado (se mantiene en la parte inferior)
           Positioned(
             bottom: 0,
             left: 0,
@@ -257,6 +210,52 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
               ),
             ),
           ),
+
+          // Texto de distancia y tiempo estimado
+          // Se coloca después del footer para que quede encima.
+          if (routeProvider.isLoading)
+            const Positioned(
+              bottom: 70,
+              left: 20,
+              right: 20,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (routeProvider.hasError)
+            Positioned(
+              bottom: 70,
+              left: 20,
+              right: 20,
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  "Error al calcular la ruta",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            )
+          else if (routeProvider.distance > 0 && _showDistance)
+            Positioned(
+              bottom: 70, // Se posiciona por encima del footer
+              left: 20,
+              right: 20,
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  "Distancia: ${routeProvider.distance.toStringAsFixed(2)} km | Tiempo estimado: ${routeProvider.estimatedTime.toStringAsFixed(0)} min",
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
         ],
       ),
     );
