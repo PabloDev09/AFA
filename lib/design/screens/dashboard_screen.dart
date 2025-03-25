@@ -122,7 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           final textSize =
                               constraints.maxWidth > 200 ? 24.0 : 20.0;
                           return Text(
-                            'Dashboard',
+                            'Panel de control',
                             style: TextStyle(
                               color:
                                   _isMenuOpen ? Colors.blue[700] : Colors.white,
@@ -301,7 +301,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       opacity: _fadeAnimation,
                       child: _showActiveUsers
                           ? const ActiveUserComponent()
-                          : const PendingUserComponentContent(),
+                          : const PendingUserComponent(),
                     ),
                   ),
                 ),

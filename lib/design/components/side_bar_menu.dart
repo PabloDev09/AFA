@@ -43,7 +43,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
             child: ListView(
               children: [
                 _buildMenuItem(Icons.home, "Inicio", 0),
-                _buildMenuItem(Icons.dashboard, "Dashboard", 1),
+                _buildMenuItem(Icons.dashboard, "Panel de control", 1),
                 _buildMenuItem(Icons.map, "Mapa", 2),
                 _buildMenuItem(Icons.settings, "Configuración", 3),
               ],

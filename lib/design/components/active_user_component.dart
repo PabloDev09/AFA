@@ -10,7 +10,6 @@ class ActiveUserComponent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<UserActiveProvider>(
       builder: (context, activeUserProvider, _) {
-
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -127,7 +126,7 @@ class ActiveUserComponent extends StatelessWidget {
           children: activeUsers.map((user) {
             return SizedBox(
               width: itemWidth,
-              height: 400,
+              height: 385,
               child: _buildUserContainer(context, user, fontSize),
             );
           }).toList(),
@@ -153,45 +152,53 @@ class ActiveUserComponent extends StatelessWidget {
   }
 
   /// Muestra la información del usuario activo, incluyendo su rol.
+  /// Se ha modificado para que los botones de acción queden siempre en la parte inferior.
   Widget _buildUserContent(BuildContext context, User user, double fontSize) {
     Map<IconData, Color> iconColors = {
       Icons.person: Colors.blue.shade300,
       Icons.email: Colors.green.shade300,
       Icons.phone: Colors.orange.shade300,
       Icons.location_on: Colors.red.shade300,
+      Icons.security: Colors.purple.shade300,
     };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Información principal: solo se muestra el nombre sin los tres puntitos
-        Text(
-          '${user.name} ${user.surnames}',
-          style: TextStyle(
-            fontSize: fontSize,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+        // Contenido scrollable que se expande para ocupar el espacio disponible
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${user.name} ${user.surnames}',
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                Text(
+                  'Datos personales',
+                  style: TextStyle(
+                    fontSize: fontSize * 0.9,
+                    color: Colors.black54,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                const Divider(),
+                _buildUserInfoRow(Icons.person, 'Usuario:', user.username, fontSize, iconColors),
+                _buildUserInfoRow(Icons.email, 'Email:', user.mail, fontSize, iconColors),
+                _buildUserInfoRow(Icons.phone, 'Teléfono:', user.phoneNumber, fontSize, iconColors),
+                _buildUserInfoRow(Icons.location_on, 'Dirección:', user.address, fontSize, iconColors),
+                _buildUserInfoRow(Icons.security, 'Rol:', user.rol, fontSize, iconColors),
+              ],
+            ),
           ),
         ),
-        Text(
-          'Datos personales',
-          style: TextStyle(
-            fontSize: fontSize * 0.9,
-            color: Colors.black54,
-            fontStyle: FontStyle.italic,
-          ),
-        ),
-        const Divider(),
-        _buildUserInfoRow(Icons.person, 'Usuario:', user.username, fontSize, iconColors),
-        _buildUserInfoRow(Icons.email, 'Email:', user.mail, fontSize, iconColors),
-        _buildUserInfoRow(Icons.phone, 'Teléfono:', user.phoneNumber, fontSize, iconColors),
-        _buildUserInfoRow(Icons.location_on, 'Dirección:', user.address, fontSize, iconColors),
-        _buildUserInfoRow(Icons.security, 'Rol:', user.rol, fontSize, iconColors),
-        // Botones de acción en la parte inferior
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: _buildActionButtons(context, user),
-        ),
+        // Botones de acción siempre al final
+        _buildActionButtons(context, user),
       ],
     );
   }
@@ -299,7 +306,7 @@ class ActiveUserComponent extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              // Lógica para desactivar al usuario
+              // Aquí podrías llamar a un método del provider para desactivar el usuario.
               Navigator.pop(context);
             },
             child: const Text('Confirmar'),
@@ -309,6 +316,7 @@ class ActiveUserComponent extends StatelessWidget {
     );
   }
 
+  /// Se utiliza el método deleteUser del provider.
   void _deleteUser(BuildContext context, dynamic user) {
     showDialog(
       context: context,
@@ -322,7 +330,8 @@ class ActiveUserComponent extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              // Lógica para eliminar al usuario
+              Provider.of<UserActiveProvider>(context, listen: false)
+                  .deleteUser(user);
               Navigator.pop(context);
             },
             child: const Text('Eliminar'),
@@ -454,6 +463,20 @@ class ActiveUserComponent extends StatelessWidget {
                   ),
                   ElevatedButton(
                     onPressed: () {
+                      // Se crea un usuario actualizado y se llama al método updateUser del provider
+                      final updatedUser = User(
+                        mail: email,
+                        username: username,
+                        password: user.password, // Conserva la contraseña original
+                        name: name,
+                        surnames: surnames,
+                        address: address,
+                        phoneNumber: phone,
+                        rol: user.rol,
+                        isActivate: user.isActivate,
+                      );
+                      Provider.of<UserActiveProvider>(context, listen: false)
+                          .updateUser(updatedUser, email, username);
                       Navigator.pop(context);
                     },
                     child: const Text('Guardar cambios'),

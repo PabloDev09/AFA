@@ -133,9 +133,9 @@ class _RegisterScreenState extends State<RegisterScreen>
         mail: _mailController.text,
         username: _usernameController.text,
         password: _passwordController.text,
-        name: _nameController.text,
-        surnames: _surnamesController.text,
-        address: address,
+        name: userRegisterProvider.capitalizeEachWord(_nameController.text),
+        surnames: userRegisterProvider.capitalizeEachWord(_surnamesController.text),
+        address: userRegisterProvider.capitalizeEachWord(address),
         phoneNumber: _phoneController.text,
       );
 

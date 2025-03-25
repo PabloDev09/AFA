@@ -146,6 +146,17 @@ class UserRegisterProvider extends ChangeNotifier {
     errorMail = "";
     errorUser = "";
   }
+
+String capitalizeEachWord(String input) {
+  return input.split(' ').map((word) {
+    if (word.isEmpty) return '';
+    if (word[0] == '(' && word.length > 1) {
+      return '(${word[1].toUpperCase()}${word.substring(2).toLowerCase()}';
+    }
+    return word[0].toUpperCase() + word.substring(1).toLowerCase();
+  }).join(' ');
+}
+
 }
 
 

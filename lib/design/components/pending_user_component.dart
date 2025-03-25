@@ -1,10 +1,11 @@
 import 'package:afa/logic/models/user.dart';
+import 'package:afa/logic/providers/user_active_provider.dart';
 import 'package:afa/logic/providers/user_pending_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class PendingUserComponentContent extends StatelessWidget {
-  const PendingUserComponentContent({super.key});
+class PendingUserComponent extends StatelessWidget {
+  const PendingUserComponent({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -151,8 +152,7 @@ class PendingUserComponentContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Flexible(
-          fit: FlexFit.tight,
+        Expanded(
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,10 +183,8 @@ class PendingUserComponentContent extends StatelessWidget {
             ),
           ),
         ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: _buildActionButtons(context, user),
-        ),
+        // Botones de acción pegados abajo
+        _buildActionButtons(context, user),
       ],
     );
   }
@@ -231,7 +229,7 @@ class PendingUserComponentContent extends StatelessWidget {
     );
   }
 
-  /// Botones de acción que llaman directamente a los métodos de aceptar, editar y eliminar usuario.
+  /// Botones de acción que llaman a los métodos de aceptar, editar y eliminar usuario.
   Widget _buildActionButtons(BuildContext context, User user) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -260,10 +258,9 @@ class PendingUserComponentContent extends StatelessWidget {
               _buildIconButton(Icons.edit, 'Editar', iconSize, () {
                 _showUserDetailsDialog(context, user, isEditing: true);
               }),
-              // Botón para eliminar usuario
+              // Botón para eliminar usuario, que muestra un alert de confirmación
               _buildIconButton(Icons.delete, 'Eliminar', iconSize, () {
-                Provider.of<UserPendingProvider>(context, listen: false)
-                    .deleteUser(user);
+                _showDeleteUserDialog(context, user);
               }),
             ],
           ),
@@ -320,12 +317,12 @@ class PendingUserComponentContent extends StatelessWidget {
                   child: const Text('Cancelar'),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    Provider.of<UserPendingProvider>(context, listen: false)
-                        .acceptUser(user, selectedRole);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Aceptar'),
+                onPressed: () async {
+                await Provider.of<UserPendingProvider>(context, listen: false).acceptUser(user, selectedRole);
+                Navigator.pop(context);
+                Provider.of<UserActiveProvider>(context, listen: false).chargeUsers();
+                },
+                child: const Text('Aceptar'),
                 ),
               ],
             );
@@ -457,18 +454,7 @@ class PendingUserComponentContent extends StatelessWidget {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      // Se crea un usuario actualizado y se llama al método de actualización del provider
-                      final updatedUser = User(
-                        mail: email,
-                        username: username,
-                        password: user.password, // Se mantiene la contraseña original
-                        name: name,
-                        surnames: surnames,
-                        address: address,
-                        phoneNumber: phone,
-                        rol: user.rol,
-                        isActivate: user.isActivate,
-                      );
+                      final updatedUser = user;
                       Provider.of<UserPendingProvider>(context, listen: false)
                           .updateUser(updatedUser, email, username);
                       Navigator.pop(context);
@@ -479,6 +465,33 @@ class PendingUserComponentContent extends StatelessWidget {
               );
             }
           },
+        );
+      },
+    );
+  }
+
+  /// Diálogo para confirmar la eliminación de un usuario.
+  void _showDeleteUserDialog(BuildContext context, User user) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Confirmar Eliminación'),
+          content: Text('¿Estás seguro de que deseas eliminar a ${user.username}?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Provider.of<UserPendingProvider>(context, listen: false)
+                    .deleteUser(user);
+                Navigator.pop(context);
+              },
+              child: const Text('Eliminar'),
+            ),
+          ],
         );
       },
     );
