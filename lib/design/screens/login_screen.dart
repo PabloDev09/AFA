@@ -30,32 +30,36 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _signInWithGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) return;
+ Future<void> _signInWithGoogle() async {
+  try {
+    final GoogleSignInAccount? googleUser = await GoogleSignIn(clientId: '253008576813-licpgrjsnuhh9i918tlrda6veitsg0c6.apps.googleusercontent.com').signIn();
+    if (googleUser == null) return;
 
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
 
-      await FirebaseAuth.instance.signInWithCredential(credential);
+    );
 
-      if (mounted) {
-        context.go(PathUrlAfa().pathDashboard);
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al iniciar sesión con Google: $e'),
-          duration: const Duration(seconds: 1),
-        ),
-      );
+    await FirebaseAuth.instance.signInWithCredential(credential);
+
+    if (mounted) {
+      context.go(PathUrlAfa().pathDashboard);
     }
+  } catch (e, stacktrace) {
+    // Imprime el error y stacktrace en la consola para depuración
+    print('Error al iniciar sesión con Google: $e');
+    print(stacktrace);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error al iniciar sesión con Google: $e'),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
+}
+
 
   Widget _buildLoginForm(LoadingProvider loadingProvider) {
     final theme = Theme.of(context);

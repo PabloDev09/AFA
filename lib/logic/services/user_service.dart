@@ -33,6 +33,22 @@ class UserService {
     return usersRegister;
   }
 
+  Future<List<User>> getUsersByRol(String rol) async 
+  {
+      List<User> usersRol = [];
+      QuerySnapshot querySnapshot = await collectionReferenceUsers
+          .where('rol', isEqualTo: rol)
+          .get();
+
+    for (var documento in querySnapshot.docs) {
+      final data = documento.data() as Map<String, dynamic>;
+      final user = User.fromMap(data);
+      usersRol.add(user);
+    }
+
+    return usersRol;
+  }
+
   Future<String?> getUserIdByEmail(String email) async {
     QuerySnapshot queryByEmail = await collectionReferenceUsers
         .where('mail', isEqualTo: email)

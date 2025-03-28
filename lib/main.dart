@@ -1,4 +1,5 @@
 import 'package:afa/logic/providers/bus_provider.dart';
+import 'package:afa/logic/providers/driver_route_provider.dart';
 import 'package:afa/logic/providers/loading_provider.dart';
 import 'package:afa/logic/providers/routes_provider.dart';
 import 'package:afa/logic/providers/theme_provider.dart';
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => BusProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => RoutesProvider()),
+        ChangeNotifierProvider(create: (_) => DriverRouteProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {

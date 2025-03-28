@@ -317,34 +317,43 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   }
 
   static Widget _buildButton(
-    BuildContext context,
-    String text,
-    String route,
-    LoadingProvider loadingProvider,
-  ) {
-    final theme = Theme.of(context);
-    return ElevatedButton(
-      onPressed: () {
-        loadingProvider.screenChange();
-        context.go(route);
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: theme.brightness == Brightness.dark
-            ? const Color(0xFF1E1E1E)
-            : const Color(0xFF063970),
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-        textStyle: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          fontFamily: 'Montserrat',
+      BuildContext context,
+      String text,
+      String route,
+      LoadingProvider loadingProvider,
+    ) {
+      final theme = Theme.of(context);
+      return SizedBox(
+        width: double.infinity, // Se adapta al ancho disponible
+        child: ElevatedButton(
+          onPressed: () {
+            loadingProvider.screenChange();
+            context.go(route);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: theme.brightness == Brightness.dark
+                ? const Color(0xFF1E1E1E)
+                : const Color(0xFF063970),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 18), // Espaciado uniforme
+            textStyle: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Montserrat',
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 8,
+          ),
+          child: Center(
+            child: Text(
+              text.toUpperCase(),
+              textAlign: TextAlign.center,
+            ),
+          ),
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        elevation: 8,
-      ),
-      child: Text(text.toUpperCase()),
-    );
-  }
+      );
+    }
+
 }

@@ -1,14 +1,1 @@
-{
-    "flutter": {
-        "platforms": {
-            "dart": {
-                "lib/firebase_options.dart": {
-                    "projectId": "afa-jandula",
-                    "configurations": {
-                        "web": "1:253008576813:web:50023b3bdfe2027c3553a4"
-                    }
-                }
-            }
-        }
-    }
-}
+{"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"afa-jandula","configurations":{"web":"1:253008576813:web:50023b3bdfe2027c3553a4"}}}}}}
