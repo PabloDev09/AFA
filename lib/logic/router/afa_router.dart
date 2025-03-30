@@ -4,6 +4,7 @@ import 'package:afa/design/screens/login_screen.dart';
 import 'package:afa/design/screens/map_screen.dart';
 import 'package:afa/design/screens/not_found_screen.dart';
 import 'package:afa/design/screens/register_screen.dart';
+import 'package:afa/design/screens/user_home_screen.dart';
 import 'package:afa/design/screens/welcome_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
@@ -49,6 +50,11 @@ final GoRouter afaRouter = GoRouter(
       path: '/home',
       name: 'home',
       builder: (context, state) => const DriverHomeScreen(),
+    ),
+    GoRoute(
+      path: '/home2',
+      name: 'home2',
+      builder: (context, state) => const UserHomeScreen(),
     ),
   ],
   errorBuilder: (context, state) => const NotFoundScreen(),

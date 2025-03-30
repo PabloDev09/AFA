@@ -7,6 +7,7 @@ import 'package:afa/logic/providers/user_active_provider.dart';
 import 'package:afa/logic/providers/user_pending_provider.dart';
 import 'package:afa/design/themes/afa_theme.dart';
 import 'package:afa/design/screens/loading_screen.dart';
+import 'package:afa/logic/providers/user_route_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:afa/logic/router/afa_router.dart';
@@ -40,6 +41,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => RoutesProvider()),
         ChangeNotifierProvider(create: (_) => DriverRouteProvider()),
+        ChangeNotifierProvider(create: (_) => UserRouteProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
