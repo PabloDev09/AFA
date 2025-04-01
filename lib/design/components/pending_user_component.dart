@@ -1,6 +1,6 @@
 import 'package:afa/logic/models/user.dart';
-import 'package:afa/logic/providers/user_active_provider.dart';
-import 'package:afa/logic/providers/user_pending_provider.dart';
+import 'package:afa/logic/providers/active_user_provider.dart';
+import 'package:afa/logic/providers/pending_user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -9,7 +9,7 @@ class PendingUserComponent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<UserPendingProvider>(
+    return Consumer<PendingUserProvider>(
       builder: (context, userPendingProvider, _) {
         final pendingUsers = userPendingProvider.pendingUsers;
         return Column(
@@ -279,7 +279,7 @@ class PendingUserComponent extends StatelessWidget {
 
   /// Diálogo para aceptar al usuario, asignándole un rol de la lista.
   void _showAcceptDialog(BuildContext context, User user) {
-    final roles = Provider.of<UserPendingProvider>(context, listen: false).roles;
+    final roles = Provider.of<PendingUserProvider>(context, listen: false).roles;
     String selectedRole = roles.isNotEmpty ? roles[0] : '';
 
     showDialog(
@@ -318,9 +318,9 @@ class PendingUserComponent extends StatelessWidget {
                 ),
                 ElevatedButton(
                 onPressed: () async {
-                await Provider.of<UserPendingProvider>(context, listen: false).acceptUser(user, selectedRole);
+                await Provider.of<PendingUserProvider>(context, listen: false).approveUser(user, selectedRole);
                 Navigator.pop(context);
-                Provider.of<UserActiveProvider>(context, listen: false).chargeUsers();
+                Provider.of<ActiveUserProvider>(context, listen: false).loadActiveUsers();
                 },
                 child: const Text('Aceptar'),
                 ),
@@ -455,7 +455,7 @@ class PendingUserComponent extends StatelessWidget {
                   ElevatedButton(
                     onPressed: () {
                       final updatedUser = user;
-                      Provider.of<UserPendingProvider>(context, listen: false)
+                      Provider.of<PendingUserProvider>(context, listen: false)
                           .updateUser(updatedUser, email, username);
                       Navigator.pop(context);
                     },
@@ -485,8 +485,8 @@ class PendingUserComponent extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                Provider.of<UserPendingProvider>(context, listen: false)
-                    .deleteUser(user);
+                Provider.of<PendingUserProvider>(context, listen: false)
+                    .removeUser(user);
                 Navigator.pop(context);
               },
               child: const Text('Eliminar'),

@@ -1,7 +1,7 @@
 import 'package:afa/design/components/pending_user_component.dart';
 import 'package:afa/design/components/active_user_component.dart';
-import 'package:afa/logic/providers/user_active_provider.dart';
-import 'package:afa/logic/providers/user_pending_provider.dart';
+import 'package:afa/logic/providers/active_user_provider.dart';
+import 'package:afa/logic/providers/pending_user_provider.dart';
 import 'package:afa/design/components/side_bar_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -147,7 +147,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     builder: (context, constraints) {
                       return Row(
                         children: [
-                          Consumer<UserPendingProvider>(
+                          Consumer<PendingUserProvider>(
                             builder: (context, userPendingProvider, child) {
                               final count = userPendingProvider.pendingUsers.length;
                               return count > 0
@@ -189,7 +189,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           const SizedBox(width: 6),
                           const Icon(Icons.person, color: Colors.white),
                           const SizedBox(width: 6),
-                          Consumer<UserActiveProvider>(
+                          Consumer<ActiveUserProvider>(
                             builder: (context, activeProvider, child) {
                               final activeCount =
                                   activeProvider.activeUsers.length;

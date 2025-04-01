@@ -37,7 +37,7 @@ class RouteUserComponent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<DriverRouteProvider>(
       builder: (context, driverRouteProvider, _) {
-        final routeUsers = driverRouteProvider.usersToPickUp;
+        final routeUsers = driverRouteProvider.pendingUsers;
         final bool isSomeoneBeingPicked = routeUsers.any((user) => user.isBeingPicking);
         final int usersLeft = routeUsers.where((user) => !user.isBeingPicking).length;
 
@@ -201,7 +201,7 @@ class RouteUserComponent extends StatelessWidget {
                 context,
                 'Marcar como Recogido',
                 '¿Está seguro de que ha recogido a ${user.name}?',
-                () => Provider.of<DriverRouteProvider>(context, listen: false).collectedUser(user.username),
+                () => Provider.of<DriverRouteProvider>(context, listen: false).markUserAsCollected(user.username),
                 Colors.green,
               );
             },
@@ -214,7 +214,7 @@ class RouteUserComponent extends StatelessWidget {
                 context,
                 'Cancelar Recogida',
                 '¿Está seguro de que desea cancelar la recogida de ${user.name}?',
-                () => Provider.of<DriverRouteProvider>(context, listen: false).cancelPickUpUser(user.username),
+                () => Provider.of<DriverRouteProvider>(context, listen: false).cancelPickUp(user.username),
                 Colors.red,
               );
             },

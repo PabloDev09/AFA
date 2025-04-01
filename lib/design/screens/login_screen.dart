@@ -2,7 +2,7 @@
 
 import 'dart:ui';
 import 'package:afa/logic/providers/loading_provider.dart';
-import 'package:afa/logic/providers/user_active_provider.dart';
+import 'package:afa/logic/providers/active_user_provider.dart';
 import 'package:afa/logic/router/path/path_url_afa.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -129,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () async {
                       if (_formKey.currentState!.validate()) {
                         // Se utiliza el provider encargado de la autenticación
-                        final userActiveProvider = Provider.of<UserActiveProvider>(
+                        final userActiveProvider = Provider.of<ActiveUserProvider>(
                           context,
                           listen: false,
                         );

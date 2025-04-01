@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:afa/logic/providers/loading_provider.dart';
-import 'package:afa/logic/providers/user_register_provider.dart';
+import 'package:afa/logic/providers/user_registration_provider.dart';
 import 'package:afa/logic/router/path/path_url_afa.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/material.dart';
@@ -102,7 +102,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     return await Geolocator.getCurrentPosition();
   }
 
-  void _registerUser(UserRegisterProvider userRegisterProvider) async {
+  void _registerUser(UserRegistrationProvider userRegistrationProvider) async {
     if (!_termsAccepted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -122,27 +122,27 @@ class _RegisterScreenState extends State<RegisterScreen>
         return;
       }
 
-      String address = userRegisterProvider.joinAddress(
+      String address = userRegistrationProvider.formatAddress(
         _streetController.text,
-        userRegisterProvider.selectedCity ?? "",
-        userRegisterProvider.selectedProvince ?? "",
+        userRegistrationProvider.selectedCity ?? "",
+        userRegistrationProvider.selectedProvince ?? "",
         _postalCodeController.text,
       );
 
-      await userRegisterProvider.registerUser(
-        mail: _mailController.text,
+      await userRegistrationProvider.registerUser(
+        email: _mailController.text,
         username: _usernameController.text,
         password: _passwordController.text,
-        name: userRegisterProvider.capitalizeEachWord(_nameController.text),
-        surnames: userRegisterProvider.capitalizeEachWord(_surnamesController.text),
-        address: userRegisterProvider.capitalizeEachWord(address),
+        firstName: userRegistrationProvider.capitalizeEachWord(_nameController.text),
+        lastName: userRegistrationProvider.capitalizeEachWord(_surnamesController.text),
+        address: userRegistrationProvider.capitalizeEachWord(address),
         phoneNumber: _phoneController.text,
       );
 
       _formKey.currentState!.validate();
 
-      if (userRegisterProvider.errorMail == "" &&
-          userRegisterProvider.errorUser.trim() == "") {
+      if (userRegistrationProvider.emailError == "" &&
+          userRegistrationProvider.usernameError.trim() == "") {
         showSubmittedDialog(context);
         _mailController.clear();
         _usernameController.clear();
@@ -192,7 +192,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   @override
   Widget build(BuildContext context) {
     final loadingProvider = Provider.of<LoadingProvider>(context);
-    final userRegisterProvider = Provider.of<UserRegisterProvider>(context);
+    final userRegistrationProvider = Provider.of<UserRegistrationProvider>(context);
     final theme = Theme.of(context);
 
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -269,7 +269,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                       child: FadeTransition(
                         opacity: _fadeAnimation,
                         child: _buildRegisterForm(
-                          userRegisterProvider,
+                          userRegistrationProvider,
                           theme,
                           loadingProvider,
                         ),
@@ -313,7 +313,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   }
 
   Widget _buildRegisterForm(
-    UserRegisterProvider userRegisterProvider,
+    UserRegistrationProvider userRegistrationProvider,
     ThemeData theme,
     LoadingProvider loadingProvider,
   ) {
@@ -376,12 +376,12 @@ class _RegisterScreenState extends State<RegisterScreen>
                   keyboardType: TextInputType.emailAddress,
                   onChanged: (value) async {
                     if (value.trim().isNotEmpty &&
-                        userRegisterProvider.isCorrectMail(value)) {
-                      bool exists = await userRegisterProvider.mailExists(value);
+                        userRegistrationProvider.isValidEmailDomain(value)) {
+                      bool exists = await userRegistrationProvider.emailExists(value);
                       if (exists) {
-                        userRegisterProvider.errorMail = "El correo ya existe";
+                        userRegistrationProvider.emailError = "El correo ya existe";
                       } else {
-                        userRegisterProvider.errorMail = "";
+                        userRegistrationProvider.emailError = "";
                       }
                     }
                   },
@@ -389,11 +389,11 @@ class _RegisterScreenState extends State<RegisterScreen>
                     if (value == null || value.trim().isEmpty) {
                       return "Este campo es obligatorio";
                     }
-                    if (!userRegisterProvider.isCorrectMail(value)) {
+                    if (!userRegistrationProvider.isValidEmailDomain(value)) {
                       return "Introduce un correo válido";
                     }
-                    if (userRegisterProvider.errorMail.trim().isNotEmpty) {
-                      return userRegisterProvider.errorMail.trim();
+                    if (userRegistrationProvider.emailError.trim().isNotEmpty) {
+                      return userRegistrationProvider.emailError.trim();
                     }
                     return null;
                   },
@@ -406,11 +406,11 @@ class _RegisterScreenState extends State<RegisterScreen>
                   onChanged: (value) async {
                     if (value.trim().isNotEmpty) {
                       bool exists =
-                          await userRegisterProvider.usernameExists(value);
+                          await userRegistrationProvider.usernameExists(value);
                       if (exists) {
-                        userRegisterProvider.errorUser ="El usuario ya existe";
+                        userRegistrationProvider.usernameError ="El usuario ya existe";
                       } else {
-                        userRegisterProvider.errorUser = "";
+                        userRegistrationProvider.usernameError = "";
                       }
                     }
                   },
@@ -418,8 +418,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                     if (value == null || value.trim().isEmpty) {
                       return "Este campo es obligatorio";
                     }
-                    if (userRegisterProvider.errorUser.trim().isNotEmpty) {
-                      return userRegisterProvider.errorUser.trim();
+                    if (userRegistrationProvider.usernameError.trim().isNotEmpty) {
+                      return userRegistrationProvider.usernameError.trim();
                     }
                     return null;
                   },
@@ -427,7 +427,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 const SizedBox(height: 15),
                 _buildFloatingPasswordField(
                   _passwordController,
-                  userRegisterProvider,
+                  userRegistrationProvider,
                   theme,
                 ),
                 const SizedBox(height: 20),
@@ -531,11 +531,11 @@ class _RegisterScreenState extends State<RegisterScreen>
                       child: _buildFloatingDropdown(
                         label: 'Provincia',
                         hint: 'Seleccione provincia',
-                        value: userRegisterProvider.selectedProvince,
-                        items: userRegisterProvider.provincesNames,
+                        value: userRegistrationProvider.selectedProvince,
+                        items: userRegistrationProvider.provinceNames,
                         onChanged: (newValue) {
                           if (newValue != null) {
-                            userRegisterProvider.setSelectedProvince(newValue);
+                            userRegistrationProvider.selectedProvince;
                           }
                         },
                         validator: (value) {
@@ -551,11 +551,11 @@ class _RegisterScreenState extends State<RegisterScreen>
                       child: _buildFloatingDropdown(
                         label: 'Ciudad',
                         hint: 'Seleccione ciudad',
-                        value: userRegisterProvider.selectedCity,
-                        items: userRegisterProvider.cities,
+                        value: userRegistrationProvider.selectedCity,
+                        items: userRegistrationProvider.cities,
                         onChanged: (newValue) {
                           if (newValue != null) {
-                            userRegisterProvider.setSelectedCity(newValue);
+                            userRegistrationProvider.selectedCity;
                           }
                         },
                         validator: (value) {
@@ -594,7 +594,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                     onPressed: _isLoading
                         ? null
                         : () async {
-                            _registerUser(userRegisterProvider);
+                            _registerUser(userRegistrationProvider);
                           },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF063970),
@@ -684,7 +684,7 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   Widget _buildFloatingPasswordField(
     TextEditingController controller,
-    UserRegisterProvider userRegisterProvider,
+    UserRegistrationProvider userRegistrationProvider,
     ThemeData theme,
   ) {
     return TextFormField(
@@ -695,7 +695,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         if (value == null || value.trim().isEmpty) {
           return "Este campo es obligatorio";
         }
-        if (!userRegisterProvider.isSecurePassword(value)) {
+        if (!userRegistrationProvider.isStrongPassword(value)) {
           return "La contraseña no es segura. Debe tener al menos 8 caracteres, \n"
               "incluir mayúsculas, minúsculas, dígitos y un carácter especial.";
         }

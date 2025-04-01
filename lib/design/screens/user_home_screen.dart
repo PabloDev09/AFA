@@ -25,12 +25,17 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     super.initState();
     initializeDateFormatting('es', null);
     _focusedDay = DateTime.now();
-    _selectedDay = _focusedDay;
+    _selectedDay = _focusedDay; // Día actual fijo
     _horaRecogida = DateFormat('HH:mm:ss').format(DateTime.now());
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         _horaRecogida = DateFormat('HH:mm:ss').format(DateTime.now());
       });
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<UserRouteProvider>(context, listen: false)
+          .startListening("pepe");
     });
   }
 
@@ -40,7 +45,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     super.dispose();
   }
 
-  Future<void> _confirmarAccion(bool cancelar, UserRouteProvider userProvider) async {
+  Future<void> _confirmarAccion(
+      bool cancelar, UserRouteProvider userProvider) async {
     String accion = cancelar ? "Cancelar" : "Reanudar";
     Color color = cancelar ? Colors.red : Colors.blue;
 
@@ -102,14 +108,18 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               children: [
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 60, horizontal: 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         const Center(
                           child: Text(
                             'Bienvenido, Juan Pérez',
-                            style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -118,7 +128,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                         const SizedBox(height: 20),
                         Consumer<UserRouteProvider>(
                           builder: (context, userProvider, child) {
-                            return userProvider.pickupScheduled
+                            return userProvider.isPickupScheduled
                                 ? _buildPickupInfo(userProvider)
                                 : _buildPickupCancelled(userProvider);
                           },
@@ -138,7 +148,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
   Widget _buildCalendar() {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12)),
       elevation: 4,
       child: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -149,25 +160,30 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           lastDay: DateTime(2100),
           calendarFormat: CalendarFormat.week,
           startingDayOfWeek: StartingDayOfWeek.monday,
-          selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+          selectedDayPredicate: (day) => isSameDay(day, _selectedDay), // Aquí verificamos que se seleccione el día actual
           onDaySelected: (selectedDay, focusedDay) {
             setState(() {
-              _selectedDay = selectedDay;
-              _focusedDay = selectedDay;
+              _selectedDay = selectedDay; // Actualiza el día seleccionado
+              _focusedDay = focusedDay; // Actualiza el enfoque
             });
           },
+          enabledDayPredicate: (_) => false,
           headerStyle: HeaderStyle(
             formatButtonVisible: false,
             titleCentered: true,
             titleTextFormatter: (date, locale) {
               String formattedDate = DateFormat.yMMMM(locale).format(date);
-              return formattedDate[0].toUpperCase() + formattedDate.substring(1);
+              return formattedDate[0].toUpperCase() +
+                  formattedDate.substring(1);
             },
-            titleTextStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            titleTextStyle:
+                const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           calendarStyle: const CalendarStyle(
-            todayDecoration: BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
-            todayTextStyle: TextStyle(fontSize: 18, color: Colors.white),
+            todayDecoration:
+                BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
+            todayTextStyle:
+                TextStyle(fontSize: 18, color: Colors.white),
           ),
         ),
       ),
@@ -176,7 +192,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
   Widget _buildPickupInfo(UserRouteProvider userProvider) {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12)),
       elevation: 4,
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -184,12 +201,16 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           children: [
             const Text(
               'Recogida Programada',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             Text(
               'Hora de recogida: $_horaRecogida',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
+              style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
@@ -197,8 +218,10 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 50, vertical: 20),
+                textStyle: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold),
               ),
               child: const Text("Cancelar Recogida"),
             ),
@@ -210,7 +233,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
   Widget _buildPickupCancelled(UserRouteProvider userProvider) {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12)),
       elevation: 4,
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -218,7 +242,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           children: [
             const Text(
               'Recogida Cancelada',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             ElevatedButton(
@@ -226,8 +251,10 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 50, vertical: 20),
+                textStyle: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold),
               ),
               child: const Text("Reanudar Recogida"),
             ),

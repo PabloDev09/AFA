@@ -28,7 +28,12 @@ class ChatComponent extends StatelessWidget {
                 child: ListView.builder(
                   reverse: true,
                   itemCount: notifications.length,
-                  itemBuilder: (context, index) => ListTile(title: Text(notifications[index])),
+                  itemBuilder: (context, index) {
+                    // No usamos const en el Text porque el contenido es dinámico
+                    return ListTile(
+                      title: Text(notifications[index]),
+                    );
+                  },
                 ),
               ),
             ],

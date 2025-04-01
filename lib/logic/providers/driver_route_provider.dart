@@ -4,60 +4,52 @@ import 'package:afa/logic/models/route_user.dart';
 
 class DriverRouteProvider extends ChangeNotifier {
   final RouteService _routeService = RouteService();
-  List<RouteUser> usersToPickUp = [];
-  bool rutaIniciada = false;
+  List<RouteUser> pendingUsers = [];
+  bool isRouteActive = false;
   bool isLoading = false;
 
-  Future<void> startRoute() async 
-  {
-    rutaIniciada = true;
+  Future<void> startRoute() async {
+    isRouteActive = true;
     await _routeService.createRouteCollection();
-    usersToPickUp = await _routeService.getUsersToPickUp();
+    pendingUsers = await _routeService.getUsersToPickUp();
     notifyListeners();
   }
 
-  Future<void> continueRoute() async 
-  {
-    rutaIniciada = true;
-    usersToPickUp = await _routeService.getUsersToPickUp();
+  Future<void> resumeRoute() async {
+    isRouteActive = true;
+    pendingUsers = await _routeService.getUsersToPickUp();
     notifyListeners();
   }
 
-  Future<bool> canContinueRoute() async 
-  {
+  Future<bool> canResumeRoute() async {
     isLoading = true;
     return isLoading = await _routeService.canContinueRouteCollection();
   }
 
-  Future<void> stopRoute() async 
-  {
-    rutaIniciada = false;
+  Future<void> stopRoute() async {
+    isRouteActive = false;
     await _routeService.deleteRouteCollection();
-    usersToPickUp.clear();
+    pendingUsers.clear();
     notifyListeners();
   }
 
-  Future<void> pickUpUser(String username) async 
-  {
+  Future<void> pickUpUser(String username) async {
     await _routeService.pickUpUser(username);
-    _fetchRouteUsers();
+    _updatePendingUsers();
   }
 
-  Future<void> cancelPickUpUser(String username) async 
-  {
+  Future<void> cancelPickUp(String username) async {
     await _routeService.cancelPickUpUser(username);
-    _fetchRouteUsers();
+    _updatePendingUsers();
   }
 
-  Future<void> collectedUser(String username) async 
-  {
+  Future<void> markUserAsCollected(String username) async {
     await _routeService.deleteUser(username);
-    _fetchRouteUsers();
+    _updatePendingUsers();
   }
 
-  Future<void> _fetchRouteUsers() async 
-  {
-    usersToPickUp = await _routeService.getUsersToPickUp();
+  Future<void> _updatePendingUsers() async {
+    pendingUsers = await _routeService.getUsersToPickUp();
     notifyListeners();
   }
 }

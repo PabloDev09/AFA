@@ -1,5 +1,5 @@
 import 'package:afa/logic/models/user.dart';
-import 'package:afa/logic/providers/user_active_provider.dart';
+import 'package:afa/logic/providers/active_user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -8,7 +8,7 @@ class ActiveUserComponent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<UserActiveProvider>(
+    return Consumer<ActiveUserProvider>(
       builder: (context, activeUserProvider, _) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -330,7 +330,7 @@ class ActiveUserComponent extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              Provider.of<UserActiveProvider>(context, listen: false)
+              Provider.of<ActiveUserProvider>(context, listen: false)
                   .deleteUser(user);
               Navigator.pop(context);
             },
@@ -475,7 +475,7 @@ class ActiveUserComponent extends StatelessWidget {
                         rol: user.rol,
                         isActivate: user.isActivate,
                       );
-                      Provider.of<UserActiveProvider>(context, listen: false)
+                      Provider.of<ActiveUserProvider>(context, listen: false)
                           .updateUser(updatedUser, email, username);
                       Navigator.pop(context);
                     },

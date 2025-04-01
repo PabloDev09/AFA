@@ -72,6 +72,18 @@ class RouteService {
     return usersToPickUp;
   }
 
+  Future<bool> isGoingToPickUpUser(String username) async {
+    QuerySnapshot querySnapshot = await collectionReferenceRoute
+        .where('username', isEqualTo: username)
+        .get();
+    if (querySnapshot.docs.isNotEmpty) {
+      final doc = querySnapshot.docs.first;
+      bool isBeingPicking = doc.get('isBeingPicking');
+      return isBeingPicking;
+    }
+    return false;
+  }
+
 
   Future<void> _getRolUsers() async {
     List<User> usersRol = await userService.getUsersByRol('Usuario');
