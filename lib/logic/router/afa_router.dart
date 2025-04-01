@@ -8,10 +8,19 @@ import 'package:afa/design/screens/user_home_screen.dart';
 import 'package:afa/design/screens/welcome_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
+import 'package:afa/logic/services/user_service.dart';
+
+Future<String?> getUserRole() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return null;
+
+  final userService = UserService();
+  return await userService.getUserRoleByEmail(user.email!);
+}
+
 
 bool isAuthenticated() {
-  final user = FirebaseAuth.instance.currentUser;
-  return user != null; 
+  return FirebaseAuth.instance.currentUser != null;
 }
 
 final GoRouter afaRouter = GoRouter(
@@ -36,25 +45,39 @@ final GoRouter afaRouter = GoRouter(
       path: '/dashboard',
       name: 'dashboard',
       builder: (context, state) => const DashboardScreen(),
-//      redirect: (context, state) {
-//       if (!isAuthenticated()) return '/login';
-//       return null;
-//     },
+      redirect: (context, state) {
+        // Solo permite el acceso a usuarios autenticados y con rol admin
+        if (!isAuthenticated() || getUserRole() != 'admin') return '/login';
+        return null;
+      },
     ),
     GoRoute(
       path: '/map',
       name: 'map',
       builder: (context, state) => const MapScreen(),
     ),
+    // Ruta única /home que redirige según el rol del usuario
     GoRoute(
       path: '/home',
       name: 'home',
-      builder: (context, state) => const DriverHomeScreen(),
-    ),
-    GoRoute(
-      path: '/home2',
-      name: 'home2',
-      builder: (context, state) => const UserHomeScreen(),
+      builder: (context, state) {
+        final role = getUserRole();
+        // Dependiendo del rol, regresa la pantalla correspondiente
+        if (role == 'Usuario') {
+          return const UserHomeScreen();
+        } else if (role == 'Conductor') {
+          return const DriverHomeScreen();
+        } else {
+          // Si el rol no corresponde a ninguno, se muestra una pantalla de error o NotFound
+          return const NotFoundScreen();
+        }
+      },
+      redirect: (context, state) {
+        // Si no está autenticado o es admin (que no debe usar /home) se redirige.
+        if (!isAuthenticated()) return '/login';
+        if (getUserRole() == 'Administrador') return '/dashboard';
+        return null;
+      },
     ),
   ],
   errorBuilder: (context, state) => const NotFoundScreen(),

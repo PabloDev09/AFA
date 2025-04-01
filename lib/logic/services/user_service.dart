@@ -145,4 +145,18 @@ class UserService {
       throw Exception("Usuario no encontrado");
     }
   }
+
+  Future<String?> getUserRoleByEmail(String email) async {
+    String? userId = await getUserIdByEmail(email);
+
+    if (userId != null) {
+      DocumentSnapshot doc = await collectionReferenceUsers.doc(userId).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        return data['rol'] as String?;
+      }
+    }
+    return null;
+  }
+
 }
