@@ -1,6 +1,6 @@
 import 'dart:ui';
-import 'package:afa/logic/providers/loading_provider.dart';
 import 'package:afa/logic/providers/active_user_provider.dart';
+import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/router/afa_router.dart';
 import 'package:afa/logic/router/path/path_url_afa.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -21,7 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   final _formKey = GlobalKey<FormState>();
-
+  
   @override
   void dispose() {
     _userController.dispose();
@@ -36,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Carga el rol y lo almacena globalmente
   final role = await getUserRole();
-  
+  Provider.of<AuthUserProvider>(context,listen: true).loadUser();
   if(mounted){
     if (role == 'Admin') {
       context.go(PathUrlAfa().pathDashboard);
@@ -85,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Widget _buildLoginForm(LoadingProvider loadingProvider) {
+  Widget _buildLoginForm() {
     final theme = Theme.of(context);
     return Form(
       key: _formKey,
@@ -164,7 +164,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         );
                         if (isAuthenticated) {
                           await FirebaseAuth.instance.signInWithEmailAndPassword(email: _userController.text, password: _passwordController.text);
-                          loadingProvider.screenChange();
                           // Redirige según el rol del usuario
                           _navigateAccordingToRole(_userController.text);
                         } else {
@@ -233,7 +232,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 Center(
                   child: TextButton(
                     onPressed: () {
-                      loadingProvider.screenChange();
                       context.go(PathUrlAfa().pathRegister);
                     },
                     child: const Text(
@@ -308,7 +306,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final loadingProvider = Provider.of<LoadingProvider>(context, listen: true);
 
     final double screenWidth = MediaQuery.of(context).size.width;
     final double containerWidth = screenWidth * 0.9 > 900 ? 900 : screenWidth * 0.9;
@@ -324,7 +321,6 @@ class _LoginScreenState extends State<LoginScreen> {
           message: 'Volver al inicio',
           child: IconButton(
             onPressed: () {
-              loadingProvider.screenChange();
               context.go(PathUrlAfa().pathWelcome);
             },
             // Reemplazamos el icon por la imagen en sí, sin fondo
@@ -372,7 +368,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
-                  child: _buildLoginForm(loadingProvider),
+                  child: _buildLoginForm(),
                 ),
               ),
             ),

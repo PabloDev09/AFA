@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:afa/logic/providers/loading_provider.dart';
 import 'package:afa/logic/providers/user_register_provider.dart';
 import 'package:afa/logic/router/path/path_url_afa.dart';
 import 'package:geolocator/geolocator.dart';
@@ -191,7 +190,6 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   @override
   Widget build(BuildContext context) {
-    final loadingProvider = Provider.of<LoadingProvider>(context);
     final userRegisterProvider = Provider.of<UserRegisterProvider>(context);
     final theme = Theme.of(context);
 
@@ -216,7 +214,6 @@ class _RegisterScreenState extends State<RegisterScreen>
           message: 'Volver al inicio',
           child: IconButton(
             onPressed: () {
-              loadingProvider.screenChange();
               context.go(PathUrlAfa().pathWelcome);
             },
             icon: Image.asset(
@@ -271,7 +268,6 @@ class _RegisterScreenState extends State<RegisterScreen>
                         child: _buildRegisterForm(
                           userRegisterProvider,
                           theme,
-                          loadingProvider,
                         ),
                       ),
                     ),
@@ -315,7 +311,6 @@ class _RegisterScreenState extends State<RegisterScreen>
   Widget _buildRegisterForm(
     UserRegisterProvider userRegisterProvider,
     ThemeData theme,
-    LoadingProvider loadingProvider,
   ) {
     return Form(
       key: _formKey,
@@ -628,7 +623,6 @@ class _RegisterScreenState extends State<RegisterScreen>
                 Center(
                   child: TextButton(
                     onPressed: () {
-                      loadingProvider.screenChange();
                       context.go(PathUrlAfa().pathLogin);
                     },
                     child: const Text(

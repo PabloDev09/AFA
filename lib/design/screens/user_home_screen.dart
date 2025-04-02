@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -33,16 +34,20 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       });
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<UserRouteProvider>(context, listen: false)
-          .startListening("pepe");
-    });
+    // Iniciamos la carga de datos necesarios
   }
 
   @override
   void dispose() {
     _timer.cancel();
     super.dispose();
+  }
+
+  /// Carga los datos necesarios para la pantalla.
+  Future<void> loadUserData() async {
+    // Ejemplo: iniciar el listener del UserRouteProvider
+    Provider.of<UserRouteProvider>(context, listen: false).startListening("pepe");
+    // Puedes agregar aquí más carga de datos si fuera necesario.
   }
 
   Future<void> _confirmarAccion(
@@ -85,6 +90,17 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: Provider.of<AuthUserProvider>(context,listen: true).loadUser(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done && snapshot.connectionState != ConnectionState.active) {
+        }
+        return buildMainContent();
+      },
+    );
+  }
+
+  Widget buildMainContent() {
     final theme = Theme.of(context);
     return Scaffold(
       body: Stack(
@@ -113,10 +129,10 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Center(
+                        Center(
                           child: Text(
-                            'Bienvenido, Juan Pérez',
-                            style: TextStyle(
+                            'Bienvenido, ${Provider.of<AuthUserProvider>(context,listen: true).userFireStore?.name} ${Provider.of<AuthUserProvider>(context,listen: true).userFireStore?.surnames}',
+                            style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold),
@@ -160,11 +176,11 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           lastDay: DateTime(2100),
           calendarFormat: CalendarFormat.week,
           startingDayOfWeek: StartingDayOfWeek.monday,
-          selectedDayPredicate: (day) => isSameDay(day, _selectedDay), // Aquí verificamos que se seleccione el día actual
+          selectedDayPredicate: (day) => isSameDay(day, _selectedDay),
           onDaySelected: (selectedDay, focusedDay) {
             setState(() {
-              _selectedDay = selectedDay; // Actualiza el día seleccionado
-              _focusedDay = focusedDay; // Actualiza el enfoque
+              _selectedDay = selectedDay;
+              _focusedDay = focusedDay;
             });
           },
           enabledDayPredicate: (_) => false,

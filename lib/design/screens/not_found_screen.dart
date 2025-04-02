@@ -1,16 +1,13 @@
 import 'dart:ui';
-import 'package:afa/logic/providers/loading_provider.dart';
 import 'package:afa/logic/router/path/path_url_afa.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 class NotFoundScreen extends StatelessWidget {
   const NotFoundScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final loadingProvider = Provider.of<LoadingProvider>(context, listen: true);
     final double screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
@@ -113,7 +110,6 @@ class NotFoundScreen extends StatelessWidget {
                         // Botón para volver al inicio
                         ElevatedButton(
                           onPressed: () {
-                            loadingProvider.screenChange();
                             context.go(PathUrlAfa().pathDashboard);
                           },
                           style: ElevatedButton.styleFrom(

@@ -117,6 +117,20 @@ class UserService {
     return false;
   }
 
+    Future<User?> logUser(String? email) async {
+  String? userId = await getUserIdByEmail(email!);
+  
+  if (userId != null) {
+    DocumentSnapshot doc = await collectionReferenceUsers.doc(userId).get();
+    
+    if (doc.exists) {
+      final data = doc.data() as Map<String, dynamic>;
+        return User.fromMap(data);
+    }
+  }
+  return null;
+}
+
     Future<bool> authenticateGoogleUser(String email) async {
     String? userId = await getUserIdByEmail(email);
 

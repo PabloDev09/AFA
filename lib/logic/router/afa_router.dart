@@ -1,22 +1,23 @@
 import 'package:afa/design/screens/dashboard_screen.dart';
 import 'package:afa/design/screens/driver_home_screen.dart';
+import 'package:afa/design/screens/loading_screen.dart';
 import 'package:afa/design/screens/login_screen.dart';
-import 'package:afa/design/screens/map_screen.dart';
 import 'package:afa/design/screens/not_found_screen.dart';
 import 'package:afa/design/screens/register_screen.dart';
 import 'package:afa/design/screens/user_home_screen.dart';
 import 'package:afa/design/screens/welcome_screen.dart';
+import 'package:afa/logic/providers/loading_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:afa/logic/services/user_service.dart';
+import 'package:provider/provider.dart';
 
 Future<String?> getUserRole() async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return null;
 
   final userService = UserService();
-  print("gili");
   return await userService.getUserRoleByEmail(user.email!);
 }
 
@@ -31,30 +32,37 @@ final GoRouter afaRouter = GoRouter(
     GoRoute(
       path: '/',
       name: 'welcome',
-      builder: (context, state) => const WelcomeScreen(),
+      builder: (context, state) => _buildWithLoading(
+        context, 
+        const WelcomeScreen(),
+      )
     ),
     GoRoute(
       path: '/login',
       name: 'login',
-      builder: (context, state) => const LoginScreen(),
+      builder: (context, state) => _buildWithLoading(
+        context,
+        const LoginScreen(),
+      )
     ),
     GoRoute(
       path: '/register',
       name: 'register',
-      builder: (context, state) => const RegisterScreen(),
+      builder: (context, state) => _buildWithLoading(
+        context,
+        const RegisterScreen(),
+      )
     ),
     GoRoute(
       path: '/dashboard',
       name: 'dashboard',
-      builder: (context, state) => const DashboardScreen(),
-      redirect: (context, state) {
+      builder: (context, state) => _buildWithLoading(
+        context,
+        const DashboardScreen(),
+      ),
+      redirect: (context, state) async {
         return _checkRole(context, 'admin', '/login');
       },
-    ),
-    GoRoute(
-      path: '/map',
-      name: 'map',
-      builder: (context, state) => const MapScreen(),
     ),
     GoRoute(
       path: '/home',
@@ -63,7 +71,6 @@ final GoRouter afaRouter = GoRouter(
         future: getUserRole(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError || !snapshot.hasData) {
@@ -71,11 +78,10 @@ final GoRouter afaRouter = GoRouter(
           }
 
           final role = snapshot.data;
-          print(role);
           if (role == 'Usuario') {
-            return const UserHomeScreen();
+            return _buildWithLoading(context, const UserHomeScreen());
           } else if (role == 'Conductor') {
-            return const DriverHomeScreen();
+            return _buildWithLoading(context, const DriverHomeScreen());
           } else {
             return const NotFoundScreen();
           }
@@ -92,7 +98,16 @@ final GoRouter afaRouter = GoRouter(
   errorBuilder: (context, state) => const NotFoundScreen(),
 );
 
-// Helper function for role-based redirection.
+/// Muestra la pantalla de carga antes de la transición
+Widget _buildWithLoading(BuildContext context, Widget screen) {
+  final loadingProvider = Provider.of<LoadingProvider>(context, listen: false);
+  
+  loadingProvider.screenChange();
+
+      return LoadingScreen(child: screen);
+}
+
+/// Helper function para validar el rol de usuario
 Future<String?> _checkRole(BuildContext context, String requiredRole, String fallbackRoute) async {
   final role = await getUserRole();
   if (role != requiredRole) {

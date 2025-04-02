@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:afa/logic/providers/loading_provider.dart';
 import 'package:afa/logic/router/path/path_url_afa.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -60,7 +58,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final loadingProvider = Provider.of<LoadingProvider>(context, listen: true);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -208,15 +205,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                             _buildButton(
                                               context,
                                               'Registrarse',
-                                              PathUrlAfa().pathRegister,
-                                              loadingProvider,
+                                              PathUrlAfa().pathRegister
                                             ),
                                             const SizedBox(height: 15),
                                             _buildButton(
                                               context,
                                               'Iniciar sesión',
-                                              PathUrlAfa().pathLogin,
-                                              loadingProvider,
+                                              PathUrlAfa().pathLogin
                                             ),
                                           ],
                                         )
@@ -226,8 +221,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                               child: _buildButton(
                                                 context,
                                                 'Registrarse',
-                                                PathUrlAfa().pathRegister,
-                                                loadingProvider,
+                                                PathUrlAfa().pathRegister
                                               ),
                                             ),
                                             const SizedBox(width: 20),
@@ -235,8 +229,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                               child: _buildButton(
                                                 context,
                                                 'Iniciar sesión',
-                                                PathUrlAfa().pathLogin,
-                                                loadingProvider,
+                                                PathUrlAfa().pathLogin
                                               ),
                                             ),
                                           ],
@@ -320,14 +313,12 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       BuildContext context,
       String text,
       String route,
-      LoadingProvider loadingProvider,
     ) {
       final theme = Theme.of(context);
       return SizedBox(
         width: double.infinity, // Se adapta al ancho disponible
         child: ElevatedButton(
           onPressed: () {
-            loadingProvider.screenChange();
             context.go(route);
           },
           style: ElevatedButton.styleFrom(

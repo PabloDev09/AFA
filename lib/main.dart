@@ -1,4 +1,5 @@
 import 'package:afa/logic/providers/active_user_provider.dart';
+import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/providers/bus_provider.dart';
 import 'package:afa/logic/providers/driver_route_provider.dart';
 import 'package:afa/logic/providers/loading_provider.dart';
@@ -6,7 +7,6 @@ import 'package:afa/logic/providers/routes_provider.dart';
 import 'package:afa/logic/providers/theme_provider.dart';
 import 'package:afa/logic/providers/pending_user_provider.dart';
 import 'package:afa/design/themes/afa_theme.dart';
-import 'package:afa/design/screens/loading_screen.dart';
 import 'package:afa/logic/providers/user_register_provider.dart';
 import 'package:afa/logic/providers/user_route_provider.dart';
 import 'package:flutter/material.dart';
@@ -42,11 +42,11 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => RoutesProvider()),
         ChangeNotifierProvider(create: (_) => DriverRouteProvider()),
         ChangeNotifierProvider(create: (_) => UserRouteProvider()),
+        ChangeNotifierProvider(create: (_) => AuthUserProvider()..loadUser()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return MaterialApp.router(
-
             theme: AfaTheme.theme(
               themeProvider.isDarkMode, 
               1
