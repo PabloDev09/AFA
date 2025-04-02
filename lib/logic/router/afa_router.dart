@@ -7,6 +7,7 @@ import 'package:afa/design/screens/register_screen.dart';
 import 'package:afa/design/screens/user_home_screen.dart';
 import 'package:afa/design/screens/welcome_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:afa/logic/services/user_service.dart';
 
@@ -15,6 +16,7 @@ Future<String?> getUserRole() async {
   if (user == null) return null;
 
   final userService = UserService();
+  print("gili");
   return await userService.getUserRoleByEmail(user.email!);
 }
 
@@ -46,9 +48,7 @@ final GoRouter afaRouter = GoRouter(
       name: 'dashboard',
       builder: (context, state) => const DashboardScreen(),
       redirect: (context, state) {
-        // Solo permite el acceso a usuarios autenticados y con rol admin
-        if (!isAuthenticated() || getUserRole() != 'admin') return '/login';
-        return null;
+        return _checkRole(context, 'admin', '/login');
       },
     ),
     GoRoute(
@@ -56,29 +56,47 @@ final GoRouter afaRouter = GoRouter(
       name: 'map',
       builder: (context, state) => const MapScreen(),
     ),
-    // Ruta única /home que redirige según el rol del usuario
     GoRoute(
       path: '/home',
       name: 'home',
-      builder: (context, state) {
-        final role = getUserRole();
-        // Dependiendo del rol, regresa la pantalla correspondiente
-        if (role == 'Usuario') {
-          return const UserHomeScreen();
-        } else if (role == 'Conductor') {
-          return const DriverHomeScreen();
-        } else {
-          // Si el rol no corresponde a ninguno, se muestra una pantalla de error o NotFound
-          return const NotFoundScreen();
-        }
-      },
-      redirect: (context, state) {
-        // Si no está autenticado o es admin (que no debe usar /home) se redirige.
+      builder: (context, state) => FutureBuilder<String?>(
+        future: getUserRole(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError || !snapshot.hasData) {
+            return const NotFoundScreen();
+          }
+
+          final role = snapshot.data;
+          print(role);
+          if (role == 'Usuario') {
+            return const UserHomeScreen();
+          } else if (role == 'Conductor') {
+            return const DriverHomeScreen();
+          } else {
+            return const NotFoundScreen();
+          }
+        },
+      ),
+      redirect: (context, state) async {
         if (!isAuthenticated()) return '/login';
-        if (getUserRole() == 'Administrador') return '/dashboard';
+        final role = await getUserRole();
+        if (role == 'Administrador') return '/dashboard';
         return null;
       },
     ),
   ],
   errorBuilder: (context, state) => const NotFoundScreen(),
 );
+
+// Helper function for role-based redirection.
+Future<String?> _checkRole(BuildContext context, String requiredRole, String fallbackRoute) async {
+  final role = await getUserRole();
+  if (role != requiredRole) {
+    return fallbackRoute;
+  }
+  return null;
+}

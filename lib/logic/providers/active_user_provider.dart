@@ -18,8 +18,8 @@ class ActiveUserProvider extends ChangeNotifier {
     return await _userService.authenticateGoogleUser(email);
   }
 
-  Future<bool> authenticateUser(String email, String username, String password) async {
-    return await _userService.authenticateUser(email, username, password);
+  Future<bool> authenticateUser(String email, String password) async {
+    return await _userService.authenticateUser(email, password);
   }
 
   Future<void> updateUser(User user, String email, String username) async {

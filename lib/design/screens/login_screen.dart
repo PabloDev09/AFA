@@ -1,8 +1,7 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'dart:ui';
 import 'package:afa/logic/providers/loading_provider.dart';
 import 'package:afa/logic/providers/active_user_provider.dart';
+import 'package:afa/logic/router/afa_router.dart';
 import 'package:afa/logic/router/path/path_url_afa.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -30,36 +29,61 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
- Future<void> _signInWithGoogle() async {
-  try {
-    final GoogleSignInAccount? googleUser = await GoogleSignIn(clientId: '253008576813-licpgrjsnuhh9i918tlrda6veitsg0c6.apps.googleusercontent.com').signIn();
-    if (googleUser == null) return;
+  /// Método que navega a la pantalla correspondiente según el rol del usuario.
+ Future<void> _navigateAccordingToRole(String email) async {
+  print("esta aqui");
 
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
 
-    );
-
-    await FirebaseAuth.instance.signInWithCredential(credential);
-
-    if (mounted) {
+  // Carga el rol y lo almacena globalmente
+  final role = await getUserRole();
+  
+  if(mounted){
+    if (role == 'Admin') {
       context.go(PathUrlAfa().pathDashboard);
+    } else if (role == 'Conductor') {
+      context.go(PathUrlAfa().pathHome);
+    } else if (role == 'Usuario') {
+      context.go(PathUrlAfa().pathHome);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Rol de usuario desconocido.')),
+      );
     }
-  } catch (e, stacktrace) {
-    // Imprime el error y stacktrace en la consola para depuración
-    print('Error al iniciar sesión con Google: $e');
-    print(stacktrace);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error al iniciar sesión con Google: $e'),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+  }
+  else{
+    print("error");
   }
 }
 
+
+  Future<void> _signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn(
+        clientId: '253008576813-licpgrjsnuhh9i918tlrda6veitsg0c6.apps.googleusercontent.com',
+      ).signIn();
+      if (googleUser == null) return;
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      _navigateAccordingToRole(googleUser.email);
+      
+    } catch (e, stacktrace) {
+      print('Error al iniciar sesión con Google: $e');
+      print(stacktrace);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al iniciar sesión con Google: $e'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
 
   Widget _buildLoginForm(LoadingProvider loadingProvider) {
     final theme = Theme.of(context);
@@ -134,26 +158,24 @@ class _LoginScreenState extends State<LoginScreen> {
                           listen: false,
                         );
                         // Se llama al método authenticateUser pasando el mismo valor para email y username
-                        bool isAuthenticated =
-                            await userActiveProvider.authenticateUser(
-                          _userController.text,
+                        bool isAuthenticated = await userActiveProvider.authenticateUser(
                           _userController.text,
                           _passwordController.text,
                         );
                         if (isAuthenticated) {
+                          await FirebaseAuth.instance.signInWithEmailAndPassword(email: _userController.text, password: _passwordController.text);
                           loadingProvider.screenChange();
-                          context.go(PathUrlAfa().pathDashboard);
+                          // Redirige según el rol del usuario
+                          _navigateAccordingToRole(_userController.text);
                         } else {
                           showDialog(
                             context: context,
                             builder: (context) => AlertDialog(
                               title: const Text('Error de autenticación'),
-                              content: const Text(
-                                  'El usuario o la contraseña son incorrectos.'),
+                              content: const Text('El usuario o la contraseña son incorrectos.'),
                               actions: [
                                 TextButton(
-                                  onPressed: () =>
-                                      Navigator.of(context).pop(),
+                                  onPressed: () => Navigator.of(context).pop(),
                                   child: const Text('Aceptar'),
                                 ),
                               ],
@@ -164,8 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF063970),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 50, vertical: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -189,8 +210,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black87,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 50, vertical: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -288,12 +308,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final loadingProvider =
-        Provider.of<LoadingProvider>(context, listen: true);
+    final loadingProvider = Provider.of<LoadingProvider>(context, listen: true);
 
     final double screenWidth = MediaQuery.of(context).size.width;
-    final double containerWidth =
-        screenWidth * 0.9 > 900 ? 900 : screenWidth * 0.9;
+    final double containerWidth = screenWidth * 0.9 > 900 ? 900 : screenWidth * 0.9;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -342,8 +360,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: SingleChildScrollView(
                 child: Container(
                   width: containerWidth,
-                  margin: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 30),
+                  margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),

@@ -46,9 +46,7 @@ class MyApp extends StatelessWidget {
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return MaterialApp.router(
-            builder: (context, child) {
-              return LoadingScreen(child: child!);
-            },
+
             theme: AfaTheme.theme(
               themeProvider.isDarkMode, 
               1

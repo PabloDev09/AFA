@@ -103,10 +103,8 @@ class UserService {
     }
   }
 
-  Future<bool> authenticateUser(String email, String username, String password) async {
+  Future<bool> authenticateUser(String email, String password) async {
     String? userId = await getUserIdByEmail(email);
-    userId ??= await getUserIdByUsername(username);
-
     if (userId != null) {
       DocumentSnapshot doc = await collectionReferenceUsers.doc(userId).get();
       if (doc.exists) {
