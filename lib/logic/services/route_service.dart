@@ -1,28 +1,27 @@
 import 'package:afa/logic/models/user.dart';
 import 'package:afa/logic/services/user_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:afa/logic/models/route_user.dart'; 
+import 'package:afa/logic/models/route_user.dart';
+import 'package:afa/logic/models/cancel_route_user.dart';
+import 'package:afa/logic/services/cancel_route_service.dart';
 
 class RouteService {
   UserService userService = UserService();
+  CancelRouteService cancelRouteService = CancelRouteService();
   final CollectionReference collectionReferenceRoute;
-  
-  RouteService() : collectionReferenceRoute = FirebaseFirestore.instance.collection('ruta');
 
-  Future<void> createRouteCollection() async {
-    deleteRouteCollection();
-    await _getRolUsers();
+  RouteService()
+      : collectionReferenceRoute =
+            FirebaseFirestore.instance.collection('ruta');
+
+  Future<void> createRouteCollection({Function(String)? addNotification}) async {
+    await deleteRouteCollection();
+    await _getUsers(addNotification);
   }
 
   Future<bool> canContinueRouteCollection() async {
     List<RouteUser> usersToPickUp = await getUsersToPickUp();
-
-    if(usersToPickUp.isNotEmpty)
-    {
-      return true;
-    }
-
-    return false;
+    return usersToPickUp.isNotEmpty;
   }
 
   Future<void> deleteRouteCollection() async {
@@ -46,29 +45,29 @@ class RouteService {
         .where('username', isEqualTo: username)
         .get();
     if (querySnapshot.docs.isNotEmpty) {
-      await querySnapshot.docs.first.reference.update({'isBeingPicking': true});
+      await querySnapshot.docs.first.reference
+          .update({'isBeingPicking': true});
     }
   }
 
-    Future<void> cancelPickUpUser(String username) async {
+  Future<void> cancelPickUpUser(String username) async {
     QuerySnapshot querySnapshot = await collectionReferenceRoute
         .where('username', isEqualTo: username)
         .get();
     if (querySnapshot.docs.isNotEmpty) {
-      await querySnapshot.docs.first.reference.update({'isBeingPicking': false});
+      await querySnapshot.docs.first.reference
+          .update({'isBeingPicking': false});
     }
   }
 
   Future<List<RouteUser>> getUsersToPickUp() async {
     List<RouteUser> usersToPickUp = [];
-    QuerySnapshot queryUsersToPickUp = await collectionReferenceRoute.get();
-
-    for (var userToPickUp in queryUsersToPickUp.docs) {
-      final data = userToPickUp.data() as Map<String, dynamic>;
+    QuerySnapshot querySnapshot = await collectionReferenceRoute.get();
+    for (var doc in querySnapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
       final routeUser = RouteUser.fromMap(data);
       usersToPickUp.add(routeUser);
     }
-
     return usersToPickUp;
   }
 
@@ -84,22 +83,32 @@ class RouteService {
     return false;
   }
 
-
-  Future<void> _getRolUsers() async {
+  Future<void> _getUsers(Function(String)? addNotification) async {
     List<User> usersRol = await userService.getUsersByRol('Usuario');
-    for (var user in usersRol) 
-    {
-      Map<String, dynamic> routeData = 
-      {
-        'username': user.username,
-        'name': user.name,
-        'surnames': user.surnames,
-        'address': user.address,
-        'phoneNumber': user.phoneNumber,
-        'isBeingPicking': false,
-      };
-      await collectionReferenceRoute.add(routeData);
+    List<CancelRouteUser> cancelledUsers =
+        await cancelRouteService.getCanceledUsers();
+    DateTime now = DateTime.now();
+    for (var user in usersRol) {
+      bool isCancelledToday = cancelledUsers.any((cancelledUser) =>
+          cancelledUser.username == user.username &&
+          cancelledUser.cancelDate.year == now.year &&
+          cancelledUser.cancelDate.month == now.month &&
+          cancelledUser.cancelDate.day == now.day);
+      if (!isCancelledToday) {
+        Map<String, dynamic> routeData = {
+          'username': user.username,
+          'name': user.name,
+          'surnames': user.surnames,
+          'address': user.address,
+          'phoneNumber': user.phoneNumber,
+          'isBeingPicking': false,
+        };
+        await collectionReferenceRoute.add(routeData);
+      } else {
+        if (addNotification != null) {
+          addNotification("${user.name} ${user.surnames} canceló la recogida hoy.");
+        }
+      }
     }
   }
-
 }

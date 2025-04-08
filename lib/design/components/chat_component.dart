@@ -3,13 +3,16 @@ import 'package:provider/provider.dart';
 import 'package:afa/logic/providers/user_route_provider.dart';
 
 class ChatComponent extends StatelessWidget {
-  const ChatComponent({super.key});
+  const ChatComponent(bool isDriver, {super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Consumer<UserRouteProvider>(
       builder: (context, userRouteProvider, child) {
         final notifications = userRouteProvider.notifications;
+
         return Container(
           padding: const EdgeInsets.all(10),
           height: 200,
@@ -21,7 +24,7 @@ class ChatComponent extends StatelessWidget {
           child: Column(
             children: [
               const Text(
-                "Chat de Notificaciones",
+                "Notificaciones",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               Expanded(
@@ -29,9 +32,32 @@ class ChatComponent extends StatelessWidget {
                   reverse: true,
                   itemCount: notifications.length,
                   itemBuilder: (context, index) {
-                    // No usamos const en el Text porque el contenido es dinámico
-                    return ListTile(
-                      title: Text(notifications[index]),
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 5.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              theme.brightness == Brightness.dark
+                                  ? const Color(0xFF1E1E1E)
+                                  : const Color(0xFF063970),
+                              theme.brightness == Brightness.dark
+                                  ? const Color(0xFF121212)
+                                  : const Color(0xFF66B3FF),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                          title: Text(
+                            notifications[index],
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
                     );
                   },
                 ),

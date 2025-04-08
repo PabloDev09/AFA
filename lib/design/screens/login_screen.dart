@@ -31,12 +31,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /// Método que navega a la pantalla correspondiente según el rol del usuario.
  Future<void> _navigateAccordingToRole(String email) async {
-  print("esta aqui");
 
 
   // Carga el rol y lo almacena globalmente
   final role = await getUserRole();
-  Provider.of<AuthUserProvider>(context,listen: true).loadUser();
+  Provider.of<AuthUserProvider>(context,listen: false).loadUser();
   if(mounted){
     if (role == 'Admin') {
       context.go(PathUrlAfa().pathDashboard);
@@ -61,18 +60,46 @@ class _LoginScreenState extends State<LoginScreen> {
       final GoogleSignInAccount? googleUser = await GoogleSignIn(
         clientId: '253008576813-licpgrjsnuhh9i918tlrda6veitsg0c6.apps.googleusercontent.com',
       ).signIn();
+
       if (googleUser == null) return;
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      // Autenticamos en Firebase primero
+      final UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
 
-      _navigateAccordingToRole(googleUser.email);
-      
+      final String email = googleUser.email;
+
+      // Llamamos a authenticateGoogleUser y esperamos su resultado
+      final bool isValidUser = await Provider.of<ActiveUserProvider>(
+        context,
+        listen: false,
+      ).authenticateGoogleUser(email);
+
+      // Si no es válido, eliminamos y deslogueamos
+      if (!isValidUser) 
+      {
+        await userCredential.user?.delete(); // Elimina de FirebaseAuth
+        await FirebaseAuth.instance.signOut(); // Cierra sesión
+        await GoogleSignIn().signOut(); // Cierra sesión de Google también
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Usuario no autorizado, sesión cerrada.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
+      // Si todo está bien, navega
+      _navigateAccordingToRole(email);
     } catch (e, stacktrace) {
       print('Error al iniciar sesión con Google: $e');
       print(stacktrace);
@@ -84,6 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     }
   }
+
 
   Widget _buildLoginForm() {
     final theme = Theme.of(context);
@@ -166,20 +194,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           await FirebaseAuth.instance.signInWithEmailAndPassword(email: _userController.text, password: _passwordController.text);
                           // Redirige según el rol del usuario
                           _navigateAccordingToRole(_userController.text);
-                        } else {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Error de autenticación'),
-                              content: const Text('El usuario o la contraseña son incorrectos.'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: const Text('Aceptar'),
-                                ),
-                              ],
-                            ),
-                          );
+                        } 
+                        else 
+                        {
+                        ScaffoldMessenger.of(context).showSnackBar
+                        (
+                          const SnackBar(
+                            content: Text('El usuario o la contraseña son incorrectos.'),
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
                         }
                       }
                     },

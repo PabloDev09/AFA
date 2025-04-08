@@ -1,11 +1,11 @@
 import 'dart:async';
+import 'package:afa/design/components/chat_component.dart';
 import 'package:afa/design/components/route_user_component.dart';
 import 'package:afa/logic/providers/driver_route_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:table_calendar/table_calendar.dart';
+import 'package:table_calendar/table_calendar.dart'; 
 
 class DriverHomeScreen extends StatefulWidget {
   const DriverHomeScreen({super.key});
@@ -16,10 +16,9 @@ class DriverHomeScreen extends StatefulWidget {
 
 class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  late DateTime _fechaInicioRuta;
-  late String _horaActual;
   final DateTime _focusedDay = DateTime.now();
   late Timer _timer;
+  bool isNotDriver = false; // Cambiar este valor según si el usuario es conductor o no
 
   @override
   void initState() {
@@ -30,8 +29,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
       vsync: this,
     );
     _animationController.forward();
-    _horaActual = DateFormat('HH:mm:ss').format(DateTime.now());
-    _fechaInicioRuta = DateTime.now(); 
 
     _verificarRutaPendiente();
   }
@@ -42,8 +39,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
 
     if (hayRutaPendiente) {
       await routeProvider.resumeRoute();
-      _startTimer();
-      setState(() {});
+      setState(() {}); // Actualiza la UI para reflejar la ruta activa
     }
   }
 
@@ -52,14 +48,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
     _timer.cancel();
     _animationController.dispose();
     super.dispose();
-  }
-
-  void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _horaActual = DateFormat('HH:mm:ss').format(DateTime.now());
-      });
-    });
   }
 
   void _stopTimer() {
@@ -85,14 +73,12 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
               onPressed: () async {
                 Navigator.pop(context);
                 if (iniciar) {
-                  _fechaInicioRuta = DateTime.now();
                   await routeProvider.startRoute();
-                  _startTimer();
                 } else {
                   await routeProvider.stopRoute();
                   _stopTimer();
                 }
-                setState(() {});
+                setState(() {}); // Actualiza la UI
               },
               style: TextButton.styleFrom(foregroundColor: color),
               child: Text(accion),
@@ -128,18 +114,17 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Llamamos a _buildCalendar solo si la ruta está activa o no, sin necesidad de botón
                         Consumer<DriverRouteProvider>(builder: (context, routeProvider, child) {
                           if (routeProvider.isRouteActive && routeProvider.pendingUsers.isEmpty) {
-                            _confirmarAccion(false, routeProvider);
+                            // La ruta se ha iniciado automáticamente
                           }
-                          return routeProvider.isRouteActive
-                              ? _buildisRouteActive(routeProvider)
-                              : _buildCalendar(routeProvider);
+                          return _buildCalendar(routeProvider); // Calendario
                         }),
                         const SizedBox(height: 20),
                         Consumer<DriverRouteProvider>(builder: (context, routeProvider, child) {
                           return routeProvider.isRouteActive
-                              ? const RouteUserComponent()
+                              ? const RouteUserComponent() // Si la ruta está activa, mostramos los usuarios
                               : const SizedBox.shrink();
                         }),
                       ],
@@ -148,6 +133,14 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
                 ),
               ],
             ),
+          ),
+
+          // Chat Component
+          const Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: ChatComponent(true),
           ),
         ],
       ),
@@ -172,6 +165,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
               selectedDayPredicate: (day) => false,
             ),
             const SizedBox(height: 10),
+            // Colocamos los botones dentro del Card
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -194,42 +188,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildisRouteActive(DriverRouteProvider routeProvider) {
-    return Center(
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 4,
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            children: [
-              Text(
-                'Ruta iniciada: ${DateFormat('d MMMM y', 'es_ES').format(_fechaInicioRuta)}',
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                _horaActual,
-                style: const TextStyle(fontSize: 50, fontWeight: FontWeight.bold, color: Colors.blue),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () => _confirmarAccion(false, routeProvider),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                child: const Text("Detener Ruta"),
-              ),
-            ],
-          ),
         ),
       ),
     );

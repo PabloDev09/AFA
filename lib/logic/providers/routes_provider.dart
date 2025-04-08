@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 
-class RoutesProvider with ChangeNotifier {
+class RoutesProvider with ChangeNotifier 
+{
   double _distance = 0.0;
   double _estimatedTime = 0.0;
   bool _loading = false;
