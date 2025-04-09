@@ -70,14 +70,8 @@ final GoRouter afaRouter = GoRouter(
       builder: (context, state) => FutureBuilder<String?>(
         future: getUserRole(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-          }
-
-          if (snapshot.hasError || !snapshot.hasData) {
-            return const NotFoundScreen();
-          }
-
           final role = snapshot.data;
+
           if (role == 'Usuario') {
             return _buildWithLoading(context, const UserHomeScreen());
           } else if (role == 'Conductor') {
@@ -85,6 +79,7 @@ final GoRouter afaRouter = GoRouter(
           } else {
             return const NotFoundScreen();
           }
+
         },
       ),
       redirect: (context, state) async {
@@ -98,19 +93,20 @@ final GoRouter afaRouter = GoRouter(
   errorBuilder: (context, state) => const NotFoundScreen(),
 );
 
-/// Muestra la pantalla de carga antes de la transición
-Widget _buildWithLoading(BuildContext context, Widget screen) {
+
+Widget _buildWithLoading(BuildContext context, Widget screen) 
+{
   final loadingProvider = Provider.of<LoadingProvider>(context, listen: false);
-  
   loadingProvider.screenChange();
 
-      return LoadingScreen(child: screen);
+  return LoadingScreen(child: screen);
 }
 
-/// Helper function para validar el rol de usuario
-Future<String?> _checkRole(BuildContext context, String requiredRole, String fallbackRoute) async {
+Future<String?> _checkRole(BuildContext context, String requiredRole, String fallbackRoute) async 
+{
   final role = await getUserRole();
-  if (role != requiredRole) {
+  if (role != requiredRole) 
+  {
     return fallbackRoute;
   }
   return null;

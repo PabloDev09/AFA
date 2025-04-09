@@ -14,8 +14,8 @@ class RouteService {
       : collectionReferenceRoute =
             FirebaseFirestore.instance.collection('ruta');
 
-  Future<void> createRouteCollection({Function(String)? addNotification}) async {
-    await deleteRouteCollection();
+  Future<void> createRoute({Function(String)? addNotification}) async {
+    await deleteRoute();
     await _getUsers(addNotification);
   }
 
@@ -24,7 +24,7 @@ class RouteService {
     return usersToPickUp.isNotEmpty;
   }
 
-  Future<void> deleteRouteCollection() async {
+  Future<void> deleteRoute() async {
     QuerySnapshot querySnapshot = await collectionReferenceRoute.get();
     for (var doc in querySnapshot.docs) {
       await doc.reference.delete();
@@ -102,6 +102,7 @@ class RouteService {
           'address': user.address,
           'phoneNumber': user.phoneNumber,
           'isBeingPicking': false,
+          'isNear': false,
         };
         await collectionReferenceRoute.add(routeData);
       } else {

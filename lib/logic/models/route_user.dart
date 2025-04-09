@@ -5,6 +5,7 @@ class RouteUser {
   final String address;
   final String phoneNumber;
   final bool isBeingPicking;
+  final bool isNear;
 
   RouteUser({
     required this.username,
@@ -13,6 +14,7 @@ class RouteUser {
     required this.address,
     required this.phoneNumber,
     required this.isBeingPicking,
+    required this.isNear,
   });
 
   // Método para convertir un Map a un objeto RouteUser
@@ -24,6 +26,7 @@ class RouteUser {
       address: map['address'] ?? '',
       phoneNumber: map['phoneNumber'] ?? '',
       isBeingPicking: map['isBeingPicking'] ?? false,
+      isNear: map['isNear'] ?? false,
     );
   }
 }

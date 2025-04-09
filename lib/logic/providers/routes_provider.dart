@@ -17,16 +17,19 @@ class RoutesProvider with ChangeNotifier
 
   static const String apiKey = "AIzaSyBTokyGf6XeKvvnn-IU48fi4HyJrKS6PFI";
 
-  Future<void> calculateRoute(LatLng origin, LatLng destination) async {
+  Future<void> calculateRoute(LatLng origin, LatLng destination) async 
+  {
     _loading = true;
     _error = false;
     notifyListeners();
 
-    try {
+    try 
+    {
       final result = await _getRouteMatrix(origin, destination);
       _distance = result["distance"];
       _estimatedTime = result["duration"];
-    } catch (e) {
+    } catch (e) 
+    {
       _error = true;
     } finally {
       _loading = false;
@@ -34,7 +37,8 @@ class RoutesProvider with ChangeNotifier
     }
   }
 
-  Future<Map<String, dynamic>> _getRouteMatrix(LatLng origin, LatLng destination) async {
+  Future<Map<String, dynamic>> _getRouteMatrix(LatLng origin, LatLng destination) async 
+  {
     const String baseUrl = "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix";
 
     final Map<String, dynamic> requestBody = {
@@ -48,7 +52,8 @@ class RoutesProvider with ChangeNotifier
       "routingPreference": "TRAFFIC_AWARE"
     };
 
-    final response = await http.post(
+    final response = await http.post
+    (
       Uri.parse(baseUrl),
       headers: {
         "Content-Type": "application/json",
@@ -58,13 +63,17 @@ class RoutesProvider with ChangeNotifier
       body: jsonEncode(requestBody),
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200) 
+    {
       List<dynamic> data = jsonDecode(response.body);
-      return {
+      return 
+      {
         "distance": data[0]["distanceMeters"] / 1000, // Convertir a km
         "duration": int.parse(data[0]["duration"].replaceAll('s', '')) / 60 // Convertir a minutos
       };
-    } else {
+    } 
+    else 
+    {
       throw Exception("Error en la API: ${response.body}");
     }
   }
