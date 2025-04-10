@@ -68,7 +68,7 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
 
   void _calculateDistance() {
     Provider.of<RoutesProvider>(context, listen: false)
-        .calculateRoute(_currentLocation, _driverLocation);
+        .calculateRoute();
     setState(() {
       _showDistance = true;
     });

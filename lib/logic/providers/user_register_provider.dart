@@ -85,7 +85,15 @@ class UserRegisterProvider extends ChangeNotifier {
 
   /// Une la dirección con el formato adecuado.
   String joinAddress(String street, String city, String province, String postalCode) {
-    return "${street.trim()}, ${city.trim()} (${province.trim()}), ${postalCode.trim()}";
+  // Se asegura de que cada parte esté limpia y no vacía, y se une con comas
+  List<String> parts = [];
+  if (street.trim().isNotEmpty) parts.add(street.trim());
+  if (city.trim().isNotEmpty) parts.add(city.trim());
+  if (province.trim().isNotEmpty) parts.add(province.trim());
+  if (postalCode.trim().isNotEmpty) parts.add(postalCode.trim());  
+  parts.add("España");
+  
+  return parts.join(", ");
   }
 
   /// Comprueba si la contraseña cumple con criterios de seguridad.

@@ -112,4 +112,20 @@ class RouteService {
       }
     }
   }
+  Future<void> updateRouteUserIsNear(RouteUser routeUser) async {
+  // Buscamos el documento correspondiente en la colección 'ruta' por el username.
+  QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+      .collection('ruta')
+      .where('username', isEqualTo: routeUser.username)
+      .get();
+
+  if (querySnapshot.docs.isNotEmpty) {
+    // Actualizamos el campo 'isNear' usando el valor del objeto recibido.
+    await querySnapshot.docs.first.reference.update({
+      'isNear': routeUser.isNear,
+    });
+  } else {
+    print("No se encontró un usuario con username: ${routeUser.username}");
+  }
+}
 }
