@@ -2,7 +2,7 @@ import 'package:afa/logic/providers/active_user_provider.dart';
 import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/providers/bus_provider.dart';
 import 'package:afa/logic/providers/driver_route_provider.dart';
-import 'package:afa/logic/providers/loading_provider.dart';
+import 'package:afa/logic/providers/notification_provider.dart';
 import 'package:afa/logic/providers/routes_provider.dart';
 import 'package:afa/logic/providers/theme_provider.dart';
 import 'package:afa/logic/providers/pending_user_provider.dart';
@@ -15,7 +15,6 @@ import 'package:afa/logic/router/afa_router.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,16 +32,33 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        // Primero se debe cargar NotificationProvider
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+
+        // AuthUserProvider se debe cargar después de NotificationProvider
+        ChangeNotifierProvider(create: (_) => AuthUserProvider()..loadUser()),
+
+        // Otros proveedores
         ChangeNotifierProvider(create: (_) => UserRegisterProvider()),
         ChangeNotifierProvider(create: (_) => PendingUserProvider()..loadPendingUsers()),
         ChangeNotifierProvider(create: (_) => ActiveUserProvider()..loadActiveUsers()),
-        ChangeNotifierProvider(create: (_) => LoadingProvider()),
         ChangeNotifierProvider(create: (_) => BusProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => RoutesProvider()),
-        ChangeNotifierProvider(create: (_) => DriverRouteProvider()),
-        ChangeNotifierProvider(create: (_) => UserRouteProvider()),
-        ChangeNotifierProvider(create: (_) => AuthUserProvider()..loadUser()),
+        
+        // DriverRouteProvider depende de NotificationProvider
+        ChangeNotifierProxyProvider<NotificationProvider, DriverRouteProvider>(
+          create: (context) => DriverRouteProvider(context.read<NotificationProvider>()),
+          update: (context, notificationProvider, previous) =>
+              DriverRouteProvider(notificationProvider),
+        ),
+        
+        // UserRouteProvider depende de NotificationProvider
+        ChangeNotifierProxyProvider<NotificationProvider, UserRouteProvider>(
+          create: (context) => UserRouteProvider(context.read<NotificationProvider>()),
+          update: (context, notificationProvider, previous) =>
+              UserRouteProvider(notificationProvider),
+        ),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {

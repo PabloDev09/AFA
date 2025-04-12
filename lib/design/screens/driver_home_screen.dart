@@ -3,9 +3,10 @@ import 'package:afa/design/components/chat_component.dart';
 import 'package:afa/design/components/route_user_component.dart';
 import 'package:afa/logic/providers/driver_route_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:table_calendar/table_calendar.dart'; 
+import 'package:table_calendar/table_calendar.dart';
 
 class DriverHomeScreen extends StatefulWidget {
   const DriverHomeScreen({super.key});
@@ -16,7 +17,8 @@ class DriverHomeScreen extends StatefulWidget {
 
 class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  final DateTime _focusedDay = DateTime.now();
+  late DateTime _focusedDay;
+  late DateTime _selectedDay;
   late Timer _timer;
   bool isNotDriver = false; // Cambiar este valor según si el usuario es conductor o no
 
@@ -24,6 +26,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
   void initState() {
     super.initState();
     initializeDateFormatting('es', null);
+    _focusedDay = DateTime.now();
+    _selectedDay = _focusedDay; // Inicializamos el día seleccionado
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -50,10 +54,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
     super.dispose();
   }
 
-  void _stopTimer() {
-    _timer.cancel();
-  }
-
   Future<void> _confirmarAccion(bool iniciar, DriverRouteProvider routeProvider) async {
     String accion = iniciar ? "Iniciar" : "Detener";
     Color color = iniciar ? Colors.blue : Colors.red;
@@ -76,7 +76,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
                   await routeProvider.startRoute();
                 } else {
                   await routeProvider.stopRoute();
-                  _stopTimer();
                 }
                 setState(() {}); // Actualiza la UI
               },
@@ -86,6 +85,47 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
           ],
         );
       },
+    );
+  }
+
+  /// Método _dayBuilder modificado:
+  /// - Si es hoy: azul.
+  /// - Si es sábado o domingo: gris (igual que días pasados).
+  /// - Si es día futuro y no es fin de semana: verde.
+  /// - Días pasados: gris.
+  Widget _dayBuilder(BuildContext context, DateTime day, DateTime focusedDay) {
+    bool isToday = isSameDay(day, DateTime.now());
+    bool isSelected = isSameDay(day, _selectedDay);
+    // Determinar si el día es fin de semana.
+    bool isWeekend = day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
+    // Se considera día futuro solo si no es fin de semana.
+    bool isFuture = day.isAfter(DateTime.now()) && !isToday && !isWeekend;
+
+    Color bgColor;
+    if (isToday) {
+      bgColor = Colors.blue;
+    } else if (isFuture) {
+      bgColor = Colors.green;
+    } else {
+      bgColor = Colors.grey[400]!;
+    }
+    Color textColor = Colors.white;
+    BoxDecoration decoration = BoxDecoration(
+      color: bgColor,
+      shape: BoxShape.circle,
+      border: isSelected && !isToday ? Border.all(color: Colors.blue, width: 2) : null,
+    );
+    return Container(
+      margin: const EdgeInsets.all(4),
+      decoration: decoration,
+      alignment: Alignment.center,
+      child: Text(
+        '${day.day}',
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
@@ -114,19 +154,20 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Llamamos a _buildCalendar solo si la ruta está activa o no, sin necesidad de botón
-                        Consumer<DriverRouteProvider>(builder: (context, routeProvider, child) {
-                          if (routeProvider.isRouteActive && routeProvider.pendingUsers.isEmpty) {
-                            // La ruta se ha iniciado automáticamente
+                        // Calendario similar al de UserHomeScreen.
+                        Consumer<DriverRouteProvider>(
+                          builder: (context, routeProvider, child) {
+                            return _buildCalendar(routeProvider);
                           }
-                          return _buildCalendar(routeProvider); // Calendario
-                        }),
+                        ),
                         const SizedBox(height: 20),
-                        Consumer<DriverRouteProvider>(builder: (context, routeProvider, child) {
-                          return routeProvider.isRouteActive
-                              ? const RouteUserComponent() // Si la ruta está activa, mostramos los usuarios
-                              : const SizedBox.shrink();
-                        }),
+                        Consumer<DriverRouteProvider>(
+                          builder: (context, routeProvider, child) {
+                            return routeProvider.isRouteActive
+                                ? const RouteUserComponent() 
+                                : const SizedBox.shrink();
+                          }
+                        ),
                       ],
                     ),
                   ),
@@ -134,13 +175,12 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
               ],
             ),
           ),
-
           // Chat Component
           const Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            child: ChatComponent(true),
+            child: ChatComponent(),
           ),
         ],
       ),
@@ -155,6 +195,27 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
         padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
+            // Botón "Hoy" para actualizar la selección si no se ha seleccionado el día actual.
+            if (!isSameDay(_selectedDay, DateTime.now()))
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedDay = DateTime.now();
+                      _focusedDay = DateTime.now();
+                    });
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text("Hoy"),
+                ),
+              ),
             TableCalendar(
               locale: 'es_ES',
               focusedDay: _focusedDay,
@@ -162,31 +223,63 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
               lastDay: DateTime(2100),
               calendarFormat: CalendarFormat.week,
               startingDayOfWeek: StartingDayOfWeek.monday,
-              selectedDayPredicate: (day) => false,
+              calendarBuilders: CalendarBuilders(
+                defaultBuilder: _dayBuilder,
+                todayBuilder: _dayBuilder,
+                selectedBuilder: _dayBuilder,
+                disabledBuilder: _dayBuilder,
+              ),
+              selectedDayPredicate: (day) => isSameDay(day, _selectedDay),
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                });
+              },
+              // Se deshabilitan los sábados y domingos.
+              enabledDayPredicate: (day) =>
+                  day.weekday >= DateTime.monday && day.weekday <= DateTime.friday,
+              headerStyle: HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+                titleTextFormatter: (date, locale) {
+                  String formattedDate = DateFormat.yMMMM(locale).format(date);
+                  return formattedDate[0].toUpperCase() + formattedDate.substring(1);
+                },
+                titleTextStyle: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             const SizedBox(height: 10),
-            // Colocamos los botones dentro del Card
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    if (!routeProvider.isRouteActive) {
-                      _confirmarAccion(true, routeProvider);
-                    } else {
-                      _confirmarAccion(false, routeProvider);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: routeProvider.isRouteActive ? Colors.red : Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            // Mostrar el botón solo si el día seleccionado es el día actual.
+            if (isSameDay(_selectedDay, DateTime.now()))
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      if (!routeProvider.isRouteActive) {
+                        _confirmarAccion(true, routeProvider);
+                      } else {
+                        _confirmarAccion(false, routeProvider);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      // Se muestra en verde si se va a iniciar la ruta y el día es hoy;
+                      // de lo contrario, se muestra en rojo si la ruta ya está activa.
+                      backgroundColor: routeProvider.isRouteActive ? Colors.red : Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    child: Text(routeProvider.isRouteActive ? "Detener Ruta" : "Iniciar Ruta"),
                   ),
-                  child: Text(routeProvider.isRouteActive ? "Detener Ruta" : "Iniciar Ruta"),
-                ),
-              ],
-            ),
+                ],
+              )
+            else
+              const SizedBox.shrink(),
           ],
         ),
       ),

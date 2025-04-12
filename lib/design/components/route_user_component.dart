@@ -214,7 +214,7 @@ class RouteUserComponent extends StatelessWidget {
                 context,
                 'Cancelar Recogida',
                 '¿Está seguro de que desea cancelar la recogida de ${user.name}?',
-                () => Provider.of<DriverRouteProvider>(context, listen: false).cancelPickUp(user.username),
+                () => Provider.of<DriverRouteProvider>(context, listen: false).cancelPickUpUser(user.username),
                 Colors.red,
               );
             },

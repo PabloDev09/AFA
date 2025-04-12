@@ -1,17 +1,17 @@
+import 'package:afa/logic/providers/notification_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:afa/logic/providers/user_route_provider.dart';
 
 class ChatComponent extends StatelessWidget {
-  const ChatComponent(bool isDriver, {super.key});
+  const ChatComponent({super.key});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Consumer<UserRouteProvider>(
-      builder: (context, userRouteProvider, child) {
-        final notifications = userRouteProvider.notifications;
+    return Consumer<NotificationProvider>(
+      builder: (context, notificationProvider, child) {
+        final notifications = notificationProvider.notifications;
 
         return Container(
           padding: const EdgeInsets.all(10),

@@ -49,14 +49,10 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     }
   }
-  else{
-    print("error");
-  }
 }
 
 
   Future<void> _signInWithGoogle() async {
-    try {
       final GoogleSignInAccount? googleUser = await GoogleSignIn(
         clientId: '253008576813-licpgrjsnuhh9i918tlrda6veitsg0c6.apps.googleusercontent.com',
       ).signIn();
@@ -100,16 +96,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // Si todo está bien, navega
       _navigateAccordingToRole(email);
-    } catch (e, stacktrace) {
-      print('Error al iniciar sesión con Google: $e');
-      print(stacktrace);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al iniciar sesión con Google: $e'),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
   }
 
 
@@ -168,8 +154,8 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildFloatingTextField(
-                  label: 'Usuario',
-                  hint: 'Ingresa tu usuario',
+                  label: 'Correo',
+                  hint: 'Ingresa tu correo',
                   controller: _userController,
                 ),
                 const SizedBox(height: 15),

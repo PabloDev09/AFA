@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:afa/logic/models/route_user.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:afa/logic/services/route_service.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -10,6 +10,7 @@ import 'package:geocoding/geocoding.dart';
 
 
 class RoutesProvider with ChangeNotifier {
+  final RouteService _routeService = RouteService();
   double _distance = 0.0;         // Distancia en km
   double _estimatedTime = 0.0;    // Duración en minutos
   bool _loading = false;
@@ -118,7 +119,7 @@ class RoutesProvider with ChangeNotifier {
           isBeingPicking: _targetUser!.isBeingPicking,
           isNear: true,
         );
-        updateRouteUserIsNear(_targetUser!);
+        _routeService.updateRouteUserIsNear(_targetUser!);
       } else {
         // Asegurarse de que isNear sea false si no se cumple la condición.
         _targetUser = RouteUser(
@@ -139,22 +140,8 @@ class RoutesProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-  Future<void> updateRouteUserIsNear(RouteUser routeUser) async {
-  // Buscamos el documento correspondiente en la colección 'ruta' por el username.
-  QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-      .collection('ruta')
-      .where('username', isEqualTo: routeUser.username)
-      .get();
 
-  if (querySnapshot.docs.isNotEmpty) {
-    // Actualizamos el campo 'isNear' usando el valor del objeto recibido.
-    await querySnapshot.docs.first.reference.update({
-      'isNear': routeUser.isNear,
-    });
-  } else {
-    print("No se encontró un usuario con username: ${routeUser.username}");
-  }
-}
+
 
   /// Llama a la API de Google para calcular el tiempo y la distancia.
   Future<Map<String, dynamic>> _getRouteMatrix(LatLng origin, LatLng destination) async {

@@ -20,27 +20,14 @@ class CancelRouteService {
     await docRef.set(data);
   }
 
-  Future<void> removeCancelRoute(String username, DateTime cancelDate) async {
+  Future<void> removeCancelRoute(String username, DateTime cancelDate) async 
+  {
     QuerySnapshot querySnapshot = await collectionReferenceCancel
         .where('username', isEqualTo: username)
         .where('cancelDate', isEqualTo: Timestamp.fromDate(cancelDate))
         .get();
     if (querySnapshot.docs.isNotEmpty) {
       await querySnapshot.docs.first.reference.delete();
-    }
-  }
-
-  Future<bool> isRouteCanceled(String username, DateTime date) async {
-    try {
-      QuerySnapshot querySnapshot = await collectionReferenceCancel
-          .where('username', isEqualTo: username)
-          .where('cancelDate', isEqualTo: Timestamp.fromDate(date))
-          .get();
-
-      return querySnapshot.docs.isNotEmpty;
-    } catch (e) {
-      print("Error en isRouteCanceled: $e");
-      return false;
     }
   }
 
@@ -56,4 +43,16 @@ class CancelRouteService {
     return canceledUsers;
   }
 
+  Future<List<DateTime>> getCancelDates(String username) async {
+    QuerySnapshot querySnapshot = await collectionReferenceCancel.get();
+    List<DateTime> cancelDates = querySnapshot.docs.map((doc) 
+    {
+      final data = doc.data() as Map<String, dynamic>;
+      Timestamp timestamp = data['cancelDate'];
+      DateTime date = timestamp.toDate();
+
+      return DateTime(date.year, date.month, date.day);
+    }).toList();
+    return cancelDates;
+  }
 }

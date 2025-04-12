@@ -1,8 +1,6 @@
-import 'package:afa/logic/providers/loading_provider.dart';
 import 'package:afa/logic/router/path/path_url_afa.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 class SidebarMenu extends StatefulWidget {
   final int selectedIndex; 
@@ -58,8 +56,6 @@ class _SidebarMenuState extends State<SidebarMenu> {
   Widget _buildMenuItem(IconData icon, String title, int index) {
     bool isSelected = widget.selectedIndex == index;
     bool isHovered = hoveredIndex == index;
-    final loadingProvider =
-        Provider.of<LoadingProvider>(context, listen: true);
 
     return MouseRegion(
       onEnter: (_) => setState(() => hoveredIndex = index),
@@ -68,19 +64,15 @@ class _SidebarMenuState extends State<SidebarMenu> {
         onTap: () 
         {
           if(index==0){
-            loadingProvider.screenChange();
             context.go(PathUrlAfa().pathHome);
           }
           else if (index==1){
-            loadingProvider.screenChange();
             context.go(PathUrlAfa().pathDashboard);
           }
           else if (index==2){
-            loadingProvider.screenChange();
             context.go(PathUrlAfa().pathMap);
           }
           else if (index==3){
-            loadingProvider.screenChange();
             context.go(PathUrlAfa().pathDashboard);
           }
         },

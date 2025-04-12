@@ -1,3 +1,5 @@
+// user_home_screen.dart
+
 import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -17,9 +19,8 @@ class UserHomeScreen extends StatefulWidget {
 class _UserHomeScreenState extends State<UserHomeScreen> {
   late DateTime _selectedDay;
   late DateTime _focusedDay;
-
-  // Para simular las fechas canceladas (puedes reemplazarlo con tu lógica real)
-  final Set<DateTime> _cancelledPickups = {};
+  bool _hasShownPickupAlert = false;
+  late Future<void> _initialLoad;
 
   @override
   void initState() {
@@ -27,18 +28,40 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     initializeDateFormatting('es', null);
     _focusedDay = DateTime.now();
     _selectedDay = _focusedDay;
+
+    // Carga diferida usando addPostFrameCallback para evitar error con Provider
+    _initialLoad = Future<void>(() async {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadData();
+      });
+    });
   }
 
-  Future<void> loadUserData() async {
-    final username = Provider.of<AuthUserProvider>(context, listen: false).userFireStore?.username;
+  Future<void> _loadData() async {
+    final authProvider = Provider.of<AuthUserProvider>(context, listen: false);
+    final userRouteProvider =
+        Provider.of<UserRouteProvider>(context, listen: false);
+
+    await authProvider.loadUser();
+    final username = authProvider.userFireStore?.username;
+
     if (username != null) {
-      Provider.of<UserRouteProvider>(context, listen: false).startListening(username);
+      userRouteProvider.startListening(username);
+      await userRouteProvider.getCancelDates(username);
     }
   }
 
-  Future<void> _confirmarAccion(bool cancelar, UserRouteProvider userProvider) async {
-    final username = Provider.of<AuthUserProvider>(context, listen: false).userFireStore?.username;
+  Future<void> _confirmarAccion(
+      bool cancelar, UserRouteProvider userProvider) async {
+    final username = Provider.of<AuthUserProvider>(context, listen: false)
+        .userFireStore
+        ?.username;
     if (username == null) return;
+
+    if (_selectedDay.isBefore(DateTime.now()) &&
+        !isSameDay(_selectedDay, DateTime.now())) {
+      return;
+    }
 
     String accion = cancelar ? "Cancelar" : "Reanudar";
     Color color = cancelar ? Colors.red : Colors.blue;
@@ -48,7 +71,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       builder: (context) {
         return AlertDialog(
           title: Text("$accion Recogida"),
-          content: Text("¿Seguro que quieres $accion la recogida del día ${DateFormat('dd/MM/yyyy').format(_selectedDay)}?"),
+          content: Text(
+              "¿Seguro que quieres $accion la recogida del día ${DateFormat('dd/MM/yyyy').format(_selectedDay)}?"),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -66,32 +90,115 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
     if (confirmacion ?? false) {
       if (cancelar) {
-        setState(() {
-          _cancelledPickups.add(_selectedDay); // Marcar como cancelado
-        });
         await userProvider.cancelPickupForDate(username, _selectedDay);
       } else {
-        setState(() {
-          _cancelledPickups.remove(_selectedDay); // Eliminar la cancelación
-        });
         await userProvider.removeCancelPickup(username, _selectedDay);
       }
+
+      await userProvider.getCancelDates(username);
       setState(() {});
     }
   }
 
+  Widget _dayBuilder(BuildContext context, DateTime day, DateTime focusedDay) {
+    final userRouteProvider =
+        Provider.of<UserRouteProvider>(context, listen: false);
+    DateTime normalizedDay = DateTime(day.year, day.month, day.day);
+    bool isCanceled = userRouteProvider.cancelDates.contains(normalizedDay);
+    bool isToday = isSameDay(day, DateTime.now());
+    bool isSelected = isSameDay(day, _selectedDay);
+    bool isWeekday =
+        day.weekday >= DateTime.monday && day.weekday <= DateTime.friday;
+    bool isPast = day.isBefore(DateTime.now()) && !isToday;
+
+    Color bgColor;
+    Color textColor;
+
+    if (isPast) {
+      bgColor = isCanceled ? Colors.red : Colors.grey;
+      textColor = Colors.white;
+    } else {
+      if (isToday) {
+        bgColor = Colors.blue;
+        textColor = (day.weekday == DateTime.saturday ||
+                day.weekday == DateTime.sunday)
+            ? Colors.white
+            : Colors.grey[600]!;
+      } else {
+        if (isCanceled) {
+          bgColor = Colors.red;
+          textColor = Colors.white;
+        } else {
+          bgColor = isWeekday ? Colors.green : Colors.grey[400]!;
+          textColor = Colors.white;
+        }
+      }
+    }
+
+    BoxDecoration decoration = BoxDecoration(
+      color: bgColor,
+      shape: BoxShape.circle,
+      border: isSelected && !isToday
+          ? Border.all(color: Colors.blue, width: 2)
+          : null,
+    );
+
+    return Container(
+      margin: const EdgeInsets.all(4),
+      decoration: decoration,
+      alignment: Alignment.center,
+      child: Text(
+        '${day.day}',
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<void>(
-      future: Provider.of<AuthUserProvider>(context, listen: true).loadUser(),
+      future: _initialLoad,
       builder: (context, snapshot) {
-        return buildMainContent();
+        return Consumer<UserRouteProvider>(
+          builder: (context, userRouteProvider, _) {
+            if (userRouteProvider.previousIsNearToPickUpUser &&
+                !_hasShownPickupAlert) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text("¡Atención!"),
+                      content: const Text(
+                          "¡El conductor está a 5 minutos! ¡Ve al punto de recogida!"),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            setState(() {
+                              _hasShownPickupAlert = true;
+                            });
+                          },
+                          child: const Text("Aceptar"),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              });
+            }
+            return buildMainContent(userRouteProvider);
+          },
+        );
       },
     );
   }
 
-  Widget buildMainContent() {
+  Widget buildMainContent(UserRouteProvider userRouteProvider) {
     final theme = Theme.of(context);
     return Scaffold(
       body: Stack(
@@ -124,20 +231,21 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                           child: Text(
                             'Bienvenido, ${Provider.of<AuthUserProvider>(context, listen: true).userFireStore?.name ?? ''} ${Provider.of<AuthUserProvider>(context, listen: true).userFireStore?.surnames ?? ''}',
                             style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold),
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ),
                         const SizedBox(height: 20),
-                        _buildCalendar(),
+                        _buildCalendar(userRouteProvider),
                         const SizedBox(height: 20),
                       ],
                     ),
                   ),
                 ),
-                const ChatComponent(false),
+                const ChatComponent(),
               ],
             ),
           ),
@@ -146,14 +254,36 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     );
   }
 
-  Widget _buildCalendar() {
+  Widget _buildCalendar(UserRouteProvider userRouteProvider) {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       elevation: 4,
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
+            if (!isSameDay(_selectedDay, DateTime.now()))
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedDay = DateTime.now();
+                      _focusedDay = DateTime.now();
+                    });
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text("Hoy"),
+                ),
+              ),
             TableCalendar(
               locale: 'es_ES',
               focusedDay: _focusedDay,
@@ -161,6 +291,12 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               lastDay: DateTime(2100),
               calendarFormat: CalendarFormat.week,
               startingDayOfWeek: StartingDayOfWeek.monday,
+              calendarBuilders: CalendarBuilders(
+                defaultBuilder: _dayBuilder,
+                todayBuilder: _dayBuilder,
+                selectedBuilder: _dayBuilder,
+                disabledBuilder: _dayBuilder,
+              ),
               selectedDayPredicate: (day) => isSameDay(day, _selectedDay),
               onDaySelected: (selectedDay, focusedDay) {
                 setState(() {
@@ -168,69 +304,58 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                   _focusedDay = focusedDay;
                 });
               },
-              enabledDayPredicate: (day) => day.weekday >= 1 && day.weekday <= 5, // Solo lunes a viernes
+              enabledDayPredicate: (day) =>
+                  day.weekday >= DateTime.monday && day.weekday <= DateTime.friday,
               headerStyle: HeaderStyle(
                 formatButtonVisible: false,
                 titleCentered: true,
                 titleTextFormatter: (date, locale) {
                   String formattedDate = DateFormat.yMMMM(locale).format(date);
-                  return formattedDate[0].toUpperCase() + formattedDate.substring(1);
+                  return formattedDate[0].toUpperCase() +
+                      formattedDate.substring(1);
                 },
-                titleTextStyle:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              calendarStyle: CalendarStyle(
-                todayDecoration: BoxDecoration(
-                  color: _cancelledPickups.contains(DateTime.now())
-                      ? Colors.red // Día actual cancelado
-                      : Colors.orange, // Día actual normal
-                  shape: BoxShape.circle,
+                titleTextStyle: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
-                selectedDecoration: const BoxDecoration(
-                  color: Colors.blue, // Día seleccionado en azul
-                  shape: BoxShape.circle,
-                ),
-                todayTextStyle: const TextStyle(fontSize: 18, color: Colors.white),
-                // Marcar los días cancelados en rojo y los programados en verde
-                defaultDecoration: BoxDecoration(
-                  color: _cancelledPickups.contains(_selectedDay)
-                      ? Colors.red // Día con recogida cancelada
-                      : Colors.green, // Día con recogida programada
-                  shape: BoxShape.circle,
-                ),
-                weekendDecoration: BoxDecoration(
-                  color: _cancelledPickups.contains(_selectedDay)
-                      ? Colors.red
-                      : Colors.green,
-                  shape: BoxShape.circle,
-                ),
-                // Aseguramos que el texto sea blanco en los días con fondo
-                defaultTextStyle: const TextStyle(color: Colors.white),
-                weekendTextStyle: const TextStyle(color: Colors.white),
               ),
             ),
             const SizedBox(height: 10),
-            // Colocamos los botones dentro del Card
-            Consumer<UserRouteProvider>(
-              builder: (context, userProvider, _) {
-                return _cancelledPickups.contains(_selectedDay)
+            Builder(
+              builder: (context) {
+                bool isPast = _selectedDay.isBefore(DateTime.now()) &&
+                    !isSameDay(_selectedDay, DateTime.now());
+                bool isToday = isSameDay(_selectedDay, DateTime.now());
+                bool isWeekendToday = DateTime.now().weekday == DateTime.saturday ||
+                    DateTime.now().weekday == DateTime.sunday;
+                if (isPast || (isToday && isWeekendToday)) {
+                  return const SizedBox(height: 42);
+                }
+                bool isCancelled = userRouteProvider.cancelDates.contains(
+                  DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day),
+                );
+                return isCancelled
                     ? ElevatedButton(
-                        onPressed: () => _confirmarAccion(false, userProvider),
+                        onPressed: () => _confirmarAccion(false, userRouteProvider),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
+                          backgroundColor: Colors.green,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 50, vertical: 20),
+                          textStyle: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         child: const Text("Reanudar Recogida"),
                       )
                     : ElevatedButton(
-                        onPressed: () => _confirmarAccion(true, userProvider),
+                        onPressed: () => _confirmarAccion(true, userRouteProvider),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 50, vertical: 20),
+                          textStyle: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         child: const Text("Cancelar Recogida"),
                       );
