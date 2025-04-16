@@ -69,6 +69,16 @@ class UserRouteProvider extends ChangeNotifier
     });
   }
 
+  Future<void> cancelCurrentPickup(String username) async {
+    await _routeService.cancelCurrentPickup(username);
+    notificationProvider.addNotification("Has cancelado tu recogida actual.");
+    notifyListeners();
+  }
+
+  Future<bool> checkIfUserIsBeingPicked(String username) async {
+    return await _routeService.isGoingToPickUpUser(username);
+  }
+
 
   @override
   void dispose() 

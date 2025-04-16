@@ -200,4 +200,12 @@ class RouteService {
       } 
     }
   }
+  Future<void> cancelCurrentPickup(String username) async {
+    QuerySnapshot querySnapshot = await collectionReferenceRoute
+        .where('username', isEqualTo: username)
+        .get();
+    if (querySnapshot.docs.isNotEmpty) {
+      await querySnapshot.docs.first.reference.delete();
+    }
+  }
 }

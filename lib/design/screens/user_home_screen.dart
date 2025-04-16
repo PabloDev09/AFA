@@ -1,5 +1,4 @@
-// user_home_screen.dart
-
+import 'dart:async';
 import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -8,64 +7,75 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:afa/logic/providers/user_route_provider.dart';
 import 'package:afa/design/components/chat_component.dart';
-
+ 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
-
+ 
   @override
   State<UserHomeScreen> createState() => _UserHomeScreenState();
 }
-
+ 
 class _UserHomeScreenState extends State<UserHomeScreen> {
   late DateTime _selectedDay;
   late DateTime _focusedDay;
   bool _hasShownPickupAlert = false;
   late Future<void> _initialLoad;
-
+  late Timer _timer;
+ 
   @override
   void initState() {
     super.initState();
     initializeDateFormatting('es', null);
     _focusedDay = DateTime.now();
     _selectedDay = _focusedDay;
-
-    // Carga diferida usando addPostFrameCallback para evitar error con Provider
+ 
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+      });
+    });
+ 
+    // Carga de datos diferida para evitar errores al usar Provider
     _initialLoad = Future<void>(() async {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _loadData();
       });
     });
   }
-
+ 
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+ 
   Future<void> _loadData() async {
     final authProvider = Provider.of<AuthUserProvider>(context, listen: false);
     final userRouteProvider =
         Provider.of<UserRouteProvider>(context, listen: false);
-
+ 
     await authProvider.loadUser();
     final username = authProvider.userFireStore?.username;
-
     if (username != null) {
       userRouteProvider.startListening(username);
       await userRouteProvider.getCancelDates(username);
     }
   }
-
+ 
   Future<void> _confirmarAccion(
       bool cancelar, UserRouteProvider userProvider) async {
     final username = Provider.of<AuthUserProvider>(context, listen: false)
         .userFireStore
         ?.username;
     if (username == null) return;
-
+ 
     if (_selectedDay.isBefore(DateTime.now()) &&
         !isSameDay(_selectedDay, DateTime.now())) {
       return;
     }
-
+ 
     String accion = cancelar ? "Cancelar" : "Reanudar";
     Color color = cancelar ? Colors.red : Colors.blue;
-
+ 
     bool? confirmacion = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -87,19 +97,53 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         );
       },
     );
-
+ 
     if (confirmacion ?? false) {
       if (cancelar) {
         await userProvider.cancelPickupForDate(username, _selectedDay);
       } else {
         await userProvider.removeCancelPickup(username, _selectedDay);
       }
-
+ 
       await userProvider.getCancelDates(username);
       setState(() {});
     }
   }
-
+ 
+  // Nuevo método para cancelar la recogida actual
+  Future<void> _cancelarRecogidaActual(UserRouteProvider userProvider) async {
+    final username =
+        Provider.of<AuthUserProvider>(context, listen: false).userFireStore?.username;
+    if (username == null) return;
+ 
+    bool? confirmacion = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Cancelar recogida actual"),
+          content: const Text("¿Estás seguro de que quieres cancelar la recogida actual? Serás eliminado de la ruta."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("No"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(foregroundColor: Colors.orange),
+              child: const Text("Sí, cancelar"),
+            ),
+          ],
+        );
+      },
+    );
+ 
+    if (confirmacion ?? false) {
+      await userProvider.cancelCurrentPickup(username);
+      setState(() {});
+    }
+  }
+ 
+  // Método para construir el día del calendario
   Widget _dayBuilder(BuildContext context, DateTime day, DateTime focusedDay) {
     final userRouteProvider =
         Provider.of<UserRouteProvider>(context, listen: false);
@@ -110,10 +154,10 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     bool isWeekday =
         day.weekday >= DateTime.monday && day.weekday <= DateTime.friday;
     bool isPast = day.isBefore(DateTime.now()) && !isToday;
-
+ 
     Color bgColor;
     Color textColor;
-
+ 
     if (isPast) {
       bgColor = isCanceled ? Colors.red : Colors.grey;
       textColor = Colors.white;
@@ -134,7 +178,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         }
       }
     }
-
+ 
     BoxDecoration decoration = BoxDecoration(
       color: bgColor,
       shape: BoxShape.circle,
@@ -142,7 +186,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           ? Border.all(color: Colors.blue, width: 2)
           : null,
     );
-
+ 
     return Container(
       margin: const EdgeInsets.all(4),
       decoration: decoration,
@@ -156,7 +200,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       ),
     );
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<void>(
@@ -197,7 +241,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       },
     );
   }
-
+ 
   Widget buildMainContent(UserRouteProvider userRouteProvider) {
     final theme = Theme.of(context);
     return Scaffold(
@@ -222,8 +266,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               children: [
                 Expanded(
                   child: SingleChildScrollView(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 60, horizontal: 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -231,10 +275,9 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                           child: Text(
                             'Bienvenido, ${Provider.of<AuthUserProvider>(context, listen: true).userFireStore?.name ?? ''} ${Provider.of<AuthUserProvider>(context, listen: true).userFireStore?.surnames ?? ''}',
                             style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -253,12 +296,11 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       ),
     );
   }
-
+ 
   Widget _buildCalendar(UserRouteProvider userRouteProvider) {
     return Card(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+          borderRadius: BorderRadius.circular(12)),
       elevation: 4,
       child: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -314,10 +356,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                   return formattedDate[0].toUpperCase() +
                       formattedDate.substring(1);
                 },
-                titleTextStyle: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                titleTextStyle:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(height: 10),
@@ -334,31 +374,58 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 bool isCancelled = userRouteProvider.cancelDates.contains(
                   DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day),
                 );
-                return isCancelled
-                    ? ElevatedButton(
-                        onPressed: () => _confirmarAccion(false, userRouteProvider),
+ 
+                List<Widget> buttons = [];
+ 
+                if (isCancelled) {
+                  buttons.add(
+                    ElevatedButton(
+                      onPressed: () => _confirmarAccion(false, userRouteProvider),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                        textStyle: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      child: const Text("Reanudar Recogida"),
+                    ),
+                  );
+                } else {
+                  buttons.add(
+                    ElevatedButton(
+                      onPressed: () => _confirmarAccion(true, userRouteProvider),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                        textStyle: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      child: const Text("Cancelar Recogida"),
+                    ),
+                  );
+                }
+                final username = Provider.of<AuthUserProvider>(context, listen: false).userFireStore?.username;
+                FutureBuilder<bool>(
+                  future: userRouteProvider.checkIfUserIsBeingPicked(username!),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data == true) {
+                      return ElevatedButton(
+                        onPressed: () => _cancelarRecogidaActual(userRouteProvider),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
+                          backgroundColor: Colors.orange,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 50, vertical: 20),
-                          textStyle: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
-                        child: const Text("Reanudar Recogida"),
-                      )
-                    : ElevatedButton(
-                        onPressed: () => _confirmarAccion(true, userRouteProvider),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 50, vertical: 20),
-                          textStyle: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        child: const Text("Cancelar Recogida"),
+                        child: const Text("Cancelar Recogida Actual"),
                       );
+                    }
+                    return Container();
+                  },
+                );
+                return Column(children: buttons);
               },
             ),
           ],
