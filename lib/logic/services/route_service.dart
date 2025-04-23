@@ -160,7 +160,6 @@ class RouteService {
           'phoneNumber': user.phoneNumber,
           'isBeingPicking': false,
           'isNear': false,
-          // Se añade la fecha de creación del documento.
           'createdAt': Timestamp.now(),
         };
         await collectionReferenceRoute.add(routeData);
