@@ -15,10 +15,10 @@ class LoadingNoChildScreen extends StatefulWidget {
   final bool waitForData;
   
   const LoadingNoChildScreen({
-    Key? key,
+    super.key,
     this.destinationRoute,
     this.waitForData = false,
-  }) : super(key: key);
+  });
 
   @override
   State<LoadingNoChildScreen> createState() => _LoadingNoChildScreenState();
