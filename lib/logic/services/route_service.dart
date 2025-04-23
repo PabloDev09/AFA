@@ -18,41 +18,8 @@ class RouteService {
   /// pertenezcan al día actual. Si se detecta alguno creado en otro día,
   /// se eliminan todos los documentos.
   Future<void> createRoute() async {
-    await checkAndDeleteOldRoutes();
+    await deleteRoute();
     await _getUsers();
-  }
-
-  /// Verifica si existe algún documento cuya fecha de creación
-  /// (almacenada en el campo 'createdAt') no corresponda con el día actual.
-  /// Si se encuentra alguno, se eliminan todos los documentos de la colección.
-  Future<void> checkAndDeleteOldRoutes() async {
-    QuerySnapshot querySnapshot = await collectionReferenceRoute.get();
-    if (querySnapshot.docs.isEmpty) return;
-
-    DateTime now = DateTime.now();
-    bool needsDeletion = false;
-
-    for (var doc in querySnapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      // Se espera que el campo 'createdAt' sea de tipo Timestamp.
-      Timestamp? createdAtTimestamp = data['createdAt'];
-      if (createdAtTimestamp == null) {
-        // Si no está presente la fecha se marca para eliminar.
-        needsDeletion = true;
-        break;
-      }
-      DateTime createdAt = createdAtTimestamp.toDate();
-      if (createdAt.year != now.year ||
-          createdAt.month != now.month ||
-          createdAt.day != now.day) {
-        // Si la fecha del documento no es la del día actual, se marca para eliminar.
-        needsDeletion = true;
-        break;
-      }
-    }
-    if (needsDeletion) {
-      await deleteRoute();
-    }
   }
 
   /// Elimina todos los documentos de la colección 'ruta'.

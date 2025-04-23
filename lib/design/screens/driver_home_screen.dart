@@ -20,7 +20,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
   late DateTime _focusedDay;
   late DateTime _selectedDay;
   late Timer _timer;
-  bool isNotDriver = false; // Cambiar este valor según si el usuario es conductor o no
 
   @override
   void initState() {
@@ -33,8 +32,12 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
       vsync: this,
     );
     _animationController.forward();
+  }
 
-    _verificarRutaPendiente();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _verificarRutaPendiente(); // Llamamos aquí para asegurarnos que el contexto ya está listo
   }
 
   Future<void> _verificarRutaPendiente() async {
@@ -77,7 +80,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
                 } else {
                   await routeProvider.stopRoute();
                 }
-                setState(() {}); // Actualiza la UI
               },
               style: TextButton.styleFrom(foregroundColor: color),
               child: Text(accion),

@@ -39,13 +39,13 @@ class UserService {
       QuerySnapshot querySnapshot = await collectionReferenceUsers
           .where('rol', isEqualTo: rol)
           .get();
-
     for (var documento in querySnapshot.docs) {
       final data = documento.data() as Map<String, dynamic>;
       final user = User.fromMap(data);
       usersRol.add(user);
+      print("rule $user");
     }
-
+    print(usersRol.first.name);
     return usersRol;
   }
 
