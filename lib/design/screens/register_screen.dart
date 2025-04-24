@@ -245,7 +245,7 @@ Widget build(BuildContext context) {
             padding: const EdgeInsets.only(bottom: verticalMargin),
             child: Center(
               child: SingleChildScrollView(
-                child: Container(
+                child: SizedBox(
                   width: containerWidth,
                   // El formulario sigue desplazándose sin interferir con el footer
                   child: FadeTransition(
