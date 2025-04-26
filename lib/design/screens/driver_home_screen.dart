@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:afa/design/components/side_bar_menu.dart';
+
 
 class DriverHomeScreen extends StatefulWidget {
   const DriverHomeScreen({super.key});
@@ -20,6 +22,13 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
   late DateTime _focusedDay;
   late DateTime _selectedDay;
   late Timer _timer;
+  bool _isMenuOpen = false;
+
+void _toggleMenu() {
+  setState(() {
+    _isMenuOpen = !_isMenuOpen;
+  });
+}
 
   @override
   void initState() {
@@ -131,63 +140,98 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  theme.brightness == Brightness.dark ? Colors.black87 : Colors.blue[900]!,
-                  theme.brightness == Brightness.dark ? Colors.black54 : Colors.blue[300]!,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+@override
+Widget build(BuildContext context) {
+  final theme = Theme.of(context);
+  return Scaffold(
+  appBar: AppBar(
+    backgroundColor: _isMenuOpen ? const Color.fromARGB(30, 0, 0, 0) : Colors.blue[300],
+    elevation: 0,
+    title: Row(
+      children: [
+        IconButton(
+          icon: Icon(
+            _isMenuOpen ? Icons.close : Icons.menu,
+            color: _isMenuOpen ? Colors.blue[700] : Colors.white,
+          ),
+          onPressed: _toggleMenu,
+        ),
+        const SizedBox(width: 8),
+        const Text(
+          'Ruta del Conductor',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+      ],
+    ),
+  ),
+  body: Stack(
+    children: [
+      Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              theme.brightness == Brightness.dark ? Colors.black87 : Colors.blue[900]!,
+              theme.brightness == Brightness.dark ? Colors.black54 : Colors.blue[300]!,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          children: [
+            // Calendario
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Consumer<DriverRouteProvider>(
+                builder: (context, routeProvider, child) {
+                  return _buildCalendar(routeProvider);
+                },
               ),
             ),
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Calendario similar al de UserHomeScreen.
-                        Consumer<DriverRouteProvider>(
-                          builder: (context, routeProvider, child) {
-                            return _buildCalendar(routeProvider);
-                          }
-                        ),
-                        const SizedBox(height: 20),
-                        Consumer<DriverRouteProvider>(
-                          builder: (context, routeProvider, child) {
-                            return routeProvider.isRouteActive
-                                ? const RouteUserComponent() 
-                                : const SizedBox.shrink();
-                          }
-                        ),
-                      ],
-                    ),
-                  ),
+
+            // Lista scrollable
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Consumer<DriverRouteProvider>(
+                  builder: (context, routeProvider, child) {
+                    return routeProvider.isRouteActive
+                        ? const SingleChildScrollView(
+                            child: RouteUserComponent(),
+                          )
+                        : const SizedBox();
+                  },
                 ),
-              ],
+              ),
             ),
-          ),
-          // Chat Component
-          const Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: ChatComponent(),
-          ),
-        ],
+
+            // Chat Fijo
+            const ChatComponent(),
+          ],
+        ),
       ),
-    );
-  }
+
+      // Capa oscura si el menú está abierto
+      if (_isMenuOpen)
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: _toggleMenu,
+            child: Container(color: Colors.black.withOpacity(0.5)),
+          ),
+        ),
+
+      // Sidebar visible
+      if (_isMenuOpen)
+        const Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          child: SidebarMenu(selectedIndex: 0, userName: "Conductor AFA"),
+        ),
+    ],
+  ),
+);
+}
 
   Widget _buildCalendar(DriverRouteProvider routeProvider) {
     return Card(

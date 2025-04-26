@@ -7,6 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:afa/logic/providers/user_route_provider.dart';
 import 'package:afa/design/components/chat_component.dart';
+import 'package:afa/design/components/side_bar_menu.dart';
  
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -21,6 +22,13 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   bool _hasShownPickupAlert = false;
   late Future<void> _initialLoad;
   late Timer _timer;
+  bool _isMenuOpen = false;
+
+  void _toggleMenu() {
+    setState(() {
+      _isMenuOpen = !_isMenuOpen;
+    });
+  }
  
   @override
   void initState() {
@@ -245,6 +253,26 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   Widget buildMainContent(UserRouteProvider userRouteProvider) {
     final theme = Theme.of(context);
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: _isMenuOpen ? const Color.fromARGB(30, 0, 0, 0) : Colors.blue[300],
+        elevation: 0,
+        title: Row(
+          children: [
+            IconButton(
+              icon: Icon(
+                _isMenuOpen ? Icons.close : Icons.menu,
+                color: _isMenuOpen ? Colors.blue[700] : Colors.white,
+              ),
+              onPressed: _toggleMenu,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'User Home Screen',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+          ],
+        ),
+      ),
       body: Stack(
         children: [
           Container(
@@ -292,6 +320,23 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               ],
             ),
           ),
+          // Capa oscura si el menú está abierto
+      if (_isMenuOpen)
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: _toggleMenu,
+            child: Container(color: Colors.black.withOpacity(0.5)),
+          ),
+        ),
+
+      // Sidebar visible
+      if (_isMenuOpen)
+         Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          child: SidebarMenu(selectedIndex: 0, userName: '${Provider.of<AuthUserProvider>(context, listen: true).userFireStore?.name ?? ''} ${Provider.of<AuthUserProvider>(context, listen: true).userFireStore?.surnames ?? ''}'),
+        ),
         ],
       ),
     );
