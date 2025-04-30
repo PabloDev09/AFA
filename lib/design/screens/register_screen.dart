@@ -188,125 +188,109 @@ class _RegisterScreenState extends State<RegisterScreen>
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final userRegisterProvider = Provider.of<UserRegisterProvider>(context);
-    final theme = Theme.of(context);
+@override
+Widget build(BuildContext context) {
+  final userRegisterProvider = Provider.of<UserRegisterProvider>(context);
+  final theme = Theme.of(context);
 
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final double screenHeight = MediaQuery.of(context).size.height;
-    const double verticalMargin = 40;
+  final double screenWidth = MediaQuery.of(context).size.width;
+  const double verticalMargin = 40;
 
-    // Ajustamos el ancho máximo a 900 (en lugar de 700).
-    final double containerWidth =
-        screenWidth * 0.95 > 900 ? 900 : screenWidth * 0.95;
+  // Definir si es móvil según el ancho (ej: menos de 600px)
+  final bool isMobile = screenWidth < 600;
 
-    final double availableHeight = screenHeight - (verticalMargin * 2);
+  // Ancho del contenedor: más pequeño para móviles
+  final double containerWidth = isMobile ? screenWidth * 0.9 : (screenWidth * 0.95 > 900 ? 900 : screenWidth * 0.95);
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      // Reemplazamos el icono de casa con el logo, con tooltip
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leadingWidth: 80,
-        leading: Tooltip(
-          message: 'Volver al inicio',
-          child: IconButton(
-            onPressed: () {
-              context.go(PathUrlAfa().pathWelcome);
-            },
-            icon: Image.asset(
-              'assets/images/logo.png',
-              width: 80,
-              height: 80,
-              fit: BoxFit.contain,
-            ),
-            iconSize: 70,
+  return Scaffold(
+    extendBodyBehindAppBar: true,
+    appBar: AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      leadingWidth: 80,
+      leading: Tooltip(
+        message: 'Volver al inicio',
+        child: IconButton(
+          onPressed: () {
+            context.go(PathUrlAfa().pathWelcome);
+          },
+          icon: Image.asset(
+            'assets/images/logo.png',
+            width: 80,
+            height: 80,
+            fit: BoxFit.contain,
           ),
+          iconSize: 70,
         ),
       ),
-      body: Stack(
-        children: [
-          // Fondo con mapa + blur
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/map_background.png',
-              fit: BoxFit.cover,
-            ),
+    ),
+    body: Stack(
+      children: [
+        // Fondo de mapa + blur
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/map_background.png',
+            fit: BoxFit.cover,
           ),
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-              child: Container(color: Colors.black.withOpacity(0.2)),
-            ),
+        ),
+        Positioned.fill(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(color: Colors.black.withOpacity(0.2)),
           ),
-          // Contenido principal (SafeArea con el formulario)
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: verticalMargin),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: availableHeight),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Container(
-                      width: containerWidth,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 20,
-                            offset: Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: _buildRegisterForm(
-                          userRegisterProvider,
-                          theme,
-                        ),
-                      ),
+        ),
+        // Contenedor con formulario
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: verticalMargin),
+            child: Center(
+              child: SingleChildScrollView(
+                child: SizedBox(
+                  width: containerWidth,
+                  // El formulario sigue desplazándose sin interferir con el footer
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0), // Padding alrededor
+                      child: _buildRegisterForm(userRegisterProvider, theme),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-          // Footer superpuesto
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 40,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.transparent,
-                    Colors.black54,
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
+        ),
+        // Footer fijo, siempre visible
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            height: 40,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  Colors.black54,
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
-              alignment: Alignment.center,
-              child: const Text(
-                '© 2025 AFA Andújar',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                ),
+            ),
+            alignment: Alignment.center,
+            child: const Text(
+              '© 2025 AFA Andújar',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 10,
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildRegisterForm(
     UserRegisterProvider userRegisterProvider,

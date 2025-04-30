@@ -6,10 +6,15 @@ import 'package:afa/logic/providers/notification_provider.dart';
 
 class DriverRouteProvider extends ChangeNotifier {
   final RouteService _routeService = RouteService();
-  final NotificationProvider notificationProvider;
+    late NotificationProvider _notificationProvider;
 
-  // Constructor que recibe NotificationProvider como dependencia
-  DriverRouteProvider(this.notificationProvider);
+  DriverRouteProvider(this._notificationProvider);
+
+  /// Llamar desde el ProxyProvider para actualizar la referencia:
+  void updateNotificationProvider(NotificationProvider newProvider) {
+    _notificationProvider = newProvider;
+  }
+
 
   List<RouteUser> pendingUsers = [];
   
@@ -22,21 +27,26 @@ class DriverRouteProvider extends ChangeNotifier {
     isRouteActive = true;
     await _routeService.createRoute();
     pendingUsers = await _routeService.getUsersToPickUp();
+    print("Usuarios pendientes: ${pendingUsers.length}"); // 🔍
+
     notifyListeners();
-    notificationProvider.addNotification("Ruta iniciada");
+    _notificationProvider.addNotification("Ruta iniciada");
   }
 
   Future<void> resumeRoute() async {
     isRouteActive = true;
     pendingUsers = await _routeService.getUsersToPickUp();
+    print("Usuarios pendientes: ${pendingUsers.length}"); // 🔍
+
     notifyListeners();
-    notificationProvider.addNotification("Ruta reanudada");
+    _notificationProvider.addNotification("Ruta reanudada");
   }
 
   Future<bool> canResumeRoute() async {
     isLoading = true;
     bool canContinue = await _routeService.canContinueRouteCollection();
     isLoading = canContinue;
+    notifyListeners();
     return canContinue;
   }
 
@@ -45,24 +55,24 @@ class DriverRouteProvider extends ChangeNotifier {
     await _routeService.deleteRoute();
     pendingUsers.clear();
     notifyListeners();
-    notificationProvider.addNotification("Ruta finalizada");
+    _notificationProvider.addNotification("Ruta finalizada");
   }
 
   Future<void> pickUpUser(String username) async {
     await _routeService.pickUpUser(username);
-    notificationProvider.addNotification("Se va a recoger a $username");
+    _notificationProvider.addNotification("Se va a recoger a $username");
     _updatePendingUsers();
   }
 
   Future<void> cancelPickUpUser(String username) async {
     await _routeService.cancelPickUpUser(username);
-    notificationProvider.addNotification("Se canceló la recogida de $username");
+    _notificationProvider.addNotification("Se canceló la recogida de $username");
     _updatePendingUsers();
   }
 
   Future<void> markUserAsCollected(String username) async {
     await _routeService.deleteUser(username);
-    notificationProvider.addNotification("Se recogió a $username");
+    _notificationProvider.addNotification("Se recogió a $username");
     _updatePendingUsers();
   }
 

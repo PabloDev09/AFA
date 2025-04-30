@@ -32,32 +32,45 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // Primero se debe cargar NotificationProvider
+        /// El proveedor de notificaciones:
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
 
-        // AuthUserProvider se debe cargar después de NotificationProvider
+        /// Autenticación:
         ChangeNotifierProvider(create: (_) => AuthUserProvider()..loadUser()),
 
-        // Otros proveedores
+        /// Otros:
         ChangeNotifierProvider(create: (_) => UserRegisterProvider()),
         ChangeNotifierProvider(create: (_) => PendingUserProvider()..loadPendingUsers()),
         ChangeNotifierProvider(create: (_) => ActiveUserProvider()..loadActiveUsers()),
         ChangeNotifierProvider(create: (_) => BusProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => RoutesProvider()),
-        
-        // DriverRouteProvider depende de NotificationProvider
+
+        /// Proxy para DriverRouteProvider:
         ChangeNotifierProxyProvider<NotificationProvider, DriverRouteProvider>(
-          create: (context) => DriverRouteProvider(context.read<NotificationProvider>()),
-          update: (context, notificationProvider, previous) =>
-              DriverRouteProvider(notificationProvider),
+          create: (context) => DriverRouteProvider(
+            context.read<NotificationProvider>(),
+          ),
+          update: (context, notificationProvider, previous) {
+            // Solo actualizamos la dependencia interna, no recreamos la instancia:
+            previous!
+              ..updateNotificationProvider(notificationProvider)
+              ..notifyListeners();
+            return previous;
+          },
         ),
-        
-        // UserRouteProvider depende de NotificationProvider
+
+        /// Proxy para UserRouteProvider:
         ChangeNotifierProxyProvider<NotificationProvider, UserRouteProvider>(
-          create: (context) => UserRouteProvider(context.read<NotificationProvider>()),
-          update: (context, notificationProvider, previous) =>
-              UserRouteProvider(notificationProvider),
+          create: (context) => UserRouteProvider(
+            context.read<NotificationProvider>(),
+          ),
+          update: (context, notificationProvider, previous) {
+            previous!
+              ..updateNotificationProvider(notificationProvider)
+              ..notifyListeners();
+            return previous;
+          },
         ),
       ],
       child: Consumer<ThemeProvider>(
@@ -65,7 +78,7 @@ class MyApp extends StatelessWidget {
           return MaterialApp.router(
             theme: AfaTheme.theme(
               themeProvider.isDarkMode, 
-              1
+              1,
             ),
             debugShowCheckedModeBanner: false,
             routerConfig: afaRouter,
