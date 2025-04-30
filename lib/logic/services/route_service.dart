@@ -153,6 +153,7 @@ class RouteService {
           cancelledUser.cancelDate.day == now.day);
       if (!isCancelledToday) {
         Map<String, dynamic> routeData = {
+          'mail': user.mail,
           'username': user.username,
           'name': user.name,
           'surnames': user.surnames,

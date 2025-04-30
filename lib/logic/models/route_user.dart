@@ -1,4 +1,5 @@
 class RouteUser {
+  final String mail;
   final String username;
   final String name;
   final String surnames;
@@ -8,6 +9,7 @@ class RouteUser {
   final bool isNear;
 
   RouteUser({
+    required this.mail, 
     required this.username,
     required this.name,
     required this.surnames,
@@ -20,6 +22,7 @@ class RouteUser {
   // Método para convertir un Map a un objeto RouteUser
   factory RouteUser.fromMap(Map<String, dynamic> map) {
     return RouteUser(
+      mail: map['mail'] ?? '',
       username: map['username'] ?? '',
       name: map['name'] ?? '',
       surnames: map['surnames'] ?? '',
