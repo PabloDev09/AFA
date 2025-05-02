@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:afa/design/components/chat_component.dart';
 import 'package:afa/design/components/route_user_component.dart';
+import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/providers/driver_route_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -24,11 +25,11 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
   late Timer _timer;
   bool _isMenuOpen = false;
 
-void _toggleMenu() {
-  setState(() {
-    _isMenuOpen = !_isMenuOpen;
-  });
-}
+  void _toggleMenu() {
+    setState(() {
+      _isMenuOpen = !_isMenuOpen;
+    });
+  }
 
   @override
   void initState() {
@@ -222,11 +223,11 @@ Widget build(BuildContext context) {
 
       // Sidebar visible
       if (_isMenuOpen)
-        const Positioned(
+         Positioned(
           left: 0,
           top: 0,
           bottom: 0,
-          child: SidebarMenu(selectedIndex: 0, userName: "Conductor AFA"),
+          child: SidebarMenu(selectedIndex: 0, userName: '${Provider.of<AuthUserProvider>(context, listen: true).userFireStore?.name ?? ''} ${Provider.of<AuthUserProvider>(context, listen: true).userFireStore?.surnames ?? ''}'),
         ),
     ],
   ),

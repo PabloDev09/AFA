@@ -20,16 +20,6 @@ class UserRegisterProvider extends ChangeNotifier {
     'Málaga',
     'Sevilla'
   ];
-  final List<Map<String, String>> provinces = [
-    {"provincia": "Jaén", "codigoProvincia": "23"},
-    {"provincia": "Granada", "codigoProvincia": "18"},
-    {"provincia": "Almería", "codigoProvincia": "04"},
-    {"provincia": "Córdoba", "codigoProvincia": "14"},
-    {"provincia": "Sevilla", "codigoProvincia": "41"},
-    {"provincia": "Málaga", "codigoProvincia": "29"},
-    {"provincia": "Huelva", "codigoProvincia": "21"},
-    {"provincia": "Cádiz", "codigoProvincia": "11"},
-  ];
   List<String> cities = [];
   List<String> domainMails = [
     "@gmail.com",
@@ -46,38 +36,28 @@ class UserRegisterProvider extends ChangeNotifier {
     "@fastmail.com",
   ];
   
-  // Actualiza la provincia seleccionada y carga las ciudades asociadas.
   void setSelectedProvince(String province) async {
+    selectedCity = null;
     selectedProvince = province;
-    selectedCity = null; // Resetear la ciudad
+    cities = [];
     notifyListeners();
-  
-    String? provinceCode = provinces.firstWhere(
-      (element) => element["provincia"] == province,
-      orElse: () => {}
-    )["codigoProvincia"];
-  
-    if (provinceCode != null && provinceCode.isNotEmpty) {
-      await getCitiesForProvince(provinceCode);
+
+    
+    try {
+      cities = await _getProvincesCities.getCitiesByProvince(province);
+    } catch (e) {
+      cities = [];
     }
+
+    notifyListeners();
   }
-  
-  // Actualiza la ciudad seleccionada
+
+  /// Cambiar ciudad seleccionada
   void setSelectedCity(String city) {
     selectedCity = city;
     notifyListeners();
   }
-  
-  // Obtiene la lista de ciudades para la provincia seleccionada.
-  Future<void> getCitiesForProvince(String provinceCode) async {
-    try {
-      cities = await _getProvincesCities.fetchCities(provinceCode);
-    } catch (e) {
-      cities = [];
-    }
-    notifyListeners();
-  }
-  
+
    /// Verifica si el correo electrónico tiene un dominio válido.
   bool isCorrectMail(String value) {
     return domainMails.any((domain) => value.endsWith(domain));
