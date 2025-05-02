@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:afa/design/components/chat_component.dart';
 import 'package:afa/design/components/route_user_component.dart';
 import 'package:afa/logic/providers/auth_user_provider.dart';
+import 'package:afa/design/components/side_bar_menu.dart';
 import 'package:afa/logic/providers/driver_route_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';

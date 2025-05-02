@@ -1,14 +1,19 @@
+import 'package:afa/logic/helpers/get_provinces_cities.dart';
 import 'package:afa/logic/models/user.dart';
 import 'package:afa/logic/services/user_service.dart';
 import 'package:flutter/material.dart';
 
-class UserRegisterProvider extends ChangeNotifier {
+class UserRegisterProvider extends ChangeNotifier 
+{
+
+  final GetProvincesCities _getProvincesCities = GetProvincesCities();
   final UserService userService = UserService();
 
   String errorMail = "";
   String errorUser = "";
   
   String? selectedProvince;
+  String? selectedCity;
   final List<String> provincesNames = 
   [
     'Almería',
