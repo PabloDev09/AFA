@@ -20,8 +20,6 @@ class UserRegisterProvider extends ChangeNotifier {
     'Málaga',
     'Sevilla'
   ];
-  
-   String? selectedCity;
   List<String> cities = [];
   List<String> domainMails = 
   [
@@ -39,20 +37,28 @@ class UserRegisterProvider extends ChangeNotifier {
     "@fastmail.com",
   ];
   
-  // Actualiza la provincia seleccionada y carga las ciudades asociadas.
-  void setSelectedProvince(String province) 
-  {
+  void setSelectedProvince(String province) async {
+    selectedCity = null;
     selectedProvince = province;
+    cities = [];
+    notifyListeners();
+
+    
+    try {
+      cities = await _getProvincesCities.getCitiesByProvince(province);
+    } catch (e) {
+      cities = [];
+    }
+
     notifyListeners();
   }
-  
-  // Actualiza la ciudad seleccionada
-  void setSelectedCity(String city) 
-  {
+
+  /// Cambiar ciudad seleccionada
+  void setSelectedCity(String city) {
     selectedCity = city;
     notifyListeners();
   }
-  
+
    /// Verifica si el correo electrónico tiene un dominio válido.
   bool isCorrectMail(String value) 
   {

@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:afa/design/components/side_bar_menu.dart';
 
 
 class DriverHomeScreen extends StatefulWidget {
@@ -25,11 +24,11 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
   late Timer _timer;
   bool _isMenuOpen = false;
 
-void _toggleMenu() {
-  setState(() {
-    _isMenuOpen = !_isMenuOpen;
-  });
-}
+  void _toggleMenu() {
+    setState(() {
+      _isMenuOpen = !_isMenuOpen;
+    });
+  }
 
   @override
   void initState() {
