@@ -1,4 +1,5 @@
 class RouteUser {
+  final String fcmToken;
   final String mail;
   final String username;
   final String name;
@@ -9,6 +10,7 @@ class RouteUser {
   final bool isNear;
 
   RouteUser({
+    required this.fcmToken,
     required this.mail, 
     required this.username,
     required this.name,
@@ -22,6 +24,7 @@ class RouteUser {
   // Método para convertir un Map a un objeto RouteUser
   factory RouteUser.fromMap(Map<String, dynamic> map) {
     return RouteUser(
+      fcmToken: map['fcmToken'] ?? '',
       mail: map['mail'] ?? '',
       username: map['username'] ?? '',
       name: map['name'] ?? '',

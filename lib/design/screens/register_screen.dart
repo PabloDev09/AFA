@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:afa/logic/providers/user_register_provider.dart';
 import 'package:afa/logic/router/path/path_url_afa.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -15,12 +16,14 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin 
+{
   bool _isPasswordVisible = false;
   bool _termsAccepted = false;
+  bool _fcmAccepted = false;
   bool _isLoading = false;
-  final _formKey = GlobalKey<FormState>();
 
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _mailController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -29,12 +32,14 @@ class _RegisterScreenState extends State<RegisterScreen>
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _streetController = TextEditingController();
   final TextEditingController _postalCodeController = TextEditingController();
+  late String _fcmToken = '';
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
   @override
-  void initState() {
+  void initState() 
+  {
     super.initState();
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1500),
@@ -45,6 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       curve: Curves.easeIn,
     );
     _animationController.forward();
+      _initFCM();
   }
 
   @override
@@ -61,7 +67,30 @@ class _RegisterScreenState extends State<RegisterScreen>
     super.dispose();
   }
 
-  Future<Position?> _requestLocationPermission() async {
+  Future<void> _initFCM() async 
+  {
+  NotificationSettings settings = await FirebaseMessaging.instance.requestPermission();
+  if (settings.authorizationStatus == AuthorizationStatus.authorized) 
+  {
+    _fcmAccepted = true;
+    _fcmToken = (await FirebaseMessaging.instance.getToken())!;
+  } 
+  else 
+  {
+    _fcmAccepted = false;
+    ScaffoldMessenger.of(context).showSnackBar
+    (
+      const SnackBar(
+        content: Text('El servicio de notificaciones está denegado.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    
+  }
+}
+
+  Future<Position?> _requestLocationPermission() async 
+  {
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -101,7 +130,8 @@ class _RegisterScreenState extends State<RegisterScreen>
     return await Geolocator.getCurrentPosition();
   }
 
-  void _registerUser(UserRegisterProvider userRegisterProvider) async {
+  void _registerUser(UserRegisterProvider userRegisterProvider) async 
+  {
     if (!_termsAccepted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -111,12 +141,25 @@ class _RegisterScreenState extends State<RegisterScreen>
       );
       return;
     }
-    if (_formKey.currentState!.validate()) {
+
+    if (!_fcmAccepted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes aceptar el servicio de notificaciones.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_formKey.currentState!.validate()) 
+    {
       setState(() => _isLoading = true);
       await Future.delayed(const Duration(seconds: 2));
 
       Position? position = await _requestLocationPermission();
-      if (position == null) {
+      if (position == null) 
+      {
         setState(() => _isLoading = false);
         return;
       }
@@ -136,12 +179,15 @@ class _RegisterScreenState extends State<RegisterScreen>
         surnames: userRegisterProvider.capitalizeEachWord(_surnamesController.text),
         address: userRegisterProvider.capitalizeEachWord(address),
         phoneNumber: _phoneController.text,
+        fcmToken: _fcmToken,
       );
 
       _formKey.currentState!.validate();
 
       if (userRegisterProvider.errorMail == "" &&
-          userRegisterProvider.errorUser.trim() == "") {
+          userRegisterProvider.errorUser.trim() == "" && 
+          _termsAccepted && _fcmAccepted)
+      {
         showSubmittedDialog(context);
         _mailController.clear();
         _usernameController.clear();
@@ -196,10 +242,7 @@ Widget build(BuildContext context) {
   final double screenWidth = MediaQuery.of(context).size.width;
   const double verticalMargin = 40;
 
-  // Definir si es móvil según el ancho (ej: menos de 600px)
   final bool isMobile = screenWidth < 600;
-
-  // Ancho del contenedor: más pequeño para móviles
   final double containerWidth = isMobile ? screenWidth * 0.9 : (screenWidth * 0.95 > 900 ? 900 : screenWidth * 0.95);
 
   return Scaffold(
@@ -531,14 +574,15 @@ Widget build(BuildContext context) {
                         label: 'Ciudad',
                         hint: 'Seleccione ciudad',
                         value: userRegisterProvider.selectedCity,
-                        items: userRegisterProvider.cities,
+                        items: userRegisterProvider.provincesNames,
                         onChanged: (newValue) {
                           if (newValue != null) {
                             userRegisterProvider.setSelectedCity(newValue);
                           }
                         },
                         validator: (value) {
-                          if (value == null || value.isEmpty) {
+                          if (value == null || value.isEmpty) 
+                          {
                             return 'Seleccione una ciudad';
                           }
                           return null;

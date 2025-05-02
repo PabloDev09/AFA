@@ -1,12 +1,14 @@
 import 'package:afa/logic/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class UserService {
+class UserService 
+{
   final CollectionReference collectionReferenceUsers;
 
   UserService() : collectionReferenceUsers = FirebaseFirestore.instance.collection('usuarios');
 
-  Future<void> createUser(User userRegister) async {
+  Future<void> createUser(User userRegister) async 
+  {
     await collectionReferenceUsers.add({
       'mail': userRegister.mail,
       'username': userRegister.username,
@@ -16,7 +18,8 @@ class UserService {
       'address': userRegister.address,
       'phoneNumber': userRegister.phoneNumber,
       'rol': userRegister.rol,
-      'isActivate': userRegister.isActivate
+      'isActivate': userRegister.isActivate,
+      'fcmToken': userRegister.fcmToken
     });
   }
 
@@ -85,7 +88,8 @@ class UserService {
         'address': user.address,
         'phoneNumber': user.phoneNumber,
         'rol': user.rol,
-        'isActivate': user.isActivate
+        'isActivate': user.isActivate,
+        'fcmToken': user.fcmToken
       });
     } else {
       throw Exception("Usuario no encontrado");

@@ -111,6 +111,7 @@ class RoutesProvider with ChangeNotifier {
       // Actualizar la propiedad isNear si el tiempo es inferior a 5 minutos.
       if (_estimatedTime < 5) {
         _targetUser = RouteUser(
+          fcmToken: _targetUser!.fcmToken,
           mail: _targetUser!.mail,
           username: _targetUser!.username,
           name: _targetUser!.name,
@@ -124,6 +125,7 @@ class RoutesProvider with ChangeNotifier {
       } else {
         // Asegurarse de que isNear sea false si no se cumple la condición.
         _targetUser = RouteUser(
+          fcmToken: _targetUser!.fcmToken,
           mail: _targetUser!.mail,
           username: _targetUser!.username,
           name: _targetUser!.name,

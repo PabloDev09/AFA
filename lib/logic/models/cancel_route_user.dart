@@ -10,7 +10,6 @@ class CancelRouteUser {
   required this.cancelDate
   });
 
-  // Método para convertir un Map a un objeto CancelRouteUser
   factory CancelRouteUser.fromMap(Map<String, dynamic> map) {
     return CancelRouteUser(
       username: map['username'] ?? '',

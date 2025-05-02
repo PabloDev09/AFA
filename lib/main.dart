@@ -52,7 +52,6 @@ class MyApp extends StatelessWidget {
             context.read<NotificationProvider>(),
           ),
           update: (context, notificationProvider, previous) {
-            // Solo actualizamos la dependencia interna, no recreamos la instancia:
             previous!
               ..updateNotificationProvider(notificationProvider)
               ..notifyListeners();

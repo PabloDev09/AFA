@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:afa/design/components/chat_component.dart';
 import 'package:afa/design/components/route_user_component.dart';
+import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/providers/driver_route_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -143,23 +144,23 @@ void _toggleMenu() {
 @override
 Widget build(BuildContext context) {
   final theme = Theme.of(context);
-  return Scaffold(
+return Scaffold(
+  extendBodyBehindAppBar: true,
+
   appBar: AppBar(
-    backgroundColor: _isMenuOpen ? const Color.fromARGB(30, 0, 0, 0) : Colors.blue[300],
+
+    backgroundColor: _isMenuOpen
+      ? Colors.black.withOpacity(0.7)  
+      : Colors.transparent,             
     elevation: 0,
     title: Row(
       children: [
         IconButton(
           icon: Icon(
             _isMenuOpen ? Icons.close : Icons.menu,
-            color: _isMenuOpen ? Colors.blue[700] : Colors.white,
+            color: Colors.white,
           ),
           onPressed: _toggleMenu,
-        ),
-        const SizedBox(width: 8),
-        const Text(
-          'Ruta del Conductor',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
       ],
     ),
@@ -222,11 +223,11 @@ Widget build(BuildContext context) {
 
       // Sidebar visible
       if (_isMenuOpen)
-        const Positioned(
+        Positioned(
           left: 0,
           top: 0,
           bottom: 0,
-          child: SidebarMenu(selectedIndex: 0, userName: "Conductor AFA"),
+          child: SidebarMenu(selectedIndex: 0, userName: Provider.of<AuthUserProvider>(context).userFireStore!.username,),
         ),
     ],
   ),

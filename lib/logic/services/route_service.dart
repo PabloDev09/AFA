@@ -152,7 +152,9 @@ class RouteService {
           cancelledUser.cancelDate.month == now.month &&
           cancelledUser.cancelDate.day == now.day);
       if (!isCancelledToday) {
-        Map<String, dynamic> routeData = {
+        Map<String, dynamic> routeData = 
+        {
+          'fcmToken': user.fcmToken,
           'mail': user.mail,
           'username': user.username,
           'name': user.name,
@@ -161,7 +163,7 @@ class RouteService {
           'phoneNumber': user.phoneNumber,
           'isBeingPicking': false,
           'isNear': false,
-          'createdAt': Timestamp.now(),
+          'createdAt': "${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}",
         };
         await collectionReferenceRoute.add(routeData);
       } 

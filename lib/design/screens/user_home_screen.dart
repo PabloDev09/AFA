@@ -265,11 +265,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               ),
               onPressed: _toggleMenu,
             ),
-            const SizedBox(width: 8),
-            const Text(
-              'User Home Screen',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-            ),
           ],
         ),
       ),
