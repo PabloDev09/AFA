@@ -15,16 +15,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-
-  final List<Map<String, dynamic>> _messages = [
-    {"icon": Icons.elderly, "text": "Tu movilidad, nuestra prioridad"},
-    {"icon": Icons.favorite, "text": "Siempre cuidando de ti"},
-    {"icon": Icons.accessible, "text": "Te acompañamos con seguridad"},
-    {"icon": Icons.health_and_safety, "text": "Tu bienestar es lo primero"},
-    {"icon": Icons.volunteer_activism, "text": "Mano a mano, llegamos lejos"},
-  ];
-
-  int _currentMessageIndex = 0;
   Timer? _timer;
 
   @override
@@ -43,7 +33,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       setState(() {
-        _currentMessageIndex = (_currentMessageIndex + 1) % _messages.length;
       });
     });
   }
@@ -62,20 +51,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Positioned(
-            top: 220,
-            left: 0,
-            right: 0,
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: Center(child: _buildDynamicMessage()),
-            ),
-          ),
-          
-        ),
       body: Stack(
         children: [
           Positioned.fill(
@@ -270,37 +245,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   fontSize: 16,
                   fontFamily: 'Montserrat',
                 ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDynamicMessage() {
-    final currentMessage = _messages[_currentMessageIndex];
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            currentMessage["icon"],
-            color: Colors.blue.shade700,
-            size: 36,
-          ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Text(
-              currentMessage["text"].toUpperCase(), // EJEMPLO: en mayúsculas
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 26, // más grande
-                color: Colors.blue.shade700,
-                fontWeight: FontWeight.w700,
-                fontFamily: 'Montserrat',
-                letterSpacing: 1.2, // Ejemplo de espaciado de letras
               ),
             ),
           ),

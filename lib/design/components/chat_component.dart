@@ -1,9 +1,11 @@
 import 'package:afa/logic/providers/notification_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 class ChatComponent extends StatelessWidget {
-  const ChatComponent({super.key});
+  final ScrollController? scrollController;
+  const ChatComponent({this.scrollController, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -14,48 +16,107 @@ class ChatComponent extends StatelessWidget {
         final notifications = notificationProvider.notifications;
 
         return Container(
-          padding: const EdgeInsets.all(10),
-          height: 200,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
-            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
+          // Fondo sólido para ocultar completamente lo que hay detrás
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: theme.shadowColor.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, -4),
+              ),
+            ],
           ),
           child: Column(
             children: [
-              const Text(
-                "Notificaciones",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  reverse: true,
-                  itemCount: notifications.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 5.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              theme.brightness == Brightness.dark
-                                  ? const Color(0xFF1E1E1E)
-                                  : const Color(0xFF063970),
-                              theme.brightness == Brightness.dark
-                                  ? const Color(0xFF121212)
-                                  : const Color(0xFF66B3FF),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Notificaciones',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
                         ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                          title: Text(
-                            notifications[index],
-                            style: const TextStyle(color: Colors.white),
-                          ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: theme.colorScheme.onSurface),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.separated(
+                  controller: scrollController,
+                  reverse: true,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: notifications.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final item = notifications[index];
+                    final dateStr = DateFormat('dd/MM/yyyy HH:mm').format(item.date);
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        // Marcar como leído al hacer tap
+                        notificationProvider.markAsRead(index);
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: item.isRead
+                              ? theme.colorScheme.surface
+                              : theme.colorScheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                                  color: item.isRead ? theme.disabledColor : theme.colorScheme.primary,
+                                  width: 1.5,
+                                ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              item.isRead ? Icons.notifications_none : Icons.notifications_active,
+                              color: item.isRead
+                                  ? theme.disabledColor
+                                  : theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.notification,
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      fontWeight: item.isRead ? FontWeight.normal : FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    dateStr,
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (!item.isRead)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 8),
+                                child: Icon(Icons.circle, size: 10, color: theme.colorScheme.secondary),
+                              ),
+                          ],
                         ),
                       ),
                     );
@@ -69,3 +130,4 @@ class ChatComponent extends StatelessWidget {
     );
   }
 }
+

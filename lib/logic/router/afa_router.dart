@@ -6,14 +6,15 @@ import 'package:afa/design/screens/not_found_screen.dart';
 import 'package:afa/design/screens/register_screen.dart';
 import 'package:afa/design/screens/user_home_screen.dart';
 import 'package:afa/design/screens/welcome_screen.dart';
+import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// Retorna el rol del usuario a partir de su email.
-/// Si el usuario no está autenticado, retorna null.
-Future<String?> getUserRole() async {
+
+Future<String?> getUserRole() async 
+{
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return null;
 
@@ -21,13 +22,11 @@ Future<String?> getUserRole() async {
   return await userService.getUserRoleByEmail(user.email!);
 }
 
-/// Determina si el usuario se encuentra autenticado.
-bool isAuthenticated() {
-  return FirebaseAuth.instance.currentUser != null;
+bool isAuthenticated() 
+{
+  return AuthUserProvider().isAuthenticated; 
 }
 
-/// Función auxiliar para mostrar un delay determinado usando LoadingNoChildScreen.
-/// Se espera la duración indicada y luego se muestra la pantalla destino.
 Widget _buildWithLoading(BuildContext context, Widget screen,
     {Duration delay = const Duration(seconds: 3)}) {
   return FutureBuilder(
@@ -41,8 +40,7 @@ Widget _buildWithLoading(BuildContext context, Widget screen,
   );
 }
 
-/// Función auxiliar para comprobar que el usuario tiene el rol requerido.
-/// Si no lo tiene, se retorna la ruta de fallback.
+
 Future<String?> _checkRole(
     BuildContext context, String requiredRole, String fallbackRoute) async {
   final role = await getUserRole();
@@ -116,11 +114,11 @@ final GoRouter afaRouter = GoRouter(
             // Si el rol no coincide con los esperados, se muestra loader indefinido.
             targetScreen = const LoadingNoChildScreen();
           }
-          // Se introduce un delay de 2 segundos antes de mostrar la pantalla destino.
+
           return _buildWithLoading(
             context,
             targetScreen,
-            delay: const Duration(seconds: 2),
+            delay: const Duration(seconds: 3),
           );
         },
       ),
@@ -132,5 +130,14 @@ final GoRouter afaRouter = GoRouter(
       },
     ),
   ],
-  errorBuilder: (context, state) => const NotFoundScreen(),
+  errorBuilder: (context, state) => FutureBuilder(
+  future: Future.delayed(const Duration(seconds: 3)),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState != ConnectionState.done) {
+      return const LoadingNoChildScreen(); 
+    }
+    return const NotFoundScreen();
+  },
+)
+
 );

@@ -1,13 +1,20 @@
+import 'dart:async';
 import 'package:afa/logic/models/route_user.dart';
 import 'package:afa/logic/providers/driver_route_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class RouteUserComponent extends StatelessWidget {
   const RouteUserComponent({super.key});
 
   void _showConfirmationDialog(
-      BuildContext context, String title, String content, VoidCallback onConfirm, Color confirmColor) {
+    BuildContext context,
+    String title,
+    String content,
+    VoidCallback onConfirm,
+    Color confirmColor,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
@@ -31,6 +38,15 @@ class RouteUserComponent extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _callNumber(String phoneNumber) async {
+    final uri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      debugPrint('No se pudo lanzar el marcador: $uri');
+    }
   }
 
   @override
@@ -127,17 +143,33 @@ class RouteUserComponent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '${user.name} ${user.surnames}',
-            style: const TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
+          // Fila superior: nombre y botón verde 'Llamar' a la derecha
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${user.name} ${user.surnames}',
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => _callNumber(user.phoneNumber),
+                icon: const Icon(Icons.call),
+                label: const Text('Llamar'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
           ),
           const Divider(),
           _buildUserInfoRow(Icons.person, 'Usuario:', user.username),
-          _buildUserInfoRow(Icons.phone, 'Teléfono:', user.phoneNumber),
           _buildUserInfoRow(Icons.location_on, 'Dirección:', user.address),
           const SizedBox(height: 20),
           _buildActionButtons(context, user, isSomeoneBeingPicked),
@@ -147,27 +179,23 @@ class RouteUserComponent extends StatelessWidget {
   }
 
   Widget _buildUserInfoRow(IconData icon, String label, String value) {
+    const textStyleLabel = TextStyle(
+      fontWeight: FontWeight.bold,
+      color: Colors.black87,
+      fontSize: 20,
+    );
+    const textStyleValue = TextStyle(color: Colors.black54, fontSize: 20);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           Icon(icon, size: 28, color: Colors.blue),
           const SizedBox(width: 12),
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-              fontSize: 20,
-            ),
-          ),
+          Text(label, style: textStyleLabel),
           const SizedBox(width: 6),
           Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(color: Colors.black54, fontSize: 20),
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: Text(value, style: textStyleValue, overflow: TextOverflow.ellipsis),
           ),
         ],
       ),
