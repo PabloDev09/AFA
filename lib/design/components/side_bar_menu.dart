@@ -1,6 +1,8 @@
 import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/providers/notification_provider.dart';
 import 'package:afa/logic/router/path/path_url_afa.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -104,7 +106,8 @@ class _SidebarMenuState extends State<SidebarMenu> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   elevation: hoveredIndex == 100 ? 4 : 0,
                 ),
-                onPressed: () {
+                onPressed: () async {
+                  await FirebaseAuth.instance.signOut();
                   Provider.of<AuthUserProvider>(context, listen: false).logout();
                   Provider.of<NotificationProvider>(context, listen: false).clearNotifications();
                   context.go(PathUrlAfa().pathLogin);

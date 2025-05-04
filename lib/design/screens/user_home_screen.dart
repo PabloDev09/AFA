@@ -273,14 +273,15 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   Widget buildMainContent(UserRouteProvider userRouteProvider) {
     final theme = Theme.of(context);
     return Scaffold(
+      extendBodyBehindAppBar: true,
         appBar: AppBar(
-    backgroundColor: _isMenuOpen ? Color.fromARGB(30,0,0,0) : Colors.blue[300],
-    elevation: 0,
-    title: Row(
-      children: [
-        IconButton(
-          icon: Icon(_isMenuOpen ? Icons.close : Icons.menu,
-                      color: _isMenuOpen ? Colors.blue[700] : Colors.white),
+          backgroundColor:Colors.transparent,
+          elevation: 0,
+          title: Row(
+            children: [
+              IconButton(
+                icon: Icon(_isMenuOpen ? Icons.close : Icons.menu,
+                  color: _isMenuOpen ? Colors.blue[700] : Colors.white),
           onPressed: _toggleMenu,
         ),
         const Spacer(),
@@ -348,28 +349,16 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(
-                          vertical: 60, horizontal: 20),
+                          vertical: 10, horizontal: 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Center(
-                            child: Text(
-                              'Bienvenido, ${Provider.of<AuthUserProvider>(context, listen: true).userFireStore?.name ?? ''} ${Provider.of<AuthUserProvider>(context, listen: true).userFireStore?.surnames ?? ''}',
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
                           _buildCalendar(userRouteProvider),
                           const SizedBox(height: 20),
                         ],
                       ),
                     ),
                   ),
-                  const ChatComponent(),
                 ],
               ),
             ),
@@ -385,11 +374,11 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
       // Sidebar visible
       if (_isMenuOpen)
-         Positioned(
+         const Positioned(
           left: 0,
           top: 0,
           bottom: 0,
-          child: SidebarMenu(selectedIndex: 0, userName: '${Provider.of<AuthUserProvider>(context, listen: true).userFireStore?.name ?? ''} ${Provider.of<AuthUserProvider>(context, listen: true).userFireStore?.surnames ?? ''}'),
+          child: SidebarMenu(selectedIndex: 0),
         ),
         ],
       ),
@@ -426,6 +415,11 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 ),
               ),
             TableCalendar(
+              onPageChanged: (focusedDay) {
+                setState(() {
+                  _focusedDay = focusedDay;
+                });
+              },
               locale: 'es_ES',
               focusedDay: _focusedDay,
               firstDay: DateTime(2000),

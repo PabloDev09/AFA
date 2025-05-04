@@ -173,11 +173,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         );
                         // Se llama al método authenticateUser pasando el mismo valor para email y username
                         bool isAuthenticated = await userActiveProvider.authenticateUser(
-                          _userController.text,
-                          _passwordController.text,
+                          _userController.text.trim(),
+                          _passwordController.text.trim(),
                         );
                         if (isAuthenticated) {
-                          await FirebaseAuth.instance.signInWithEmailAndPassword(email: _userController.text, password: _passwordController.text);
+                          await FirebaseAuth.instance.signInWithEmailAndPassword(email: _userController.text.trim(), password: _passwordController.text.trim());
                           // Redirige según el rol del usuario
                           _navigateAccordingToRole(_userController.text);
                         } 

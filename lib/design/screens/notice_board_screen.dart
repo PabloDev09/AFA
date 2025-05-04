@@ -1,8 +1,6 @@
-import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:afa/design/components/side_bar_menu.dart';
-import 'package:provider/provider.dart';
 
 class NoticeBoardScreen extends StatefulWidget {
   const NoticeBoardScreen({super.key});
@@ -96,11 +94,11 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
 
       // Sidebar visible
       if (_isMenuOpen)
-         Positioned(
+         const Positioned(
           left: 0,
           top: 0,
           bottom: 0,
-          child: SidebarMenu(selectedIndex: 0, userName: '${Provider.of<AuthUserProvider>(context, listen: true).userFireStore?.name ?? ''} ${Provider.of<AuthUserProvider>(context, listen: true).userFireStore?.surnames ?? ''}'),
+          child: SidebarMenu(selectedIndex: 0),
         ),
         ],
       ),

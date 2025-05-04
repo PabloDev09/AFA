@@ -6,7 +6,6 @@ import 'package:afa/design/screens/not_found_screen.dart';
 import 'package:afa/design/screens/register_screen.dart';
 import 'package:afa/design/screens/user_home_screen.dart';
 import 'package:afa/design/screens/welcome_screen.dart';
-import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +23,7 @@ Future<String?> getUserRole() async
 
 bool isAuthenticated() 
 {
-  return AuthUserProvider().isAuthenticated; 
+  return FirebaseAuth.instance.currentUser != null;
 }
 
 Widget _buildWithLoading(BuildContext context, Widget screen,

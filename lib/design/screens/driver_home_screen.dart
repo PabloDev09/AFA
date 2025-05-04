@@ -23,7 +23,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
   late DateTime _focusedDay;
   late DateTime _selectedDay;
   bool _isMenuOpen = false;
-
   void _toggleMenu() {
     setState(() 
     {
@@ -37,6 +36,12 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
     initializeDateFormatting('es', null);
     _focusedDay = DateTime.now();
     _selectedDay = _focusedDay;
+    // Carga de datos diferida para evitar errores al usar Provider
+    Future<void>(() async {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await Provider.of<AuthUserProvider>(context, listen: false).loadUser(); 
+      });
+    });
   }
 
   @override
@@ -138,7 +143,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: _isMenuOpen ? Colors.black54 : Colors.transparent,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         title: Row(
           children: [
@@ -234,12 +239,12 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with SingleTickerPr
               ),
             ),
           if (_isMenuOpen)
-            Positioned(
+            const Positioned(
               left: 0,
               top: 0,
               bottom: 0,
               child: SidebarMenu(
-                selectedIndex: 0,userName: Provider.of<AuthUserProvider>(context, listen: true).userFireStore?.username ?? 'Invitado',
+                selectedIndex: 0,
               ),
             ),
         ],

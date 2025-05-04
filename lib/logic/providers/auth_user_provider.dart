@@ -5,20 +5,19 @@ import 'package:flutter/material.dart';
 
 class AuthUserProvider extends ChangeNotifier {
   UserService userService = UserService();
-  firebase.User? userFireauth = firebase.FirebaseAuth.instance.currentUser;
   User? userFireStore;
   bool isAuthenticated = false;
   
   Future <void> loadUser() async
   {
-    userFireStore = await userService.logUser(userFireauth?.email);
+    userFireStore = await userService.logUser(firebase.FirebaseAuth.instance.currentUser?.email);
     isAuthenticated = userFireStore != null;
   }
 
   Future<void> logout() async
   {
+    await firebase.FirebaseAuth.instance.signOut();
     userFireStore = null;
-    userFireauth = null;
     isAuthenticated = false;
   }
 }
