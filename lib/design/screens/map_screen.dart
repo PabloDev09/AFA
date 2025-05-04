@@ -178,7 +178,6 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
               bottom: 0,
               child: SidebarMenu(
                 selectedIndex: 2,
-                userName: "Juan Pérez",
               ),
             ),
 

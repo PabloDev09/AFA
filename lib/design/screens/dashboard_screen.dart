@@ -324,7 +324,6 @@ class _DashboardScreenState extends State<DashboardScreen>
               bottom: 0,
               child: SidebarMenu(
                 selectedIndex: 1,
-                userName: "Juan Pérez",
               ),
             ),
           Positioned(

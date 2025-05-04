@@ -3,7 +3,7 @@ import 'package:afa/logic/models/user.dart';
 import 'package:afa/logic/services/user_service.dart';
 import 'package:flutter/material.dart';
 
-class UserRegisterProvider extends ChangeNotifier 
+class RegisterProvider extends ChangeNotifier 
 {
 
   final GetProvincesCities _getProvincesCities = GetProvincesCities();
@@ -14,7 +14,7 @@ class UserRegisterProvider extends ChangeNotifier
   
   String? selectedProvince;
   String? selectedCity;
-  final List<String> provincesNames = 
+  final List<String> provinces = 
   [
     'Almería',
     'Cádiz',

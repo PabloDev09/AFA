@@ -2,19 +2,16 @@ import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/providers/notification_provider.dart';
 import 'package:afa/logic/router/path/path_url_afa.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 class SidebarMenu extends StatefulWidget {
   final int selectedIndex; 
-  final String userName; 
 
   const SidebarMenu({
     super.key,
     required this.selectedIndex,
-    required this.userName,
   });
 
   @override
@@ -84,7 +81,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
               const SizedBox(width: 10),
               Flexible(
                 child: Text(
-                  widget.userName,
+                  Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.username,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18), // smaller font
                 ),

@@ -7,7 +7,7 @@ import 'package:afa/logic/providers/routes_provider.dart';
 import 'package:afa/logic/providers/theme_provider.dart';
 import 'package:afa/logic/providers/pending_user_provider.dart';
 import 'package:afa/design/themes/afa_theme.dart';
-import 'package:afa/logic/providers/user_register_provider.dart';
+import 'package:afa/logic/providers/register_provider.dart';
 import 'package:afa/logic/providers/user_route_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
@@ -39,7 +39,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthUserProvider()..loadUser()),
 
         /// Otros:
-        ChangeNotifierProvider(create: (_) => UserRegisterProvider()),
+        ChangeNotifierProvider(create: (_) => RegisterProvider()),
         ChangeNotifierProvider(create: (_) => PendingUserProvider()..loadPendingUsers()),
         ChangeNotifierProvider(create: (_) => ActiveUserProvider()..loadActiveUsers()),
         ChangeNotifierProvider(create: (_) => BusProvider()),

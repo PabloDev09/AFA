@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:afa/logic/providers/user_register_provider.dart';
+import 'package:afa/logic/providers/register_provider.dart';
 import 'package:afa/logic/router/path/path_url_afa.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:geolocator/geolocator.dart';
@@ -50,7 +50,6 @@ class _RegisterScreenState extends State<RegisterScreen>
       curve: Curves.easeIn,
     );
     _animationController.forward();
-      _initFCM();
   }
 
   @override
@@ -67,13 +66,14 @@ class _RegisterScreenState extends State<RegisterScreen>
     super.dispose();
   }
 
-  Future<void> _initFCM() async 
+  Future<String?> _requestNotificationPermission() async 
   {
   NotificationSettings settings = await FirebaseMessaging.instance.requestPermission();
   if (settings.authorizationStatus == AuthorizationStatus.authorized) 
   {
     _fcmAccepted = true;
-    _fcmToken = (await FirebaseMessaging.instance.getToken())!;
+    
+    return await FirebaseMessaging.instance.getToken();
   } 
   else 
   {
@@ -85,7 +85,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         backgroundColor: Colors.red,
       ),
     );
-    
+    return '';
   }
 }
 
@@ -130,22 +130,12 @@ class _RegisterScreenState extends State<RegisterScreen>
     return await Geolocator.getCurrentPosition();
   }
 
-  void _registerUser(UserRegisterProvider userRegisterProvider) async 
+  void _registerUser(RegisterProvider registerProvider) async 
   {
     if (!_termsAccepted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Debes aceptar los términos y condiciones.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (!_fcmAccepted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes aceptar el servicio de notificaciones.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -164,28 +154,34 @@ class _RegisterScreenState extends State<RegisterScreen>
         return;
       }
 
-      String address = userRegisterProvider.joinAddress(
+      _fcmToken = (await _requestNotificationPermission())!;
+      if(_fcmToken == ''){
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      String address = registerProvider.joinAddress(
         _streetController.text,
-        userRegisterProvider.selectedCity ?? "",
-        userRegisterProvider.selectedProvince ?? "",
+        registerProvider.selectedCity ?? "",
+        registerProvider.selectedProvince ?? "",
         _postalCodeController.text,
       );
 
-      await userRegisterProvider.registerUser(
+      await registerProvider.registerUser(
         mail: _mailController.text,
         username: _usernameController.text,
         password: _passwordController.text,
-        name: userRegisterProvider.capitalizeEachWord(_nameController.text),
-        surnames: userRegisterProvider.capitalizeEachWord(_surnamesController.text),
-        address: userRegisterProvider.capitalizeEachWord(address),
+        name: registerProvider.capitalizeEachWord(_nameController.text),
+        surnames: registerProvider.capitalizeEachWord(_surnamesController.text),
+        address: registerProvider.capitalizeEachWord(address),
         phoneNumber: _phoneController.text,
         fcmToken: _fcmToken,
       );
 
       _formKey.currentState!.validate();
 
-      if (userRegisterProvider.errorMail == "" &&
-          userRegisterProvider.errorUser.trim() == "" && 
+      if (registerProvider.errorMail == "" &&
+          registerProvider.errorUser.trim() == "" && 
           _termsAccepted && _fcmAccepted)
       {
         showSubmittedDialog(context);
@@ -236,7 +232,7 @@ class _RegisterScreenState extends State<RegisterScreen>
 
 @override
 Widget build(BuildContext context) {
-  final userRegisterProvider = Provider.of<UserRegisterProvider>(context);
+  final userRegisterProvider = Provider.of<RegisterProvider>(context);
   final theme = Theme.of(context);
 
   final double screenWidth = MediaQuery.of(context).size.width;
@@ -336,7 +332,7 @@ Widget build(BuildContext context) {
 }
 
   Widget _buildRegisterForm(
-    UserRegisterProvider userRegisterProvider,
+    RegisterProvider registerProvider,
     ThemeData theme,
   ) {
     return Form(
@@ -398,12 +394,12 @@ Widget build(BuildContext context) {
                   keyboardType: TextInputType.emailAddress,
                   onChanged: (value) async {
                     if (value.trim().isNotEmpty &&
-                        userRegisterProvider.isCorrectMail(value)) {
-                      bool exists = await userRegisterProvider.mailExists(value);
+                        registerProvider.isCorrectMail(value)) {
+                      bool exists = await registerProvider.mailExists(value);
                       if (exists) {
-                        userRegisterProvider.errorMail = "El correo ya existe";
+                        registerProvider.errorMail = "El correo ya existe";
                       } else {
-                        userRegisterProvider.errorMail = "";
+                        registerProvider.errorMail = "";
                       }
                     }
                   },
@@ -411,11 +407,11 @@ Widget build(BuildContext context) {
                     if (value == null || value.trim().isEmpty) {
                       return "Este campo es obligatorio";
                     }
-                    if (!userRegisterProvider.isCorrectMail(value)) {
+                    if (!registerProvider.isCorrectMail(value)) {
                       return "Introduce un correo válido";
                     }
-                    if (userRegisterProvider.errorMail.trim().isNotEmpty) {
-                      return userRegisterProvider.errorMail.trim();
+                    if (registerProvider.errorMail.trim().isNotEmpty) {
+                      return registerProvider.errorMail.trim();
                     }
                     return null;
                   },
@@ -428,11 +424,11 @@ Widget build(BuildContext context) {
                   onChanged: (value) async {
                     if (value.trim().isNotEmpty) {
                       bool exists =
-                          await userRegisterProvider.usernameExists(value);
+                          await registerProvider.usernameExists(value);
                       if (exists) {
-                        userRegisterProvider.errorUser ="El usuario ya existe";
+                        registerProvider.errorUser ="El usuario ya existe";
                       } else {
-                        userRegisterProvider.errorUser = "";
+                        registerProvider.errorUser = "";
                       }
                     }
                   },
@@ -440,8 +436,8 @@ Widget build(BuildContext context) {
                     if (value == null || value.trim().isEmpty) {
                       return "Este campo es obligatorio";
                     }
-                    if (userRegisterProvider.errorUser.trim().isNotEmpty) {
-                      return userRegisterProvider.errorUser.trim();
+                    if (registerProvider.errorUser.trim().isNotEmpty) {
+                      return registerProvider.errorUser.trim();
                     }
                     return null;
                   },
@@ -449,7 +445,7 @@ Widget build(BuildContext context) {
                 const SizedBox(height: 15),
                 _buildFloatingPasswordField(
                   _passwordController,
-                  userRegisterProvider,
+                  registerProvider,
                   theme,
                 ),
                 const SizedBox(height: 20),
@@ -553,11 +549,11 @@ Widget build(BuildContext context) {
                       child: _buildFloatingDropdown(
                         label: 'Provincia',
                         hint: 'Seleccione provincia',
-                        value: userRegisterProvider.selectedProvince,
-                        items: userRegisterProvider.provincesNames,
+                        value: registerProvider.selectedProvince,
+                        items: registerProvider.provinces,
                         onChanged: (newValue) {
                           if (newValue != null) {
-                            userRegisterProvider.setSelectedProvince(newValue);
+                            registerProvider.setSelectedProvince(newValue);
                           }
                         },
                         validator: (value) {
@@ -573,11 +569,11 @@ Widget build(BuildContext context) {
                       child: _buildFloatingDropdown(
                         label: 'Ciudad',
                         hint: 'Seleccione ciudad',
-                        value: userRegisterProvider.selectedCity,
-                        items: userRegisterProvider.provincesNames,
+                        value: registerProvider.selectedCity,
+                        items: registerProvider.cities,
                         onChanged: (newValue) {
                           if (newValue != null) {
-                            userRegisterProvider.setSelectedCity(newValue);
+                            registerProvider.setSelectedCity(newValue);
                           }
                         },
                         validator: (value) {
@@ -617,7 +613,7 @@ Widget build(BuildContext context) {
                     onPressed: _isLoading
                         ? null
                         : () async {
-                            _registerUser(userRegisterProvider);
+                            _registerUser(registerProvider);
                           },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF063970),
@@ -706,7 +702,7 @@ Widget build(BuildContext context) {
 
   Widget _buildFloatingPasswordField(
     TextEditingController controller,
-    UserRegisterProvider userRegisterProvider,
+    RegisterProvider registerProvider,
     ThemeData theme,
   ) {
     return TextFormField(
@@ -717,7 +713,7 @@ Widget build(BuildContext context) {
         if (value == null || value.trim().isEmpty) {
           return "Este campo es obligatorio";
         }
-        if (!userRegisterProvider.isSecurePassword(value)) {
+        if (!registerProvider.isSecurePassword(value)) {
           return "La contraseña no es segura. Debe tener al menos 8 caracteres, \n"
               "incluir mayúsculas, minúsculas, dígitos y un carácter especial.";
         }
