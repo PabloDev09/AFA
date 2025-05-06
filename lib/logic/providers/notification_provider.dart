@@ -7,12 +7,14 @@ class NotificationProvider extends ChangeNotifier
 
   void addNotification(String notification) 
   {
-    notifications.add(
+    notifications.add
+    (
       Notification
       (
-        notification: notification,
+        message: notification,
         date: DateTime.now(),
         isRead: false,
+        isNew: true,
       ),
     );
     notifyListeners();
@@ -24,12 +26,43 @@ class NotificationProvider extends ChangeNotifier
     notifyListeners();
   }
 
-  void markAsRead(int index) 
+  void markAsReadByIndex(int index) 
   {
     if (index >= 0 && index < notifications.length) 
     {
       notifications[index].isRead = true;
       notifyListeners();
     }
+  }
+
+    void markAsReadByNotification(Notification n) 
+  {
+    if (notifications.contains(n)) 
+    {
+      notifications[notifications.indexOf(n)].isRead = true;
+      notifyListeners();
+    }
+  }
+
+
+  bool get hasNewNotification =>
+      notifications.any((n) => n.isNew && !n.isRead);
+
+  Notification get latestNotification 
+  {
+    return notifications.lastWhere((n) => n.isNew && !n.isRead);
+  }
+
+  void markLatestAsShown() 
+  {
+    for (var n in notifications.reversed) 
+    {
+      if (n.isNew && !n.isRead) 
+      {
+        n.isNew = false;
+        break;
+      }
+    }
+    notifyListeners();
   }
 }

@@ -44,9 +44,13 @@ class _LoginScreenState extends State<LoginScreen> {
     } else if (role == 'Usuario') {
       context.go(PathUrlAfa().pathHome);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Rol de usuario desconocido.')),
-      );
+    ScaffoldMessenger.of(context).showSnackBar
+    (
+      const SnackBar(
+        content: Text('Rol de usuario desconocido.'),
+        backgroundColor: Colors.red,
+      ),
+    );
     }
   }
 }
@@ -88,7 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Usuario no autorizado, sesión cerrada.'),
-            duration: Duration(seconds: 3),
+            backgroundColor: Colors.red,
           ),
         );
         return;
@@ -163,53 +167,72 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
-                        // Se utiliza el provider encargado de la autenticación
-                        final userActiveProvider = Provider.of<ActiveUserProvider>(
-                          context,
-                          listen: false,
-                        );
-                        // Se llama al método authenticateUser pasando el mismo valor para email y username
-                        bool isAuthenticated = await userActiveProvider.authenticateUser(
-                          _userController.text.trim(),
-                          _passwordController.text.trim(),
-                        );
-                        if (isAuthenticated) {
-                          await FirebaseAuth.instance.signInWithEmailAndPassword(email: _userController.text.trim(), password: _passwordController.text.trim());
-                          // Redirige según el rol del usuario
-                          _navigateAccordingToRole(_userController.text);
-                        } 
-                        else 
-                        {
-                        ScaffoldMessenger.of(context).showSnackBar
-                        (
-                          const SnackBar(
-                            content: Text('El usuario o la contraseña son incorrectos.'),
-                            duration: Duration(seconds: 3),
-                          ),
-                        );
-                        }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF063970),
-                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF063970),
+                          Color(0xFF2196F3),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      minimumSize: const Size(double.infinity, 50),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
-                      'Iniciar sesión',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (_formKey.currentState!.validate()) {
+                          final userActiveProvider = Provider.of<ActiveUserProvider>(
+                            context,
+                            listen: false,
+                          );
+                          bool isAuthenticated = await userActiveProvider.authenticateUser(
+                            _userController.text.trim(),
+                            _passwordController.text.trim(),
+                          );
+                          if (isAuthenticated) {
+                            await FirebaseAuth.instance.signInWithEmailAndPassword(
+                              email: _userController.text.trim(),
+                              password: _passwordController.text.trim(),
+                            );
+                            _navigateAccordingToRole(_userController.text);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('El usuario o la contraseña son incorrectos.'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          minimumSize: const Size(0, 50),
+                        ).copyWith(
+                          overlayColor: WidgetStateProperty.resolveWith((states) {
+                            if (states.contains(WidgetState.hovered)) {
+                              return Colors.white.withOpacity(0.2);
+                            }
+                            return null;
+                          }),
+                        ),
+                      child: const Text(
+                        'Iniciar sesión',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
+
                 ),
                 const SizedBox(height: 15),
                 SizedBox(
@@ -246,7 +269,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                     child: const Text(
                       '¿No tienes cuenta? Regístrate',
-                      style: TextStyle(color: Colors.blue, fontSize: 16),
+                      style: TextStyle(color: Color(0xFF063970), fontSize: 16),
                     ),
                   ),
                 ),
@@ -302,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
         suffixIcon: IconButton(
           icon: Icon(
             _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-            color: Colors.blue[700],
+            color: const Color(0xFF063970),
           ),
           onPressed: () {
             setState(() {
@@ -364,21 +387,32 @@ class _LoginScreenState extends State<LoginScreen> {
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                child: Container(
-                  width: containerWidth,
-                  margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 20,
-                        offset: Offset(0, 10),
-                      ),
-                    ],
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeOut,
+                  builder: (context, value, child) {
+                    return Transform.translate(
+                      offset: Offset(0, 50 * (1 - value)),
+                      child: Opacity(opacity: value, child: child),
+                    );
+                  },
+                  child: Container(
+                    width: containerWidth,
+                    margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 20,
+                          offset: Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: _buildLoginForm(),
                   ),
-                  child: _buildLoginForm(),
                 ),
               ),
             ),
@@ -405,7 +439,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 '© 2025 AFA Andújar',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 10,
+                  fontSize: 12,
                 ),
               ),
             ),

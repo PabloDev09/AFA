@@ -35,7 +35,6 @@ class _RegisterScreenState extends State<RegisterScreen>
   late String _fcmToken = '';
 
   late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
 
   @override
   void initState() 
@@ -44,10 +43,6 @@ class _RegisterScreenState extends State<RegisterScreen>
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
-    );
-    _fadeAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
     );
     _animationController.forward();
   }
@@ -232,7 +227,7 @@ class _RegisterScreenState extends State<RegisterScreen>
 
 @override
 Widget build(BuildContext context) {
-  final userRegisterProvider = Provider.of<RegisterProvider>(context);
+  final registerProvider = Provider.of<RegisterProvider>(context);
   final theme = Theme.of(context);
 
   final double screenWidth = MediaQuery.of(context).size.width;
@@ -287,12 +282,17 @@ Widget build(BuildContext context) {
                 child: SizedBox(
                   width: containerWidth,
                   // El formulario sigue desplazándose sin interferir con el footer
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0), // Padding alrededor
-                      child: _buildRegisterForm(userRegisterProvider, theme),
-                    ),
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.easeOut,
+                    builder: (context, value, child) {
+                      return Transform.translate(
+                        offset: Offset(0, 50 * (1 - value)),
+                        child: Opacity(opacity: value, child: child),
+                      );
+                    },
+                    child: _buildRegisterForm(registerProvider, theme),
                   ),
                 ),
               ),
@@ -301,31 +301,31 @@ Widget build(BuildContext context) {
         ),
         // Footer fijo, siempre visible
         Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: 40,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  Colors.black54,
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 40,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    Colors.black54,
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
-            ),
-            alignment: Alignment.center,
-            child: const Text(
-              '© 2025 AFA Andújar',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
+              alignment: Alignment.center,
+              child: const Text(
+                '© 2025 AFA Andújar',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
               ),
             ),
           ),
-        ),
       ],
     ),
   );
@@ -507,86 +507,160 @@ Widget build(BuildContext context) {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildFloatingTextField(
-                        label: 'Calle',
-                        hint: 'Calle Leonardo Da Vinci, 40, 2ºE',
-                        controller: _streetController,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Este campo es obligatorio";
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: _buildFloatingTextField(
-                        label: 'Código Postal',
-                        hint: '23740',
-                        controller: _postalCodeController,
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Este campo es obligatorio";
-                          }
-                          if (!RegExp(r'^[0-9]{5}$').hasMatch(value)) {
-                            return "El código postal debe tener 5 dígitos";
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth < 600) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildFloatingTextField(
+                            label: 'Calle',
+                            hint: 'Calle Leonardo Da Vinci, 40, 2ºE',
+                            controller: _streetController,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return "Este campo es obligatorio";
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 15),
+                          _buildFloatingTextField(
+                            label: 'Código Postal',
+                            hint: '23740',
+                            controller: _postalCodeController,
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return "Este campo es obligatorio";
+                              }
+                              if (!RegExp(r'^[0-9]{5}$').hasMatch(value)) {
+                                return "El código postal debe tener 5 dígitos";
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                      );
+                    } else {
+                      // Tablet/desktop: two fields side‑by‑side
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: _buildFloatingTextField(
+                              label: 'Calle',
+                              hint: 'Calle Leonardo Da Vinci, 40, 2ºE',
+                              controller: _streetController,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return "Este campo es obligatorio";
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 15),
+                          Expanded(
+                            child: _buildFloatingTextField(
+                              label: 'Código Postal',
+                              hint: '23740',
+                              controller: _postalCodeController,
+                              keyboardType: TextInputType.number,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return "Este campo es obligatorio";
+                                }
+                                if (!RegExp(r'^[0-9]{5}$').hasMatch(value)) {
+                                  return "El código postal debe tener 5 dígitos";
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                  },
                 ),
+
                 const SizedBox(height: 15),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildFloatingDropdown(
-                        label: 'Provincia',
-                        hint: 'Seleccione provincia',
-                        value: registerProvider.selectedProvince,
-                        items: registerProvider.provinces,
-                        onChanged: (newValue) {
-                          if (newValue != null) {
-                            registerProvider.setSelectedProvince(newValue);
-                          }
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Seleccione una provincia';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: _buildFloatingDropdown(
-                        label: 'Ciudad',
-                        hint: 'Seleccione ciudad',
-                        value: registerProvider.selectedCity,
-                        items: registerProvider.cities,
-                        onChanged: (newValue) {
-                          if (newValue != null) {
-                            registerProvider.setSelectedCity(newValue);
-                          }
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) 
-                          {
-                            return 'Seleccione una ciudad';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+               LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 600) {
+                    // Móvil: apila en columna
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildFloatingDropdown(
+                          label: 'Provincia',
+                          hint: 'Seleccione provincia',
+                          value: registerProvider.selectedProvince,
+                          items: registerProvider.provinces,
+                          onChanged: (newValue) {
+                            if (newValue != null) registerProvider.setSelectedProvince(newValue);
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) return 'Seleccione una provincia';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 15),
+                        _buildFloatingDropdown(
+                          label: 'Ciudad',
+                          hint: 'Seleccione ciudad',
+                          value: registerProvider.selectedCity,
+                          items: registerProvider.cities,
+                          onChanged: (newValue) {
+                            if (newValue != null) registerProvider.setSelectedCity(newValue);
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) return 'Seleccione una ciudad';
+                            return null;
+                          },
+                        ),
+                      ],
+                    );
+                  } else {
+                    // Tablet/desktop: dos en fila
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: _buildFloatingDropdown(
+                            label: 'Provincia',
+                            hint: 'Seleccione provincia',
+                            value: registerProvider.selectedProvince,
+                            items: registerProvider.provinces,
+                            onChanged: (newValue) {
+                              if (newValue != null) registerProvider.setSelectedProvince(newValue);
+                            },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) return 'Seleccione una provincia';
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: _buildFloatingDropdown(
+                            label: 'Ciudad',
+                            hint: 'Seleccione ciudad',
+                            value: registerProvider.selectedCity,
+                            items: registerProvider.cities,
+                            onChanged: (newValue) {
+                              if (newValue != null) registerProvider.setSelectedCity(newValue);
+                            },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) return 'Seleccione una ciudad';
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                },
+              ),
+
                 const SizedBox(height: 20),
                 Row(
                   children: [
@@ -609,38 +683,58 @@ Widget build(BuildContext context) {
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading
-                        ? null
-                        : () async {
-                            _registerUser(registerProvider);
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF063970),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 50, vertical: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF063970),
+                          Color(0xFF2196F3),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      minimumSize: const Size(0, 50),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
+                    child: ElevatedButton(
+                      onPressed: _isLoading
+                          ? null
+                          : () async {
+                              _registerUser(registerProvider);
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        minimumSize: const Size(0, 50),
+                      ).copyWith(
+                        overlayColor: WidgetStateProperty.resolveWith((states) {
+                          if (states.contains(WidgetState.hovered)) {
+                            return Colors.white.withOpacity(0.2);
+                          }
+                          return null;
+                        }),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : const Text(
+                              'Registrarse',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          )
-                        : const Text(
-                            'Registrarse',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 15),
@@ -652,7 +746,7 @@ Widget build(BuildContext context) {
                     child: const Text(
                       '¿Ya tienes cuenta? Inicia sesión',
                       style:
-                          TextStyle(color: Color(0xFF063970), fontSize: 18),
+                          TextStyle(color: Color(0xFF063970), fontSize: 16),
                     ),
                   ),
                 ),

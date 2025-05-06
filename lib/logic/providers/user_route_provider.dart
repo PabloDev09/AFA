@@ -39,7 +39,7 @@ class UserRouteProvider extends ChangeNotifier
   Future<void> removeCancelPickup(String username, DateTime removeCancelDate) async 
   {
     await _cancelRouteService.removeCancelRoute(username, removeCancelDate);
-    _notificationProvider.addNotification("Se removió la cancelación de la recogida.");
+    _notificationProvider.addNotification("Se removió la cancelación de la recogida para la fecha ${DateFormat('dd/MM/yyyy').format(removeCancelDate.toLocal())}.");
     getCancelDates(username);
     notifyListeners();
   }
@@ -71,13 +71,15 @@ class UserRouteProvider extends ChangeNotifier
     });
   }
 
-  Future<void> cancelCurrentPickup(String username) async {
+  Future<void> cancelCurrentPickup(String username) async 
+  {
     await _routeService.cancelCurrentPickup(username);
     _notificationProvider.addNotification("Has cancelado tu recogida actual.");
     notifyListeners();
   }
 
-  Future<bool> checkIfUserIsBeingPicked(String username) async {
+  Future<bool> checkIfUserIsBeingPicked(String username) async 
+  {
     return await _routeService.isGoingToPickUpUser(username);
   }
 

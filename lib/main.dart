@@ -32,21 +32,14 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        /// El proveedor de notificaciones:
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
-
-        /// Autenticación:
         ChangeNotifierProvider(create: (_) => AuthUserProvider()..loadUser()),
-
-        /// Otros:
         ChangeNotifierProvider(create: (_) => RegisterProvider()),
         ChangeNotifierProvider(create: (_) => PendingUserProvider()..loadPendingUsers()),
         ChangeNotifierProvider(create: (_) => ActiveUserProvider()..loadActiveUsers()),
         ChangeNotifierProvider(create: (_) => BusProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => RoutesProvider()),
-
-        /// Proxy para DriverRouteProvider:
         ChangeNotifierProxyProvider<NotificationProvider, DriverRouteProvider>(
           create: (context) => DriverRouteProvider(
             context.read<NotificationProvider>(),
@@ -58,8 +51,6 @@ class MyApp extends StatelessWidget {
             return previous;
           },
         ),
-
-        /// Proxy para UserRouteProvider:
         ChangeNotifierProxyProvider<NotificationProvider, UserRouteProvider>(
           create: (context) => UserRouteProvider(
             context.read<NotificationProvider>(),

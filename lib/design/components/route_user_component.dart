@@ -8,37 +8,81 @@ import 'package:url_launcher/url_launcher.dart';
 class RouteUserComponent extends StatelessWidget {
   const RouteUserComponent({super.key});
 
-  void _showConfirmationDialog(
-    BuildContext context,
-    String title,
-    String content,
-    VoidCallback onConfirm,
-    Color confirmColor,
-  ) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(title),
-          content: Text(content),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
+void _showConfirmationDialog(
+  BuildContext context,
+  String title,
+  String content,
+  VoidCallback onConfirm,
+  Color confirmColor,
+) {
+  showDialog<bool>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        titlePadding: EdgeInsets.zero,
+        title: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF063970),
+                Color(0xFF2196F3),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                onConfirm();
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: confirmColor),
-              child: const Text('Confirmar', style: TextStyle(color: Colors.white)),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
             ),
-          ],
-        );
-      },
-    );
-  }
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.of(context).pop(false),
+              ),
+            ],
+          ),
+        ),
+        content: Text(content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop(true);
+              onConfirm();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: confirmColor,
+            ),
+            child: const Text(
+              'Confirmar',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
   Future<void> _callNumber(String phoneNumber) async {
     final uri = Uri(scheme: 'tel', path: phoneNumber);

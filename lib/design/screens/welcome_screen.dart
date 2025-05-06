@@ -14,7 +14,6 @@ class WelcomeScreen extends StatefulWidget {
 class _WelcomeScreenState extends State<WelcomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
   Timer? _timer;
 
   @override
@@ -22,18 +21,14 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     super.initState();
 
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    _fadeAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    );
+    // only card animation
     _animationController.forward();
 
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      setState(() {
-      });
+      setState(() {});
     });
   }
 
@@ -46,8 +41,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final theme = Theme.of(context);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -63,164 +56,153 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
               child: Container(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withOpacity(0.25),
               ),
             ),
           ),
-          Positioned(
-            top: screenHeight * 0.1,
-            left: 0,
-            right: 0,
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 12,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
+
+          // Centered column: logo + card
+          Center(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Static logo with fixed margin
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 20),
+                    padding: const EdgeInsets.all(10),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 12,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 100,
+                      fit: BoxFit.contain,
+                    ),
                   ),
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    width: 100,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 900),
-                width: double.infinity,
-                margin: const EdgeInsets.symmetric(horizontal: 10),
-                height: MediaQuery.of(context).size.height * 0.65,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: double.infinity,
+
+                  // Animated card below logo
+                  TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.easeOut,
+                    builder: (context, value, child) {
+                      return Transform.translate(
+                        offset: Offset(0, 50 * (1 - value)),
+                        child: Opacity(
+                          opacity: value,
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 900),
+                      margin: const EdgeInsets.symmetric(horizontal: 10),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            theme.brightness == Brightness.dark
-                                ? const Color(0xFF1E1E1E)
-                                : const Color(0xFF063970),
-                            theme.brightness == Brightness.dark
-                                ? const Color(0xFF121212)
-                                : const Color(0xFF66B3FF),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(20),
-                          topRight: Radius.circular(20),
-                        ),
-                      ),
-                      padding: const EdgeInsets.all(24),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        'Bienvenido a AFA Andújar',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          // Ejemplo de fontFamily:
-                          fontFamily: 'Montserrat',
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(30),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.only(
-                            bottomLeft: Radius.zero,
-                            bottomRight: Radius.zero,
+                        color: Colors.white.withOpacity(0.95),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black38,
+                            blurRadius: 20,
+                            offset: Offset(0, 12),
                           ),
-                        ),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const SizedBox(height: 10),
-                              const Text(
-                                'Gestiona de forma segura y sencilla la recogida de personas con discapacidad y mayores. '
-                                'Realiza el seguimiento en tiempo real mediante mapas interactivos.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black87,
-                                  fontFamily: 'Montserrat',
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Header gradient
+                          Container(
+                            width: double.infinity,
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Color(0xFF063970),
+                                  Color(0xFF2196F3),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(24),
+                                topRight: Radius.circular(24),
+                              ),
+                            ),
+                            padding: const EdgeInsets.all(24),
+                            alignment: Alignment.center,
+                            child: const Text(
+                              'Bienvenido a AFA Andújar',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'Montserrat',
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(30),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'Gestiona de forma segura y sencilla la recogida de personas con discapacidad y mayores. Realiza el seguimiento en tiempo real mediante mapas interactivos.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black87,
+                                    fontFamily: 'Montserrat',
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 30),
-                              LayoutBuilder(
-                                builder: (context, constraints) {
-                                  return constraints.maxWidth < 400
-                                      ? Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.stretch,
-                                          children: [
-                                            _buildButton(
-                                              context,
-                                              'Registrarse',
-                                              PathUrlAfa().pathRegister
-                                            ),
-                                            const SizedBox(height: 15),
-                                            _buildButton(
-                                              context,
-                                              'Iniciar sesión',
-                                              PathUrlAfa().pathLogin
-                                            ),
-                                          ],
-                                        )
-                                      : Row(
-                                          children: [
-                                            Expanded(
-                                              child: _buildButton(
-                                                context,
-                                                'Registrarse',
-                                                PathUrlAfa().pathRegister
+                                const SizedBox(height: 30),
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    return constraints.maxWidth < 800
+                                        ? Column(
+                                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                                            children: [
+                                              _gradientButton(context, 'Registrarse', PathUrlAfa().pathRegister),
+                                              const SizedBox(height: 15),
+                                              _gradientButton(context, 'Iniciar sesión', PathUrlAfa().pathLogin),
+                                            ],
+                                          )
+                                        : Row(
+                                            children: [
+                                              Expanded(
+                                                child: _gradientButton(context, 'Registrarse', PathUrlAfa().pathRegister),
                                               ),
-                                            ),
-                                            const SizedBox(width: 20),
-                                            Expanded(
-                                              child: _buildButton(
-                                                context,
-                                                'Iniciar sesión',
-                                                PathUrlAfa().pathLogin
+                                              const SizedBox(width: 20),
+                                              Expanded(
+                                                child: _gradientButton(context, 'Iniciar sesión', PathUrlAfa().pathLogin),
                                               ),
-                                            ),
-                                          ],
-                                        );
-                                },
-                              ),
-                            ],
+                                            ],
+                                          );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
+
+          // Footer
           Positioned(
             bottom: 0,
             left: 0,
@@ -229,10 +211,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               height: 60,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    Colors.transparent,
-                    Colors.black54,
-                  ],
+                  colors: [Colors.transparent, Colors.black54],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -242,8 +221,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 '© 2025 AFA Andújar',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
-                  fontFamily: 'Montserrat',
+                  fontSize: 12,
                 ),
               ),
             ),
@@ -253,42 +231,55 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     );
   }
 
-  static Widget _buildButton(
-      BuildContext context,
-      String text,
-      String route,
-    ) {
-      final theme = Theme.of(context);
-      return SizedBox(
-        width: double.infinity, // Se adapta al ancho disponible
-        child: ElevatedButton(
-          onPressed: () {
-            context.go(route);
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: theme.brightness == Brightness.dark
-                ? const Color(0xFF1E1E1E)
-                : const Color(0xFF063970),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 18), // Espaciado uniforme
-            textStyle: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Montserrat',
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            elevation: 8,
+  static Widget _gradientButton(BuildContext context, String text, String route) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF063970),
+            Color(0xFF2196F3),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black45,
+            blurRadius: 10,
+            offset: Offset(0, 4),
           ),
-          child: Center(
-            child: Text(
-              text.toUpperCase(),
-              textAlign: TextAlign.center,
-            ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: () => context.go(route),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          minimumSize: const Size(0, 50),
+        ).copyWith(
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.hovered)) {
+              return Colors.white.withOpacity(0.2);
+            }
+            return null;
+          }),
+        ),
+        child: Text(
+          text.toUpperCase(),
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontFamily: 'Montserrat',
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
           ),
         ),
-      );
-    }
-
+      ),
+    );
+  }
 }

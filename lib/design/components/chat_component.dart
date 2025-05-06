@@ -16,7 +16,6 @@ class ChatComponent extends StatelessWidget {
         final notifications = notificationProvider.notifications;
 
         return Container(
-          // Fondo sólido para ocultar completamente lo que hay detrás
           decoration: BoxDecoration(
             color: theme.cardColor,
             borderRadius: const BorderRadius.only(
@@ -33,7 +32,21 @@ class ChatComponent extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Padding(
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFF063970),
+                      Color(0xFF2196F3),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                ),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   children: [
@@ -41,13 +54,13 @@ class ChatComponent extends StatelessWidget {
                       child: Text(
                         'Notificaciones',
                         style: theme.textTheme.titleLarge?.copyWith(
-                          color: theme.colorScheme.onSurface,
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.close, color: theme.colorScheme.onSurface),
+                      icon: const Icon(Icons.close, color: Colors.white),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
@@ -67,8 +80,7 @@ class ChatComponent extends StatelessWidget {
                     return InkWell(
                       borderRadius: BorderRadius.circular(12),
                       onTap: () {
-                        // Marcar como leído al hacer tap
-                        notificationProvider.markAsRead(index);
+                        notificationProvider.markAsReadByIndex(index);
                       },
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 12),
@@ -98,7 +110,7 @@ class ChatComponent extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    item.notification,
+                                    item.message,
                                     style: theme.textTheme.bodyLarge?.copyWith(
                                       fontWeight: item.isRead ? FontWeight.normal : FontWeight.bold,
                                     ),
@@ -130,4 +142,3 @@ class ChatComponent extends StatelessWidget {
     );
   }
 }
-

@@ -125,17 +125,31 @@ class RouteService {
     DateTime now = DateTime.now();
     for (var doc in querySnapshot.docs) {
       final data = doc.data() as Map<String, dynamic>;
-      Timestamp? createdAtTimestamp = data['createdAt'];
-      if (createdAtTimestamp == null) return false;
-      DateTime createdAt = createdAtTimestamp.toDate();
-      if (createdAt.year != now.year ||
-          createdAt.month != now.month ||
-          createdAt.day != now.day) {
+      final String? createdAtString = data['createdAt'];
+      if (createdAtString == null) return false;
+
+      try {
+        List<String> parts = createdAtString.split('/');
+        if (parts.length != 3) return false;
+        int day = int.parse(parts[0]);
+        int month = int.parse(parts[1]);
+        int year = int.parse(parts[2]);
+
+        DateTime createdAt = DateTime(year, month, day);
+
+        if (createdAt.year != now.year ||
+            createdAt.month != now.month ||
+            createdAt.day != now.day) {
+          return false;
+        }
+      } catch (e) {
+        print("Error parsing createdAt: $e");
         return false;
       }
     }
     return true;
   }
+
 
   /// Obtiene los usuarios con rol 'Usuario' y crea un documento por cada uno
   /// en la colección 'ruta' incluyendo la fecha de creación.
