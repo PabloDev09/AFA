@@ -222,11 +222,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             return null;
                           }),
                         ),
-                      child: const Text(
+                      child: Text(
                         'Iniciar sesión',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 20,
+                          fontSize: MediaQuery.of(context).size.width < 500 ? 16 : 20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -253,10 +253,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       'assets/images/google_logo.png',
                       height: 24,
                     ),
-                    label: const Text(
+                    label: Text(
                       'Continuar con Google',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: MediaQuery.of(context).size.width < 500 ? 16 : 20,
                       ),
                     ),
                   ),
@@ -270,6 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text(
                       '¿No tienes cuenta? Regístrate',
                       style: TextStyle(color: Color(0xFF063970), fontSize: 16),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),

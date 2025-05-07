@@ -39,13 +39,13 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
     _selectedDay = _focusedDay;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _verificarRutaPendiente();
+      await _verifyPendingRoute();
       await Provider.of<AuthUserProvider>(context, listen: false).loadUser();
     });
 
   }
 
-  Future<void> _verificarRutaPendiente() async {
+  Future<void> _verifyPendingRoute() async {
     final routeProvider = Provider.of<DriverRouteProvider>(context, listen: false);
     if (await routeProvider.canResumeRoute()) 
     {
@@ -54,7 +54,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
     }
   }
 
-  Future<void> _confirmarAccion(bool iniciar, DriverRouteProvider routeProvider) async {
+  Future<void> _confirmAction(bool iniciar, DriverRouteProvider routeProvider) async {
   String accion = iniciar ? "Iniciar" : "Detener";
   Color actionColor = iniciar ? Colors.green : Colors.red;
 
@@ -492,7 +492,7 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
                   const SizedBox(width: 20),
                 if (isSameDay(_selectedDay, DateTime.now()))
                   ElevatedButton(
-                    onPressed: () => _confirmarAccion(
+                    onPressed: () => _confirmAction(
                       !routeProvider.isRouteActive,
                       routeProvider,
                     ),

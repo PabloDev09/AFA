@@ -152,7 +152,7 @@ Future<void> _confirmarAccion(
               backgroundColor: actionColor,
               foregroundColor: Colors.white,
             ),
-            child: Text(accion),
+            child: const Text("Si"),
           ),
         ],
       );
