@@ -20,5 +20,18 @@ class AuthUserProvider extends ChangeNotifier {
     userFireStore = null;
     isAuthenticated = false;
   }
+  Future<bool> verifyPassword(String email, String password) async {
+    try {
+      final credential = firebase.EmailAuthProvider.credential(
+        email: email,
+        password: password,
+      );
+
+      await firebase.FirebaseAuth.instance.currentUser?.reauthenticateWithCredential(credential);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 }
 

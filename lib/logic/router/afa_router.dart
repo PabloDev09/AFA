@@ -4,6 +4,7 @@ import 'package:afa/design/screens/loading_no_child_screen.dart';
 import 'package:afa/design/screens/login_screen.dart';
 import 'package:afa/design/screens/not_found_screen.dart';
 import 'package:afa/design/screens/register_screen.dart';
+import 'package:afa/design/screens/settings_screen.dart';
 import 'package:afa/design/screens/user_home_screen.dart';
 import 'package:afa/design/screens/welcome_screen.dart';
 import 'package:afa/logic/services/user_service.dart';
@@ -109,6 +110,41 @@ final GoRouter afaRouter = GoRouter(
             targetScreen = const UserHomeScreen();
           } else if (role == 'Conductor') {
             targetScreen = const DriverHomeScreen();
+          } else {
+            // Si el rol no coincide con los esperados, se muestra loader indefinido.
+            targetScreen = const LoadingNoChildScreen();
+          }
+
+          return _buildWithLoading(
+            context,
+            targetScreen,
+            delay: const Duration(seconds: 3),
+          );
+        },
+      ),
+      redirect: (context, state) async {
+        if (!isAuthenticated()) return '/login';
+        final role = await getUserRole();
+        if (role == 'Administrador') return '/dashboard';
+        return null;
+      },
+    ),
+    GoRoute(
+      path: '/settings',
+      name: 'settings',
+      builder: (context, state) => FutureBuilder<String?>(
+        future: getUserRole(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            // Mientras no se obtenga el rol se muestra el loader indefinidamente.
+            return const LoadingNoChildScreen();
+          }
+          final role = snapshot.data;
+          Widget targetScreen;
+          if (role == 'Usuario') {
+            targetScreen = const SettingsScreen();
+          } else if (role == 'Conductor') {
+            targetScreen = const SettingsScreen();
           } else {
             // Si el rol no coincide con los esperados, se muestra loader indefinido.
             targetScreen = const LoadingNoChildScreen();
