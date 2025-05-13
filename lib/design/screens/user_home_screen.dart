@@ -142,7 +142,7 @@ Future<void> _confirmarAccion(bool cancelar,UserRouteProvider userProvider) asyn
               backgroundColor: actionColor,
               foregroundColor: Colors.white,
             ),
-            child: Text(accion),
+            child: const Text("Si"),
           ),
         ],
       );

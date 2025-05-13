@@ -166,7 +166,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
                   const SizedBox(height: 10),
                   _buildMenuItem(Icons.map, "Mapa", 2, PathUrlAfa().pathMap),
                   const SizedBox(height: 10),
-                  _buildMenuItem(Icons.settings, "Configuración", 3, PathUrlAfa().pathWelcome),
+                  _buildMenuItem(Icons.settings, "Configuración", 3, PathUrlAfa().pathSettings),
                 ],
               ),
             ),

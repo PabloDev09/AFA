@@ -11,7 +11,8 @@ class RegisterProvider extends ChangeNotifier
 
   String errorMail = "";
   String errorUser = "";
-  
+  bool isLoadingCities = false;
+
   String? selectedProvince;
   String? selectedCity;
   final List<String> provinces = 
@@ -46,6 +47,7 @@ class RegisterProvider extends ChangeNotifier
     selectedCity = null;
     selectedProvince = province;
     cities = [];
+    isLoadingCities = true;
     notifyListeners();
 
     
@@ -54,7 +56,7 @@ class RegisterProvider extends ChangeNotifier
     } catch (e) {
       cities = [];
     }
-
+    isLoadingCities = false;
     notifyListeners();
   }
 

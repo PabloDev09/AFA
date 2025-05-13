@@ -641,20 +641,22 @@ Widget build(BuildContext context) {
                         ),
                         const SizedBox(width: 15),
                         Expanded(
-                          child: _buildFloatingDropdown(
-                            label: 'Ciudad',
-                            hint: 'Seleccione ciudad',
-                            value: registerProvider.selectedCity,
-                            items: registerProvider.cities,
-                            onChanged: (newValue) {
-                              if (newValue != null) registerProvider.setSelectedCity(newValue);
-                            },
-                            validator: (value) {
-                              if (value == null || value.isEmpty) return 'Seleccione una ciudad';
-                              return null;
-                            },
-                          ),
-                        ),
+                          child: registerProvider.isLoadingCities
+                            ? const Center(child: CircularProgressIndicator())
+                            : _buildFloatingDropdown(
+                                label: 'Ciudad',
+                                hint: 'Seleccione ciudad',
+                                value: registerProvider.selectedCity,
+                                items: registerProvider.cities,
+                                onChanged: (newValue) {
+                                  if (newValue != null) registerProvider.setSelectedCity(newValue);
+                                },
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) return 'Seleccione una ciudad';
+                                  return null;
+                                },
+                              ),
+                      ),
                       ],
                     );
                   }
@@ -747,6 +749,7 @@ Widget build(BuildContext context) {
                       '¿Ya tienes cuenta? Inicia sesión',
                       style:
                           TextStyle(color: Color(0xFF063970), fontSize: 16),
+                          textAlign: TextAlign.center,
                     ),
                   ),
                 ),

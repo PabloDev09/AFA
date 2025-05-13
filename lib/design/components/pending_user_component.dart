@@ -279,7 +279,7 @@ class PendingUserComponent extends StatelessWidget {
 
   /// Diálogo para aceptar al usuario, asignándole un rol de la lista.
   void _showAcceptDialog(BuildContext context, User user) {
-    final roles = Provider.of<PendingUserProvider>(context, listen: false).roles;
+    final roles = Provider.of<PendingUserProvider>(context, listen: false).rols;
     String selectedRole = roles.isNotEmpty ? roles[0] : '';
 
     showDialog(

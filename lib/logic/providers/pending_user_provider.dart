@@ -6,7 +6,7 @@ class PendingUserProvider extends ChangeNotifier
 {
   final UserService _userService = UserService();
   List<User> pendingUsers = [];
-  final List<String> roles = ['Usuario', 'Conductor', 'Administrador'];
+  final List<String> rols = ['Usuario', 'Conductor', 'Administrador'];
 
   Future<void> loadPendingUsers() async 
   {
