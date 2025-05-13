@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 
-class AfaTheme {
+class AfaTheme 
+{
   static const Color _customColor = Color(0xFF49149F);
   static const Color _darkBackgroundColor = Color(0xFF121212);
   static const Color _lightBackgroundColor = Colors.white;
 
-  static final List<Color> _colorThemes = [
+  static final List<Color> _colorThemes = 
+  [
     _customColor,
     Colors.blue,
   ];
 
-  static ThemeData lightTheme(Color primaryColor) {
+  static ThemeData lightTheme(Color primaryColor) 
+  {
     return ThemeData(
-      fontFamily: 'Montserrat', 
+      fontFamily: 'Montserrat',
       useMaterial3: true,
       colorSchemeSeed: primaryColor,
       brightness: Brightness.light,
@@ -32,7 +35,8 @@ class AfaTheme {
     );
   }
 
-  static ThemeData darkTheme(Color primaryColor) {
+  static ThemeData darkTheme(Color primaryColor) 
+  {
     return ThemeData(
       fontFamily: 'Montserrat',
       useMaterial3: true,
@@ -54,7 +58,8 @@ class AfaTheme {
     );
   }
 
-  static ThemeData theme(bool isDarkMode, int selectedColor) {
+  static ThemeData theme(bool isDarkMode, int selectedColor) 
+  {
     assert(
       selectedColor >= 0 && selectedColor < _colorThemes.length,
       "color index must be between 0 and ${_colorThemes.length - 1}",

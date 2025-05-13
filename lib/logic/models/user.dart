@@ -1,4 +1,5 @@
-class User {
+class User 
+{
   final String mail;
   final String username;
   final String password;
@@ -8,9 +9,10 @@ class User {
   final String phoneNumber;
   final String rol;
   final bool isActivate;
-  final String fcmToken; 
+  final String fcmToken;
 
-  const User({
+  const User(
+  {
     required this.mail,
     required this.username,
     required this.password,
@@ -20,10 +22,11 @@ class User {
     required this.phoneNumber,
     this.rol = "",
     this.isActivate = false,
-    this.fcmToken = "", 
+    this.fcmToken = "",
   });
 
-  factory User.fromMap(Map<String, dynamic> data) {
+  factory User.fromMap(Map<String, dynamic> data) 
+  {
     return User(
       mail: data['mail'] ?? '',
       username: data['username'] ?? '',
@@ -34,12 +37,14 @@ class User {
       phoneNumber: data['phoneNumber'] ?? '',
       rol: data['rol'] ?? '',
       isActivate: data['isActivate'] ?? false,
-      fcmToken: data['fcmToken'] ?? '', 
+      fcmToken: data['fcmToken'] ?? '',
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() 
+  {
+    return 
+    {
       'mail': mail,
       'username': username,
       'password': password,
@@ -49,7 +54,7 @@ class User {
       'phoneNumber': phoneNumber,
       'rol': rol,
       'isActivate': isActivate,
-      'fcmToken': fcmToken, 
+      'fcmToken': fcmToken,
     };
   }
 }

@@ -3,7 +3,8 @@ import 'package:afa/logic/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import 'package:flutter/material.dart';
 
-class AuthUserProvider extends ChangeNotifier {
+class AuthUserProvider extends ChangeNotifier 
+{
   UserService userService = UserService();
   User? userFireStore;
   bool isAuthenticated = false;

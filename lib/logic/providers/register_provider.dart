@@ -70,26 +70,16 @@ class RegisterProvider extends ChangeNotifier
     return domainMails.any((domain) => value.endsWith(domain));
   }
 
-  /// Une la dirección con el formato adecuado.
-  String joinAddress(String street, String city, String province, String postalCode) 
+  // Une los componentes de la dirección en una sola cadena.
+  String joinAddress(String street, String city, String province, String postalCode,) 
   {
-  // Se asegura de que cada parte esté limpia y no vacía, y se une con comas
-  List<String> parts = [];
-  if (street.trim().isNotEmpty) parts.add(street.trim());
-  if (city.trim().isNotEmpty) parts.add(city.trim());
-  if (province.trim().isNotEmpty) parts.add(province.trim());
-  if (postalCode.trim().isNotEmpty) parts.add(postalCode.trim());  
-  parts.add("España");
-  
-  return parts.join(", ");
+    return [street.trim(), postalCode.trim().isNotEmpty ? '${postalCode.trim()} ${city.trim()}' : city.trim(), province.trim(), 'España'].where((s) => s.isNotEmpty).join(', ');
   }
 
   /// Comprueba si la contraseña cumple con criterios de seguridad.
   bool isSecurePassword(String password) 
   {
-    return RegExp(
-            r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#\$%\^&\*\(\)\-\_\=\+{\}\[\]:;\"<>,\.\?\\/|`~]).{8,}$')
-        .hasMatch(password);
+    return RegExp(r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#\$%\^&\*\(\)\-\_\=\+{\}\[\]:;\"<>,\.\?\\/|`~]).{8,}$').hasMatch(password);
   }
 
   Future<bool> mailExists(String email) async
@@ -127,39 +117,40 @@ class RegisterProvider extends ChangeNotifier
       fcmToken: fcmToken
     );
 
-    try {
+    try 
+    {
       await userService.createUser(userRegister);
     } 
-    catch (e) {
+    catch (e) 
+    {
       final errorMsg = e.toString();
       if (errorMsg.contains("El correo ya existe")) 
       {
         errorMail = "El correo ya existe";
       }
-      if (errorMsg.contains("El nombre de usuario ya existe")) {
+      if (errorMsg.contains("El nombre de usuario ya existe")) 
+      {
         errorUser = "El nombre de usuario ya existe";
       }
     }
     notifyListeners();
   }
 
+  String capitalizeEachWord(String input) 
+  {
+    return input.split(' ').map((word) {
+      if (word.isEmpty) return '';
+      if (word[0] == '(' && word.length > 1) {
+        return '(${word[1].toUpperCase()}${word.substring(2).toLowerCase()}';
+      }
+      return word[0].toUpperCase() + word.substring(1).toLowerCase();
+    }).join(' ');
+  }
 
-
-String capitalizeEachWord(String input) 
-{
-  return input.split(' ').map((word) {
-    if (word.isEmpty) return '';
-    if (word[0] == '(' && word.length > 1) {
-      return '(${word[1].toUpperCase()}${word.substring(2).toLowerCase()}';
-    }
-    return word[0].toUpperCase() + word.substring(1).toLowerCase();
-  }).join(' ');
-}
-
-void _clearErrors() 
-{
-  errorMail = "";
-  errorUser = "";
-}
+  void _clearErrors() 
+  {
+    errorMail = "";
+    errorUser = "";
+  }
 
 }

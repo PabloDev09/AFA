@@ -1,14 +1,16 @@
 import 'dart:async';
-import 'package:afa/design/screens/loading_no_child_screen.dart';
+import 'dart:ui';
+import 'package:afa/design/components/driver_status_component.dart';
 import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/providers/notification_provider.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:afa/logic/providers/user_route_provider.dart';
-import 'package:afa/design/components/chat_component.dart';
+import 'package:afa/design/components/notification_component.dart';
 import 'package:afa/design/components/side_bar_menu.dart';
 import 'package:afa/logic/models/notification.dart' as Afa;
  
@@ -23,9 +25,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> with TickerProviderStat
 {
   late DateTime _selectedDay;
   late DateTime _focusedDay;
-  bool _hasShownPickupAlert = false;
-  late Future<void> _initialLoad;
-  late Timer _timer;
+
   bool _isMenuOpen = false;
 
   void _toggleMenu() {
@@ -34,50 +34,40 @@ class _UserHomeScreenState extends State<UserHomeScreen> with TickerProviderStat
     });
   }
  
-  @override
-  void initState() {
+@override
+  void initState() 
+  {
     super.initState();
     initializeDateFormatting('es', null);
     _focusedDay = DateTime.now();
     _selectedDay = _focusedDay;
- 
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-      });
-    });
- 
-    _initialLoad = (() async {
-      await Provider.of<AuthUserProvider>(context, listen: false).loadUser();
-      await _loadData();
-    })();
-  }
- 
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
- 
+
+   WidgetsBinding.instance.addPostFrameCallback((_) async 
+   {
+      final authProvider = Provider.of<AuthUserProvider>(context, listen: false);
+      await authProvider.loadUser();
+      await _verificarRutaPendiente(authProvider.userFireStore?.username);
+  });
+
+  } 
 
  
-  Future<void> _loadData() async {
-    final authProvider = Provider.of<AuthUserProvider>(context, listen: false);
-    final userRouteProvider =
-        Provider.of<UserRouteProvider>(context, listen: false);
- 
-    await authProvider.loadUser();
-    final username = authProvider.userFireStore?.username;
+  Future<void> _verificarRutaPendiente(String? username) async 
+  {
+    final userRouteProvider = Provider.of<UserRouteProvider>(context, listen: false);
+
     if (username != null) 
-    {
-      userRouteProvider.startListening(username);
+    { 
+      if(await userRouteProvider.checkIfRouteActive(username))
+      {
+        await userRouteProvider.startListening();
+      }
       await userRouteProvider.getCancelDates(username);
     }
   }
  
-Future<void> _confirmarAccion(
-    bool cancelar,
-    UserRouteProvider userProvider,
-  ) async {
+Future<void> _confirmarAccion(bool cancelar,UserRouteProvider userProvider) async 
+{
   final username = Provider.of<AuthUserProvider>(context, listen: false)
       .userFireStore
       ?.username;
@@ -184,36 +174,44 @@ Future<void> _confirmarAccion(
         minChildSize: 0.3,
         maxChildSize: 0.9,
         builder: (context, scrollController) {
-          return ChatComponent(scrollController: scrollController);
+          return NotificationComponent(scrollController: scrollController);
         },
       ),
     );
   }
 
-Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) {
-  final overlay = Overlay.of(context);
-  late OverlayEntry entry;
+Future<void> _showSlidingNotification(
+  BuildContext context,
+  Afa.Notification n,
+) async {
+  final overlay = Overlay.of(context); // nada que hacer si no hay Overlay
+
   final theme = Theme.of(context);
 
-  // Controlador para la animación de entrada y salida
+  // 1️⃣ Prepara el reproductor y carga el WAV
+  final audioPlayer = AudioPlayer();
+  await audioPlayer.setSource(AssetSource('sounds/notification.wav'));
+
+  // 2️⃣ Controlador de animación con vsync válido
   final controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 250),
   );
-  final animation = Tween<Offset>(begin: const Offset(0, -1), end: const Offset(0, 0))
-      .animate(CurvedAnimation(parent: controller, curve: Curves.easeOut));
+  final animation = Tween<Offset>(
+    begin: const Offset(0, -1),
+    end: Offset.zero,
+  ).animate(
+    CurvedAnimation(parent: controller, curve: Curves.easeOut),
+  );
 
+  // 3️⃣ Construye la OverlayEntry
+  late OverlayEntry entry;
   entry = OverlayEntry(
     builder: (_) => Stack(
       children: [
-        // Fondo oscuro semitransparente
         const Positioned.fill(
-          child: ModalBarrier(
-            color: Colors.black54,
-            dismissible: false,
-          ),
+          child: ModalBarrier(color: Colors.black54, dismissible: false),
         ),
-        // Notificación deslizable clicable con cursor de ratón
         Positioned(
           top: 20,
           left: 0,
@@ -231,6 +229,7 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
                     await controller.reverse();
                     entry.remove();
                     controller.dispose();
+                    await audioPlayer.dispose();
                     _openNotifications();
                   },
                   child: Container(
@@ -239,7 +238,10 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: theme.colorScheme.primary, width: 1.5),
+                      border: Border.all(
+                        color: theme.colorScheme.primary,
+                        width: 1.5,
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,39 +249,38 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: () async {
-                                  // Si se clickea el icono, mismo comportamiento
-                                  Provider.of<NotificationProvider>(context, listen: false)
-                                      .markAsReadByNotification(n);
-                                  await controller.reverse();
-                                  entry.remove();
-                                  controller.dispose();
-                                  _openNotifications();
-                                },
-                                child: Icon(
-                                  Icons.notifications_active,
-                                  color: theme.colorScheme.primary,
-                                ),
+                            GestureDetector(
+                              onTap: () async {
+                                Provider.of<NotificationProvider>(
+                                  context,
+                                  listen: false,
+                                ).markAsReadByNotification(n);
+                                await controller.reverse();
+                                entry.remove();
+                                controller.dispose();
+                                await audioPlayer.dispose();
+                                _openNotifications();
+                              },
+                              child: Icon(
+                                Icons.notifications_active,
+                                color: theme.colorScheme.primary,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 n.message,
-                                style: theme.textTheme.bodyLarge!
-                                    .copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+                                style: theme.textTheme.bodyLarge!.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onSurface,
+                                ),
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.only(left: 8),
-                              child: Icon(
-                                Icons.circle,
-                                size: 10,
-                                color: theme.colorScheme.secondary,
-                              ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.circle,
+                              size: 10,
+                              color: theme.colorScheme.secondary,
                             ),
                           ],
                         ),
@@ -303,55 +304,30 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
     ),
   );
 
-  // Insertar la notificación en el overlay
+  // 4️⃣ Inserta la overlay
   overlay.insert(entry);
 
-  // Devolvemos un Future que completa tras la animación de salida
-  return controller.forward().then((_) async {
+  // 5️⃣ Retrasa el play y la animación hasta después del build actual
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    try {
+      await audioPlayer.play(AssetSource('sounds/notification.wav'));
+    } catch (_) {
+      // Silenciar errores de autoplay en web
+    }
+    await controller.forward();
     await Future.delayed(const Duration(seconds: 1));
     await controller.reverse();
+
+    // 6️⃣ Limpieza
     entry.remove();
     controller.dispose();
+    await audioPlayer.dispose();
   });
 }
 
-
-
-
-
-  Future<void> _cancelarRecogidaActual(UserRouteProvider userProvider) async {
-    final username =
-        Provider.of<AuthUserProvider>(context, listen: false).userFireStore?.username;
-    if (username == null) return;
  
-    bool? confirmacion = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Cancelar recogida actual"),
-          content: const Text("¿Estás seguro de que quieres cancelar la recogida actual? Serás eliminado de la ruta."),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("No"),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: TextButton.styleFrom(foregroundColor: Colors.orange),
-              child: const Text("Sí, cancelar"),
-            ),
-          ],
-        );
-      },
-    );
- 
-    if (confirmacion ?? false) {
-      await userProvider.cancelCurrentPickup(username);
-      setState(() {});
-    }
-  }
- 
-  Widget _dayBuilder(BuildContext context, DateTime day, DateTime focusedDay) {
+  Widget _dayBuilder(BuildContext context, DateTime day, DateTime focusedDay) 
+  {
   final userRouteProvider = Provider.of<UserRouteProvider>(context, listen: false);
   DateTime normalizedDay = DateTime(day.year, day.month, day.day);
   bool isCanceled = userRouteProvider.cancelDates.contains(normalizedDay);
@@ -363,11 +339,11 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
   // determina color de fondo
   Color bgColor;
   if (isPast) {
-    bgColor = isCanceled ? Colors.red : Colors.grey;
+    bgColor = Colors.grey[400]!;
   } else if (isToday) {
-    bgColor = Colors.blue;
+    bgColor = Colors.blueAccent;
   } else if (isCanceled) {
-    bgColor = Colors.red;
+    bgColor = Colors.redAccent;
   } else {
     bgColor = isWeekday ? Colors.green : Colors.grey[400]!;
   }
@@ -408,129 +384,77 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
   }
 }
 
-
- 
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: _initialLoad,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) 
-        {
-          return const LoadingNoChildScreen();
-        }
-
-        return Consumer<UserRouteProvider>(
-          builder: (context, userRouteProvider, _) {
-            if (userRouteProvider.previousIsNearToPickUpUser &&
-                !_hasShownPickupAlert) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: const Text("¡Atención!"),
-                      content: const Text(
-                          "¡El conductor está a 5 minutos! ¡Ve al punto de recogida!"),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            setState(() {
-                              _hasShownPickupAlert = true;
-                            });
-                          },
-                          child: const Text("Aceptar"),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              });
-            }
-            return buildMainContent(userRouteProvider);
-          },
-        );
-      },
-    );
-  }
- 
-  Widget buildMainContent(UserRouteProvider userRouteProvider) {
+@override
+  Widget build(BuildContext context) 
+  {
     final theme = Theme.of(context);
     return Scaffold(
       extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          backgroundColor:Colors.transparent,
-          elevation: 0,
-          title: Row(
-            children: [
-              IconButton(
-                icon: Icon(_isMenuOpen ? Icons.close : Icons.menu,
-                  color: _isMenuOpen ? Colors.blue[700] : Colors.white),
-          onPressed: _toggleMenu,
-        ),
-        const Spacer(),
-        Consumer<NotificationProvider>(
-        builder: (_, notificationProvider, __) {
-          final count = notificationProvider.notifications.where((n)=>!n.isRead).length;
-          if (notificationProvider.hasNewNotification) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              final n = notificationProvider.latestNotification;
-              _showSlidingNotification(context, n);
-              notificationProvider.markLatestAsShown();
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Row(
+          children: [
+            IconButton(
+              icon: Icon(_isMenuOpen ? Icons.close : Icons.menu, color: _isMenuOpen ? Colors.blue : Colors.white),
+              onPressed: _toggleMenu,
+            ),
+            const Spacer(),
+            Consumer<NotificationProvider>(
+              builder: (_, notificationProvider, __) {
+                final count = notificationProvider.notifications.where((n) => !n.isRead).length;
+                if (notificationProvider.hasNewNotification) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    final n = notificationProvider.latestNotification;
+                    _showSlidingNotification(context, n);
+                    notificationProvider.markLatestAsShown();
 
-            });
-          }
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications, color: Colors.white),
-                onPressed: _openNotifications,
-              ),
-              if (count > 0)
-                Positioned(
-                  right: 6,
-                  top: 6,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
+                  });
+                }
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications, color: Colors.white),
+                      onPressed: _openNotifications,
                     ),
-                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                    child: Text(
-                      '$count',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                    if (count > 0)
+                      Positioned(
+                        right: 6,
+                        top: 6,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          child: Text(
+                            '$count',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-            ],
-          );
-        },
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
-
-      ],
-    ),
-    ),
       body: Stack(
         children: [
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  theme.brightness == Brightness.dark
-                      ? Colors.black87
-                      : Colors.blue[900]!,
-                  theme.brightness == Brightness.dark
-                      ? Colors.black54
-                      : Colors.blue[300]!,
+                  theme.brightness == Brightness.dark ? Colors.black87 : Colors.blue[900]!,
+                  theme.brightness == Brightness.dark ? Colors.black54 : Colors.blue[300]!,
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -540,16 +464,75 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
               padding: EdgeInsets.only(top: kToolbarHeight + MediaQuery.of(context).padding.top),
               child: Column(
                 children: [
+                  Consumer<UserRouteProvider>(
+                    builder: (context, routeProvider, child) => 
+                      _buildCalendar(routeProvider),
+                                      ),
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 10, horizontal: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          _buildCalendar(userRouteProvider),
-                          const SizedBox(height: 20),
-                        ],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Consumer<UserRouteProvider>(
+                        builder: (context, routeProvider, child) {
+                          if (routeProvider.isRouteActive) {
+                            return const SingleChildScrollView(
+                              child: Padding(
+                                padding: EdgeInsets.only(top: 20, bottom: 20),
+                                child: DriverStatusComponent(),
+                              ),
+                            );
+                          } else if (routeProvider.isLoading) {
+                            // Mostrar CircularProgress si está cargando
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            );
+                          } else {
+                            // Mostrar mensaje de "no hay ruta activa"
+                            return Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Stack(
+                                    alignment: Alignment.topRight,
+                                    children: [
+                                      const Icon(
+                                        Icons.directions_bus,
+                                        size: 80,
+                                        color: Colors.white,
+                                      ),
+                                      Positioned(
+                                        top: 0,
+                                        right: 0,
+                                        child: Container(
+                                          decoration: const BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          padding: const EdgeInsets.all(4),
+                                          child: const Icon(
+                                            Icons.close,
+                                            size: 16,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'No hay ninguna ruta iniciada',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                        },
                       ),
                     ),
                   ),
@@ -557,69 +540,127 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
               ),
             ),
           ),
-          // Capa oscura si el menú está abierto
-      if (_isMenuOpen)
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: _toggleMenu,
-            child: Container(color: Colors.black.withOpacity(0.5)),
-          ),
-        ),
-
-      // Sidebar visible
-      if (_isMenuOpen)
-         const Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          child: SidebarMenu(selectedIndex: 0),
-        ),
+          if (_isMenuOpen)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: _toggleMenu,
+                child: Container(color: Colors.black54),
+              ),
+            ),
+          if (_isMenuOpen)
+            const Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: SidebarMenu(
+                selectedIndex: 0,
+              ),
+            ),
         ],
       ),
     );
   }
  
-  Widget _buildCalendar(UserRouteProvider userRouteProvider) {
-    return Card(
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12)),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
+Widget _buildCalendar(UserRouteProvider userRouteProvider) {
+  return ClipRRect(
+    child: BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.white.withOpacity(0.3),
+              Colors.white.withOpacity(0.1),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+        ),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            if (!isSameDay(_selectedDay, DateTime.now()))
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _selectedDay = DateTime.now();
-                      _focusedDay = DateTime.now();
-                    });
-                  },
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+          // — Botón “Volver a hoy” con AnimatedSwitcher —
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            layoutBuilder: (current, previous) => Stack(
+              alignment: Alignment.centerRight,
+              children: [
+                ...previous,
+                if (current != null) current,
+              ],
+            ),
+            transitionBuilder: (child, anim) {
+              return FadeTransition(
+                opacity: anim,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.5, 0),
+                    end: Offset.zero,
+                  ).animate(anim),
+                  child: child,
+                ),
+              );
+            },
+            child: isSameDay(_selectedDay, DateTime.now())
+                ? const SizedBox.shrink(key: ValueKey('todayEmpty'))
+                : Align(
+                    key: const ValueKey('todayBtn'),
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _selectedDay = DateTime.now();
+                          _focusedDay = DateTime.now();
+                        });
+                      },
+                      icon: const Icon(Icons.today, color: Colors.white),
+                      label: const Text(
+                        'Volver a hoy',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
                     ),
                   ),
-                  child: const Text("Hoy"),
-                ),
-              ),
+          ),
+
+            const SizedBox(height: 12),
+            // — Calendario semanal —
             TableCalendar(
-              onPageChanged: (focusedDay) {
-                setState(() {
-                  _focusedDay = focusedDay;
-                });
-              },
               locale: 'es_ES',
               focusedDay: _focusedDay,
               firstDay: DateTime(2000),
               lastDay: DateTime(2100),
               calendarFormat: CalendarFormat.week,
               startingDayOfWeek: StartingDayOfWeek.monday,
+              onPageChanged: (newFocusedDay) {
+                setState(() {
+                  _focusedDay = newFocusedDay;
+                });
+              },
+              daysOfWeekStyle: DaysOfWeekStyle(
+                weekdayStyle: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14),
+                weekendStyle: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+                dowTextFormatter: (date, locale) {
+                  final letter =
+                      DateFormat.E(locale).format(date)[0].toUpperCase();
+                  return date.weekday == DateTime.wednesday ? 'X' : letter;
+                },
+              ),
               calendarBuilders: CalendarBuilders(
                 defaultBuilder: _dayBuilder,
                 todayBuilder: _dayBuilder,
@@ -627,97 +668,183 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
                 disabledBuilder: _dayBuilder,
               ),
               selectedDayPredicate: (day) => isSameDay(day, _selectedDay),
-              onDaySelected: (selectedDay, focusedDay) {
+              onDaySelected: (sel, foc) {
                 setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
+                  _selectedDay = sel;
+                  _focusedDay = foc;
                 });
               },
               enabledDayPredicate: (day) =>
-                  day.weekday >= DateTime.monday && day.weekday <= DateTime.friday,
+                  day.weekday >= DateTime.monday &&
+                  day.weekday <= DateTime.friday,
               headerStyle: HeaderStyle(
                 formatButtonVisible: false,
                 titleCentered: true,
                 titleTextFormatter: (date, locale) {
-                  String formattedDate = DateFormat.yMMMM(locale).format(date);
-                  return formattedDate[0].toUpperCase() +
-                      formattedDate.substring(1);
+                  final f = DateFormat.yMMMM(locale).format(date);
+                  return '${f[0].toUpperCase()}${f.substring(1)}';
                 },
-                titleTextStyle:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                titleTextStyle: const TextStyle(
+                    fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white),
+                leftChevronIcon: const Icon(Icons.chevron_left, color: Colors.white),
+                rightChevronIcon:
+                    const Icon(Icons.chevron_right, color: Colors.white),
+              ),
+              calendarStyle: const CalendarStyle(
+                weekendTextStyle: TextStyle(color: Colors.pinkAccent),
+                todayDecoration:
+                    BoxDecoration(color: Colors.white38, shape: BoxShape.circle),
+                selectedDecoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.blueAccent, Colors.lightBlue],
+                    ),
+                    shape: BoxShape.circle),
+                selectedTextStyle: TextStyle(color: Colors.white),
+                todayTextStyle: TextStyle(color: Colors.white),
+                defaultTextStyle: TextStyle(color: Colors.white),
+                disabledTextStyle: TextStyle(color: Colors.white30),
               ),
             ),
-            const SizedBox(height: 10),
-            Builder(
-              builder: (context) {
-                bool isPast = _selectedDay.isBefore(DateTime.now()) &&
-                    !isSameDay(_selectedDay, DateTime.now());
-                bool isToday = isSameDay(_selectedDay, DateTime.now());
-                bool isWeekendToday = DateTime.now().weekday == DateTime.saturday ||
-                    DateTime.now().weekday == DateTime.sunday;
-                if (isPast || (isToday && isWeekendToday)) {
-                  return const SizedBox(height: 42);
-                }
-                bool isCancelled = userRouteProvider.cancelDates.contains(
-                  DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day),
+          const SizedBox(height: 20),
+          // — Ocultar botones si hay ruta activa hoy —
+          // Botón Cancelar / Reanudar
+          if (!(userRouteProvider.isRouteActive &&
+                isSameDay(_selectedDay, DateTime.now())))
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              switchInCurve: Curves.easeOutBack,
+              switchOutCurve: Curves.easeInBack,
+              layoutBuilder: (current, previous) => Stack(
+                alignment: Alignment.center,
+                children: [
+                  ...previous,
+                  if (current != null) current,
+                ],
+              ),
+              transitionBuilder: (child, anim) {
+                return FadeTransition(
+                  opacity: anim,
+                  child: ScaleTransition(
+                    scale: anim,
+                    child: child,
+                  ),
                 );
- 
-                List<Widget> buttons = [];
- 
-                if (isCancelled) {
-                  buttons.add(
-                    ElevatedButton(
-                      onPressed: () => _confirmarAccion(false, userRouteProvider),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                        textStyle: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      child: const Text("Reanudar Recogida"),
-                    ),
-                  );
-                } else {
-                  buttons.add(
-                    ElevatedButton(
-                      onPressed: () => _confirmarAccion(true, userRouteProvider),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                        textStyle: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      child: const Text("Cancelar Recogida"),
-                    ),
-                  );
-                }
-                final username = Provider.of<AuthUserProvider>(context, listen: false).userFireStore?.username;
-                FutureBuilder<bool>(
-                  future: userRouteProvider.checkIfUserIsBeingPicked(username!),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData && snapshot.data == true) {
-                      return ElevatedButton(
-                        onPressed: () => _cancelarRecogidaActual(userRouteProvider),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        child: const Text("Cancelar Recogida Actual"),
-                      );
-                    }
-                    return Container();
-                  },
-                );
-                return Column(children: buttons);
               },
+              child: Builder(
+                key: ValueKey(_selectedDay),
+                builder: (context) {
+                  final isWeekend = _selectedDay.weekday == DateTime.saturday ||
+                      _selectedDay.weekday == DateTime.sunday;
+                  if (isWeekend) return const SizedBox(height: 42);
+
+                  final isCancelled = userRouteProvider.cancelDates.any((d) =>
+                      d.year == _selectedDay.year &&
+                      d.month == _selectedDay.month &&
+                      d.day == _selectedDay.day);
+
+                  return SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () =>
+                          _confirmarAccion(!isCancelled, userRouteProvider),
+                      icon: Icon(
+                        isCancelled ? Icons.refresh : Icons.cancel,
+                        color: Colors.white,
+                      ),
+                      label: Text(
+                        isCancelled ? 'Reanudar recogida' : 'Cancelar recogida',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            isCancelled ? Colors.green : Colors.redAccent,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
+
+            // — Botón “Actualizar Ruta” (solo si hay ruta activa) —
+            if (userRouteProvider.isRouteActive && isSameDay(_selectedDay, DateTime.now())) ...[
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeOutBack,
+                switchOutCurve: Curves.easeInBack,
+                layoutBuilder: (current, previous) => Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    ...previous,
+                    if (current != null) current,
+                  ],
+                ),
+                transitionBuilder: (child, anim) {
+                  return FadeTransition(
+                    opacity: anim,
+                    child: ScaleTransition(
+                      scale: anim,
+                      child: child,
+                    ),
+                  );
+                },
+                child: SizedBox(
+                  // ¡Clave basada en isUpdating para que AnimatedSwitcher lo detecte!
+                  key: ValueKey(userRouteProvider.isUpdating),
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: userRouteProvider.isUpdating
+                        ? null
+                        : () async {
+                            setState(() => userRouteProvider.isUpdating = true);
+                            await userRouteProvider.loadRouteUser(
+                              Provider.of<AuthUserProvider>(context, listen: false)
+                                  .userFireStore
+                                  ?.username,
+                            );
+                            setState(() => userRouteProvider.isUpdating = false);
+                          },
+                    icon: userRouteProvider.isUpdating
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Icon(Icons.update, color: Colors.white),
+                    label: Text(
+                      userRouteProvider.isUpdating
+                          ? 'Actualizando estado'
+                          : 'Actualizar estado',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: userRouteProvider.isUpdating ? 11 : 14,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 }

@@ -1,18 +1,21 @@
-class Notification {
+class Notification 
+{
   final String message;
   final DateTime date;
   bool isRead;
   bool isNew;
 
-  Notification({
+  Notification(
+  {
     required this.message,
     required this.date,
     required this.isRead,
     required this.isNew,
   });
 
-  // Método para convertir un Map a un objeto RouteUser
-  factory Notification.fromMap(Map<String, dynamic> map) {
+  // Método para convertir un Map a un objeto Notification
+  factory Notification.fromMap(Map<String, dynamic> map) 
+  {
     return Notification(
       message: map['message'] ?? '',
       date: map['date'] ?? DateTime.now(),

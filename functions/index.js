@@ -1,6 +1,5 @@
 import { onSchedule }           from 'firebase-functions/v2/scheduler';
 import { onDocumentUpdated }    from 'firebase-functions/v2/firestore';
-import { onRequest }            from 'firebase-functions/v2/https';
 import { initializeApp }        from 'firebase-admin/app';
 import { getMessaging }         from 'firebase-admin/messaging';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
@@ -107,28 +106,39 @@ export const notificarPushEstadoRecogida = onDocumentUpdated(
   }
 );
 
-// 2) Scheduled cleanup of old routes
 export const borrarRutasAntiguas = onSchedule(
-  { region:'europe-west1', schedule:'0 0 * * *', timeZone:'Europe/Madrid' },
+  { region: 'europe-west1', schedule: '0 0 * * *', timeZone: 'Europe/Madrid' },
   async () => {
-    const hoy = Timestamp.fromDate(new Date().setHours(0,0,0,0));
-    const snap = await db.collection('ruta').where('createdAt','<',hoy).get();
+    const hoyTs = Timestamp.now();
+    
+    const snap = await db.collection('ruta')
+                         .where('createdAt', '<', hoyTs)
+                         .get();
+
     if (!snap.empty) {
-      const batch = db.batch(); snap.docs.forEach(d=>batch.delete(d.ref));
-      await batch.commit(); console.log(`Deleted ${snap.size} old rutas`);
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+      console.log(`Deleted ${snap.size} old rutas`);
     }
   }
 );
 
-// 3) Scheduled cleanup of cancelled routes
 export const borrarCancelacionRutasAntiguas = onSchedule(
-  { region:'europe-west1', schedule:'0 0 * * *', timeZone:'Europe/Madrid' },
+  { region: 'europe-west1', schedule: '0 0 * * *', timeZone: 'Europe/Madrid' },
   async () => {
-    const hoy = Timestamp.fromDate(new Date().setHours(0,0,0,0));
-    const snap = await db.collection('rutacancelada').where('cancelDate','<',hoy).get();
+
+    const hoyTs = Timestamp.now();
+
+    const snap = await db.collection('rutacancelada')
+                         .where('cancelDate', '<', hoyTs)
+                         .get();
+
     if (!snap.empty) {
-      const batch = db.batch(); snap.docs.forEach(d=>batch.delete(d.ref));
-      await batch.commit(); console.log(`Deleted ${snap.size} cancelled rutas`);
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+      console.log(`Deleted ${snap.size} cancelled rutas`);
     }
   }
 );

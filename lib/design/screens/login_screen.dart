@@ -20,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _userController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
   final _formKey = GlobalKey<FormState>();
   
   @override
@@ -103,183 +104,202 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
 
-  Widget _buildLoginForm() {
-    final theme = Theme.of(context);
-    return Form(
-      key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Cabecera con degradado y título
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  theme.brightness == Brightness.dark
-                      ? const Color(0xFF1E1E1E)
-                      : const Color(0xFF063970),
-                  theme.brightness == Brightness.dark
-                      ? const Color(0xFF121212)
-                      : const Color(0xFF66B3FF),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
+ Widget _buildLoginForm() 
+ {
+  final theme = Theme.of(context);
+  return Form(
+    key: _formKey,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Cabecera con degradado y título
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                theme.brightness == Brightness.dark
+                    ? const Color(0xFF1E1E1E)
+                    : const Color(0xFF063970),
+                theme.brightness == Brightness.dark
+                    ? const Color(0xFF121212)
+                    : const Color(0xFF66B3FF),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            padding: const EdgeInsets.all(24),
-            alignment: Alignment.center,
-            child: const Text(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          padding: const EdgeInsets.all(24),
+          alignment: Alignment.center,
+          child: const Text(
+            'Iniciar sesión',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        // Cuerpo blanco con campos y botones
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(30),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(20),
+              bottomRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildFloatingTextField(
+                label: 'Correo',
+                hint: 'Ingresa tu correo',
+                controller: _userController,
+              ),
+              const SizedBox(height: 15),
+              _buildFloatingPasswordField(),
+              const SizedBox(height: 20),
+              SizedBox(
+  width: double.infinity,
+  child: Container(
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [
+          Color(0xFF063970),
+          Color(0xFF2196F3),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: ElevatedButton(
+      onPressed: () async {
+        if (_isLoading) return;
+
+        if (!_formKey.currentState!.validate()) return;
+
+        setState(() => _isLoading = true);
+
+        final email = _userController.text.trim();
+        final pwd = _passwordController.text.trim();
+        final provider = Provider.of<ActiveUserProvider>(context, listen: false);
+        final authProvider = Provider.of<AuthUserProvider>(context, listen: false);
+
+        try {
+          bool isAutenticated = await provider.authenticateUser(email, pwd);
+
+          if (!isAutenticated) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Usuario no autorizado.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            setState(() => _isLoading = false);
+            return;
+          }
+
+          await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pwd);
+        } on FirebaseAuthException {
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: pwd);
+        }
+
+        authProvider.loadUser();
+        _navigateAccordingToRole(email);
+
+        setState(() => _isLoading = false);
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        minimumSize: const Size(0, 50),
+      ).copyWith(
+        overlayColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.hovered)) {
+            return Colors.white.withOpacity(0.2);
+          }
+          return null;
+        }),
+      ),
+      child: _isLoading
+          ? const SizedBox(
+              height: 24,
+              width: 24,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2.5,
+              ),
+            )
+          : const Text(
               'Iniciar sesión',
-              textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 28,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
-          ),
-          // Cuerpo blanco con campos y botones
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(30),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildFloatingTextField(
-                  label: 'Correo',
-                  hint: 'Ingresa tu correo',
-                  controller: _userController,
-                ),
-                const SizedBox(height: 15),
-                _buildFloatingPasswordField(),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF063970),
-                          Color(0xFF2196F3),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+    ),
+  ),
+),
+
+              const SizedBox(height: 15),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _signInWithGoogle,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black87,
+                    padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        if (_formKey.currentState!.validate()) {
-                          final userActiveProvider = Provider.of<ActiveUserProvider>(
-                            context,
-                            listen: false,
-                          );
-                          bool isAuthenticated = await userActiveProvider.authenticateUser(
-                            _userController.text.trim(),
-                            _passwordController.text.trim(),
-                          );
-                          if (isAuthenticated) {
-                            await FirebaseAuth.instance.signInWithEmailAndPassword(
-                              email: _userController.text.trim(),
-                              password: _passwordController.text.trim(),
-                            );
-                            _navigateAccordingToRole(_userController.text);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('El usuario o la contraseña son incorrectos.'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          minimumSize: const Size(0, 50),
-                        ).copyWith(
-                          overlayColor: WidgetStateProperty.resolveWith((states) {
-                            if (states.contains(WidgetState.hovered)) {
-                              return Colors.white.withOpacity(0.2);
-                            }
-                            return null;
-                          }),
-                        ),
-                      child: const Text(
-                        'Iniciar sesión',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                    side: const BorderSide(color: Colors.black12),
+                    minimumSize: const Size(double.infinity, 50),
                   ),
-
-                ),
-                const SizedBox(height: 15),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _signInWithGoogle,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black87,
-                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      side: const BorderSide(color: Colors.black12),
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
-                    icon: Image.asset(
-                      'assets/images/google_logo.png',
-                      height: 24,
-                    ),
-                    label: const Text(
-                      'Continuar con Google',
-                      style: TextStyle(
-                        fontSize: 20,
-                      ),
-                    ),
+                  icon: Image.asset(
+                    'assets/images/google_logo.png',
+                    height: 24,
+                  ),
+                  label: const Text(
+                    'Continuar con Google',
+                    style: TextStyle(fontSize: 20),
                   ),
                 ),
-                const SizedBox(height: 15),
-                Center(
-                  child: TextButton(
-                    onPressed: () {
-                      context.go(PathUrlAfa().pathRegister);
-                    },
-                    child: const Text(
-                      '¿No tienes cuenta? Regístrate',
-                      style: TextStyle(color: Color(0xFF063970), fontSize: 16),
-                    ),
+              ),
+              const SizedBox(height: 15),
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    context.go(PathUrlAfa().pathRegister);
+                  },
+                  child: const Text(
+                    '¿No tienes cuenta? Regístrate',
+                    style: TextStyle(color: Color(0xFF063970), fontSize: 16),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
+
 
   /// Campo de texto con label flotante
   Widget _buildFloatingTextField({

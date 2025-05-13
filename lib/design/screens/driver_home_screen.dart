@@ -1,11 +1,14 @@
 import 'dart:async';
-import 'package:afa/design/components/chat_component.dart';
+import 'dart:ui';
+import 'package:afa/design/components/notification_component.dart';
 import 'package:afa/design/components/route_user_component.dart';
 import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/design/components/side_bar_menu.dart';
 import 'package:afa/logic/providers/driver_route_provider.dart';
 import 'package:afa/logic/providers/notification_provider.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -32,20 +35,39 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
   }
 
   @override
-  void initState() {
+  void initState() 
+  {
     super.initState();
     initializeDateFormatting('es', null);
     _focusedDay = DateTime.now();
     _selectedDay = _focusedDay;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _verificarRutaPendiente();
-      await Provider.of<AuthUserProvider>(context, listen: false).loadUser();
-    });
+   WidgetsBinding.instance.addPostFrameCallback((_) async 
+   {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    if (!serviceEnabled || permission == LocationPermission.denied || permission == LocationPermission.deniedForever) 
+    {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Debes habilitar el servicio de ubicación"),
+          backgroundColor: Colors.red,
+        ));
+      permission = await Geolocator.requestPermission();
+    }
+    
+    if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) 
+    {
+      await _verificarRutaPendiente(context);
+    }
+
+    await Provider.of<AuthUserProvider>(context, listen: false).loadUser();
+  });
 
   }
 
-  Future<void> _verificarRutaPendiente() async {
+  Future<void> _verificarRutaPendiente(BuildContext context) async
+   {
     final routeProvider = Provider.of<DriverRouteProvider>(context, listen: false);
     if (await routeProvider.canResumeRoute()) 
     {
@@ -137,7 +159,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
 
   Color bgColor;
   if (isToday) {
-    bgColor = Colors.blue;
+    bgColor = Colors.blueAccent;
   } else if (isFuture) {
     bgColor = Colors.green;
   } else {
@@ -186,37 +208,44 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
         minChildSize: 0.3,
         maxChildSize: 0.9,
         builder: (context, scrollController) {
-          return const ChatComponent();
+          return const NotificationComponent();
         },
       ),
     );
   }
 
+Future<void> _showSlidingNotification(
+  BuildContext context,
+  Afa.Notification n,
+) async {
+  final overlay = Overlay.of(context); // nada que hacer si no hay Overlay
 
-Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) {
-  final overlay = Overlay.of(context);
-  late OverlayEntry entry;
   final theme = Theme.of(context);
 
-  // Controlador para la animación de entrada y salida
+  // 1️⃣ Prepara el reproductor y carga el WAV
+  final audioPlayer = AudioPlayer();
+  await audioPlayer.setSource(AssetSource('sounds/notification.wav'));
+
+  // 2️⃣ Controlador de animación con vsync válido
   final controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 250),
   );
-  final animation = Tween<Offset>(begin: const Offset(0, -1), end: const Offset(0, 0))
-      .animate(CurvedAnimation(parent: controller, curve: Curves.easeOut));
+  final animation = Tween<Offset>(
+    begin: const Offset(0, -1),
+    end: Offset.zero,
+  ).animate(
+    CurvedAnimation(parent: controller, curve: Curves.easeOut),
+  );
 
+  // 3️⃣ Construye la OverlayEntry
+  late OverlayEntry entry;
   entry = OverlayEntry(
     builder: (_) => Stack(
       children: [
-        // Fondo oscuro semitransparente
         const Positioned.fill(
-          child: ModalBarrier(
-            color: Colors.black54,
-            dismissible: false,
-          ),
+          child: ModalBarrier(color: Colors.black54, dismissible: false),
         ),
-        // Notificación deslizable clicable
         Positioned(
           top: 20,
           left: 0,
@@ -225,56 +254,80 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
             position: animation,
             child: SafeArea(
               bottom: false,
-              child: GestureDetector(
-                onTap: () async {
-                  // Marcar notificación como leída
-                  Provider.of<NotificationProvider>(context, listen: false)
-                      .markAsReadByNotification(n);
-                  // Cerrar la notificación deslizable
-                  await controller.reverse();
-                  entry.remove();
-                  controller.dispose();
-                  // Abrir modal de notificaciones
-                  _openNotifications();
-                },
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: theme.colorScheme.primary, width: 1.5),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.notifications_active, color: theme.colorScheme.primary),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              n.message,
-                              style: theme.textTheme.bodyLarge!
-                                  .copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () async {
+                    Provider.of<NotificationProvider>(context, listen: false)
+                        .markAsReadByNotification(n);
+                    await controller.reverse();
+                    entry.remove();
+                    controller.dispose();
+                    await audioPlayer.dispose();
+                    _openNotifications();
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: theme.colorScheme.primary,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: () async {
+                                Provider.of<NotificationProvider>(
+                                  context,
+                                  listen: false,
+                                ).markAsReadByNotification(n);
+                                await controller.reverse();
+                                entry.remove();
+                                controller.dispose();
+                                await audioPlayer.dispose();
+                                _openNotifications();
+                              },
+                              child: Icon(
+                                Icons.notifications_active,
+                                color: theme.colorScheme.primary,
+                              ),
                             ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8),
-                            child: Icon(Icons.circle, size: 10, color: theme.colorScheme.secondary),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        DateFormat('dd/MM/yyyy HH:mm').format(n.date),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.disabledColor,
-                          fontStyle: FontStyle.italic,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                n.message,
+                                style: theme.textTheme.bodyLarge!.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.circle,
+                              size: 10,
+                              color: theme.colorScheme.secondary,
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 6),
+                        Text(
+                          DateFormat('dd/MM/yyyy HH:mm').format(n.date),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.disabledColor,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -285,20 +338,26 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
     ),
   );
 
-  // Insertar la notificación en el overlay
+  // 4️⃣ Inserta la overlay
   overlay.insert(entry);
 
-  // Devolvemos un Future que completa tras la animación de salida
-  return controller.forward().then((_) async {
+  // 5️⃣ Retrasa el play y la animación hasta después del build actual
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    try {
+      await audioPlayer.play(AssetSource('sounds/notification.wav'));
+    } catch (_) {
+      // Silenciar errores de autoplay en web
+    }
+    await controller.forward();
     await Future.delayed(const Duration(seconds: 1));
     await controller.reverse();
+
+    // 6️⃣ Limpieza
     entry.remove();
     controller.dispose();
+    await audioPlayer.dispose();
   });
 }
-
-
-
 
 
 
@@ -314,7 +373,7 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
         title: Row(
           children: [
             IconButton(
-              icon: Icon(_isMenuOpen ? Icons.close : Icons.menu, color: Colors.white),
+              icon: Icon(_isMenuOpen ? Icons.close : Icons.menu, color: _isMenuOpen ? Colors.blue : Colors.white),
               onPressed: _toggleMenu,
             ),
             const Spacer(),
@@ -382,22 +441,70 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
               padding: EdgeInsets.only(top: kToolbarHeight + MediaQuery.of(context).padding.top),
               child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    child: Consumer<DriverRouteProvider>(
-                      builder: (context, routeProvider, child) => _buildCalendar(routeProvider),
-                    ),
-                  ),
+                  Consumer<DriverRouteProvider>(
+                    builder: (context, routeProvider, child) => 
+                      _buildCalendar(routeProvider),
+                                      ),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Consumer<DriverRouteProvider>(
-                        builder: (context, routeProvider, child) =>
-                            routeProvider.isRouteActive
-                                ? const SingleChildScrollView(
-                                    child: RouteUserComponent(),
-                                  )
-                                : const SizedBox(),
+                        builder: (context, routeProvider, child) {
+                        if (routeProvider.isRouteActive) {
+                            return const SingleChildScrollView(
+                              child: Padding(
+                                padding: EdgeInsets.only(top: 20, bottom: 20),
+                                child: RouteUserComponent(),
+                              ),
+                            );
+                          } 
+                          else 
+                          {
+                          return Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Stack(
+                                  alignment: Alignment.topRight,
+                                  children: [
+                                    const Icon(
+                                      Icons.directions_bus,
+                                      size: 80,
+                                      color: Colors.white,
+                                    ),
+                                    Positioned(
+                                      top: 0,
+                                      right: 0,
+                                      child: Container(
+                                        decoration: const BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        padding: const EdgeInsets.all(4),
+                                        child: const Icon(
+                                          Icons.close,
+                                          size: 16,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'No hay ninguna ruta iniciada',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+
+                        }
+                        },
                       ),
                     ),
                   ),
@@ -426,14 +533,69 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
     );
   }
 
-  Widget _buildCalendar(DriverRouteProvider routeProvider) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
+Widget _buildCalendar(DriverRouteProvider routeProvider) {
+  final bool esHoy = isSameDay(_selectedDay, DateTime.now());
+
+  return ClipRect(
+    child: BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.white.withOpacity(0.3),
+              Colors.white.withOpacity(0.1),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+        ),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, anim) => FadeTransition(
+                opacity: anim,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.2, 0),
+                    end: Offset.zero,
+                  ).animate(anim),
+                  child: child,
+                ),
+              ),
+              child: esHoy
+                  ? const SizedBox.shrink(key: ValueKey('empty_today'))
+                  : TextButton.icon(
+                      key: const ValueKey('btn_today'),
+                      onPressed: () {
+                        setState(() {
+                          _selectedDay = DateTime.now();
+                          _focusedDay = DateTime.now();
+                        });
+                      },
+                      icon: const Icon(Icons.today, color: Colors.white),
+                      label: const Text(
+                        'Volver a hoy',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+            ),
+          ),
+            // — Calendario semanal —
             TableCalendar(
               locale: 'es_ES',
               focusedDay: _focusedDay,
@@ -441,6 +603,24 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
               lastDay: DateTime(2100),
               calendarFormat: CalendarFormat.week,
               startingDayOfWeek: StartingDayOfWeek.monday,
+              onPageChanged: (newFocusedDay) =>
+                  setState(() => _focusedDay = newFocusedDay),
+              daysOfWeekStyle: DaysOfWeekStyle(
+                weekdayStyle: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14),
+                weekendStyle: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+                dowTextFormatter: (date, locale) {
+                  final letter =
+                      DateFormat.E(locale).format(date)[0].toUpperCase();
+                  return date.weekday == DateTime.wednesday ? 'X' : letter;
+                },
+              ),
               calendarBuilders: CalendarBuilders(
                 defaultBuilder: _dayBuilder,
                 todayBuilder: _dayBuilder,
@@ -448,69 +628,199 @@ Future<void> _showSlidingNotification(BuildContext context, Afa.Notification n) 
                 disabledBuilder: _dayBuilder,
               ),
               selectedDayPredicate: (day) => isSameDay(day, _selectedDay),
-              onDaySelected: (selectedDay, focusedDay) => setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-              }),
+              onDaySelected: (sel, foc) =>
+                  setState(() {_selectedDay = sel; _focusedDay = foc;}),
               enabledDayPredicate: (day) =>
-                  day.weekday >= DateTime.monday && day.weekday <= DateTime.friday,
+                  day.weekday >= DateTime.monday &&
+                  day.weekday <= DateTime.friday,
               headerStyle: HeaderStyle(
                 formatButtonVisible: false,
                 titleCentered: true,
                 titleTextFormatter: (date, locale) {
-                  String formatted = DateFormat.yMMMM(locale).format(date);
-                  return formatted[0].toUpperCase() + formatted.substring(1);
+                  final formatted =
+                      DateFormat.yMMMM(locale).format(date);
+                  return '${formatted[0].toUpperCase()}${formatted.substring(1)}';
                 },
                 titleTextStyle: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white),
+                leftChevronIcon:
+                    const Icon(Icons.chevron_left, color: Colors.white),
+                rightChevronIcon:
+                    const Icon(Icons.chevron_right, color: Colors.white),
+              ),
+              calendarStyle: const CalendarStyle(
+                weekendTextStyle: TextStyle(color: Colors.pinkAccent),
+                todayDecoration:
+                    BoxDecoration(color: Colors.white38, shape: BoxShape.circle),
+                selectedDecoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.blueAccent, Colors.lightBlue],
+                    ),
+                    shape: BoxShape.circle),
+                selectedTextStyle: TextStyle(color: Colors.white),
+                todayTextStyle: TextStyle(color: Colors.white),
+                defaultTextStyle: TextStyle(color: Colors.white),
+                disabledTextStyle: TextStyle(color: Colors.white30),
               ),
             ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (!isSameDay(_selectedDay, DateTime.now()))
-                  ElevatedButton(
-                    onPressed: () => setState(() {
-                      _selectedDay = DateTime.now();
-                      _focusedDay = DateTime.now();
-                    }),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+
+            const SizedBox(height: 20),
+
+            // — Panel de acciones —
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              switchInCurve: Curves.easeOutBack,
+              switchOutCurve: Curves.easeInBack,
+              layoutBuilder: (cur, prev) => Stack(
+                alignment: Alignment.center,
+                children: [...prev, if (cur != null) cur],
+              ),
+              transitionBuilder: (child, anim) => FadeTransition(
+                opacity: anim,
+                child: ScaleTransition(scale: anim, child: child),
+              ),
+              child: esHoy
+                  ? (routeProvider.isRouteActive
+                      ? Row(
+                          children: [
+                            // Botón actualizar
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: routeProvider.isUpdating
+                                    ? null
+                                    : () async {
+                                        setState(() =>
+                                            routeProvider.isUpdating = true);
+                                        await routeProvider.updateRoute();
+                                        setState(() =>
+                                            routeProvider.isUpdating = false);
+                                      },
+                                icon: routeProvider.isUpdating
+                                    ? const SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.update,
+                                        color: Colors.white),
+                                      label: Text(
+                                        routeProvider.isUpdating
+                                            ? 'Actualizando ruta'
+                                            : 'Actualizar Ruta',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                          fontSize: routeProvider.isUpdating ? 11 : 14, // 👈 tamaño dinámico
+                                        ),
+                                      ),
+
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blueAccent,
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            // Botón detener
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: routeProvider.isLoading
+                                    ? null
+                                    : () => _confirmarAccion(
+                                        false, routeProvider),
+                                icon: const Icon(Icons.stop,
+                                    color: Colors.white),
+                                label: const Text(
+                                  'Detener Ruta',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.redAccent,
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: routeProvider.isLoading
+                                ? null
+                                : () => _confirmarAccion(true, routeProvider),
+                            icon: routeProvider.isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      valueColor:
+                                          AlwaysStoppedAnimation<Color>(
+                                              Colors.white),
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.play_arrow,
+                                    color: Colors.white),
+                            label: Text(
+                              routeProvider.isLoading
+                                  ? 'Iniciando ruta'
+                                  : 'Iniciar Ruta',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ))
+                  : SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: null,
+                        icon: const Icon(Icons.play_arrow,
+                            color: Colors.grey),
+                        label: const Text(
+                          'Iniciar Ruta',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade300,
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
                     ),
-                    child: const Text("Hoy"),
-                  ),
-                if (!isSameDay(_selectedDay, DateTime.now()))
-                  const SizedBox(width: 20),
-                if (isSameDay(_selectedDay, DateTime.now()))
-                  ElevatedButton(
-                    onPressed: () => _confirmarAccion(
-                      !routeProvider.isRouteActive,
-                      routeProvider,
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: routeProvider.isRouteActive ? Colors.red : Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    child: Text(
-                      routeProvider.isRouteActive ? "Detener Ruta" : "Iniciar Ruta",
-                    ),
-                  ),
-              ],
             ),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

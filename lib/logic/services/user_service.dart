@@ -107,21 +107,29 @@ class UserService
     }
   }
 
-  Future<bool> authenticateUser(String email, String password) async {
-    String? userId = await getUserIdByEmail(email);
-    if (userId != null) {
-      DocumentSnapshot doc = await collectionReferenceUsers.doc(userId).get();
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-        if (data['password'] == password) {
-          return true;
-        }
+Future<bool> authenticateUser(String email, String password) async {
+  String? userId = await getUserIdByEmail(email);
+  if (userId != null) {
+    DocumentSnapshot doc = await collectionReferenceUsers.doc(userId).get();
+    if (doc.exists) {
+      final data = doc.data() as Map<String, dynamic>;
+
+      // Comprueba que el usuario esté activado
+      final isActivate = data['isActivate'] as bool? ?? false;
+      if (!isActivate) {
+        return false;
+      }
+
+      // Comprueba la contraseña
+      if (data['password'] == password) {
+        return true;
       }
     }
-    return false;
   }
+  return false;
+}
 
-    Future<User?> logUser(String? email) async {
+  Future<User?> logUser(String? email) async {
   String? userId = await getUserIdByEmail(email!);
   
   if (userId != null) {
@@ -135,17 +143,30 @@ class UserService
   return null;
 }
 
-    Future<bool> authenticateGoogleUser(String email) async {
-    String? userId = await getUserIdByEmail(email);
+Future<bool> authenticateGoogleUser(String email) async {
+  String? userId = await getUserIdByEmail(email);
 
-    if (userId != null) {
-      DocumentSnapshot doc = await collectionReferenceUsers.doc(userId).get();
-      if (doc.exists) {
-        return true;
+  if (userId != null) {
+    DocumentSnapshot doc = await collectionReferenceUsers.doc(userId).get();
+
+    if (doc.exists) {
+      // Obtenemos los datos del documento
+      final data = doc.data() as Map<String, dynamic>?;
+
+      // Si no hay datos o isActivate es false, devolvemos false
+      final isActivate = data?['isActivate'] as bool? ?? false;
+      if (!isActivate) {
+        return false;
       }
+
+      // Usuario existe y está activado
+      return true;
     }
-    return false;
   }
+
+  return false;
+}
+
 
 
   Future<void> acceptUser(User user, String newRole) async {

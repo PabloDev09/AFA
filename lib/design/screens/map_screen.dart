@@ -1,9 +1,7 @@
 import 'package:afa/design/components/side_bar_menu.dart';
-import 'package:afa/logic/providers/routes_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:provider/provider.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -14,7 +12,6 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMixin {
   bool _isMenuOpen = false;
-  bool _showDistance = false;
   late AnimationController _animationController;
 
   LatLng _currentLocation = const LatLng(38.0358053, -4.0247146);
@@ -66,17 +63,15 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
     _mapController?.animateCamera(CameraUpdate.newLatLng(_driverLocation));
   }
 
-  void _calculateDistance() {
-    Provider.of<RoutesProvider>(context, listen: false)
-        .calculateRoute();
+  void _calculateDistance() 
+  {
     setState(() {
-      _showDistance = true;
     });
 
-    Future.delayed(const Duration(seconds: 3), () {
+    Future.delayed(const Duration(seconds: 3), () 
+    {
       if (mounted) {
         setState(() {
-          _showDistance = false;
         });
       }
     });
@@ -91,7 +86,6 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    final routeProvider = Provider.of<RoutesProvider>(context);
     double screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
@@ -209,58 +203,13 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
               ),
             ),
           ),
-
-          // Texto de distancia y tiempo estimado
-          // Se coloca después del footer para que quede encima.
-          if (routeProvider.isLoading)
-            const Positioned(
-              bottom: 70,
-              left: 20,
-              right: 20,
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (routeProvider.hasError)
-            Positioned(
-              bottom: 70,
-              left: 20,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.redAccent,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Text(
-                  "Error al calcular la ruta",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            )
-          else if (routeProvider.distance > 0 && _showDistance)
-            Positioned(
-              bottom: 70, // Se posiciona por encima del footer
-              left: 20,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.black87,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  "Distancia: ${routeProvider.distance.toStringAsFixed(2)} km | Tiempo estimado: ${routeProvider.estimatedTime.toStringAsFixed(0)} min",
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
         ],
       ),
     );
   }
 
-  Widget _buildMenuButton(String label, IconData icon, VoidCallback onPressed) {
+  Widget _buildMenuButton(String label, IconData icon, VoidCallback onPressed) 
+  {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(

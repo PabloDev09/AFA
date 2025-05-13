@@ -515,7 +515,7 @@ Widget build(BuildContext context) {
                         children: [
                           _buildFloatingTextField(
                             label: 'Calle',
-                            hint: 'Calle Leonardo Da Vinci, 40, 2ºE',
+                            hint: 'Calle Leonardo Da Vinci, 40',
                             controller: _streetController,
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {

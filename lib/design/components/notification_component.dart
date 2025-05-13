@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
-class ChatComponent extends StatelessWidget {
+class NotificationComponent extends StatelessWidget {
   final ScrollController? scrollController;
-  const ChatComponent({this.scrollController, super.key});
+  const NotificationComponent({this.scrollController, super.key});
 
   @override
   Widget build(BuildContext context) {

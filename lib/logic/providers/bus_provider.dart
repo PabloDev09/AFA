@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-class BusProvider extends ChangeNotifier {
+class BusProvider extends ChangeNotifier 
+{
   double busProgress = 0.0;
   AnimationController? _controller;
 
@@ -9,7 +10,8 @@ class BusProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void startAnimation(TickerProvider vsync) {
+  void startAnimation(TickerProvider vsync) 
+  {
     stopAnimation();
     _controller = AnimationController(
       vsync: vsync,
@@ -22,7 +24,8 @@ class BusProvider extends ChangeNotifier {
     _controller!.repeat();
   }
 
-  void stopAnimation() {
+  void stopAnimation() 
+  {
     _controller?.dispose();
     _controller = null;
   }

@@ -3,7 +3,6 @@ import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/providers/bus_provider.dart';
 import 'package:afa/logic/providers/driver_route_provider.dart';
 import 'package:afa/logic/providers/notification_provider.dart';
-import 'package:afa/logic/providers/routes_provider.dart';
 import 'package:afa/logic/providers/theme_provider.dart';
 import 'package:afa/logic/providers/pending_user_provider.dart';
 import 'package:afa/design/themes/afa_theme.dart';
@@ -16,7 +15,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 
-void main() async {
+void main() async 
+{
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -25,13 +25,16 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatelessWidget 
+{
   const MyApp({super.key});
   
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) 
+  {
     return MultiProvider(
-      providers: [
+      providers: 
+      [
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => AuthUserProvider()..loadUser()),
         ChangeNotifierProvider(create: (_) => RegisterProvider()),
@@ -39,14 +42,15 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ActiveUserProvider()..loadActiveUsers()),
         ChangeNotifierProvider(create: (_) => BusProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => RoutesProvider()),
         ChangeNotifierProxyProvider<NotificationProvider, DriverRouteProvider>(
           create: (context) => DriverRouteProvider(
             context.read<NotificationProvider>(),
           ),
-          update: (context, notificationProvider, previous) {
+          update: (context, notificationProvider, previous) 
+          {
             previous!
               ..updateNotificationProvider(notificationProvider)
+              // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
               ..notifyListeners();
             return previous;
           },
@@ -55,16 +59,19 @@ class MyApp extends StatelessWidget {
           create: (context) => UserRouteProvider(
             context.read<NotificationProvider>(),
           ),
-          update: (context, notificationProvider, previous) {
+          update: (context, notificationProvider, previous) 
+          {
             previous!
               ..updateNotificationProvider(notificationProvider)
+              // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
               ..notifyListeners();
             return previous;
           },
         ),
       ],
       child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
+        builder: (context, themeProvider, child) 
+        {
           return MaterialApp.router(
             theme: AfaTheme.theme(
               themeProvider.isDarkMode, 
