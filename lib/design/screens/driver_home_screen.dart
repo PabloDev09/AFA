@@ -76,7 +76,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
     }
   }
 
-  Future<void> _confirmAction(bool iniciar, DriverRouteProvider routeProvider) async {
+  Future<void> _confirmarAccion(bool iniciar, DriverRouteProvider routeProvider) async {
   String accion = iniciar ? "Iniciar" : "Detener";
   Color actionColor = iniciar ? Colors.green : Colors.red;
 

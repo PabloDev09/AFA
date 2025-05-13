@@ -17,8 +17,8 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final bool _isVerifying = false;
   final bool _showEditForm = false;
-  bool _wrongPassword = false;
-  bool _isPasswordVisible = false;
+  final bool _wrongPassword = false;
+  final bool _isPasswordVisible = false;
   final _passwordController = TextEditingController();
 
   late Future<void> _initialLoad;
@@ -56,7 +56,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final username = authProvider.userFireStore?.username;
     if (username != null) 
     {
-      userRouteProvider.startListening(username);
+      userRouteProvider.startListening();
       await userRouteProvider.getCancelDates(username);
     }
   }

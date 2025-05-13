@@ -141,11 +141,10 @@ final GoRouter afaRouter = GoRouter(
           }
           final role = snapshot.data;
           Widget targetScreen;
-          if (role == 'Usuario') {
+          if (role == 'Usuario' || role == 'Conductor') {
             targetScreen = const SettingsScreen();
-          } else if (role == 'Conductor') {
-            targetScreen = const SettingsScreen();
-          } else {
+          } 
+          else {
             // Si el rol no coincide con los esperados, se muestra loader indefinido.
             targetScreen = const LoadingNoChildScreen();
           }
