@@ -134,7 +134,7 @@ Future<void> _confirmarAccion(bool cancelar,UserRouteProvider userProvider) asyn
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text("No"),
+            child: const Text("Cancelar"),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
@@ -142,7 +142,7 @@ Future<void> _confirmarAccion(bool cancelar,UserRouteProvider userProvider) asyn
               backgroundColor: actionColor,
               foregroundColor: Colors.white,
             ),
-            child: const Text("Si"),
+            child: const Text("Confirmar"),
           ),
         ],
       );

@@ -135,7 +135,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
               backgroundColor: actionColor,
               foregroundColor: Colors.white,
             ),
-            child: Text(accion),
+            child: const Text('Confirmar'),
           ),
         ],
       );
