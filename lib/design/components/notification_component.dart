@@ -75,64 +75,89 @@ class NotificationComponent extends StatelessWidget {
                   itemCount: notifications.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
-                    final item = notifications[index];
-                    final dateStr = DateFormat('dd/MM/yyyy HH:mm').format(item.date);
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () {
-                        notificationProvider.markAsReadByIndex(index);
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 12),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: item.isRead
-                              ? theme.colorScheme.surface
-                              : theme.colorScheme.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                                  color: item.isRead ? theme.disabledColor : theme.colorScheme.primary,
-                                  width: 1.5,
-                                ),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              item.isRead ? Icons.notifications_none : Icons.notifications_active,
-                              color: item.isRead
+                  final item = notifications[index];
+                  final dateStr = DateFormat('dd/MM/yyyy HH:mm').format(item.date);
+
+                  final isImportant = item.isImportant == true;
+
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      notificationProvider.markAsReadByIndex(index);
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isImportant
+                            ? Colors.red.withOpacity(0.1)
+                            : item.isRead
+                                ? theme.colorScheme.surface
+                                : theme.colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isImportant
+                              ? Colors.red
+                              : item.isRead
                                   ? theme.disabledColor
                                   : theme.colorScheme.primary,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item.message,
-                                    style: theme.textTheme.bodyLarge?.copyWith(
-                                      fontWeight: item.isRead ? FontWeight.normal : FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    dateStr,
-                                    style: theme.textTheme.bodySmall,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (!item.isRead)
-                              Padding(
-                                padding: const EdgeInsets.only(left: 8),
-                                child: Icon(Icons.circle, size: 10, color: theme.colorScheme.secondary),
-                              ),
-                          ],
+                          width: 1.8,
                         ),
                       ),
-                    );
-                  },
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            isImportant
+                                ? Icons.warning_amber_rounded
+                                : item.isRead
+                                    ? Icons.notifications_none
+                                    : Icons.notifications_active,
+                            color: isImportant
+                                ? Colors.red
+                                : item.isRead
+                                    ? theme.disabledColor
+                                    : theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.message,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    fontWeight:
+                                        item.isRead && !isImportant ? FontWeight.normal : FontWeight.bold,
+                                    color: isImportant ? Colors.red[800] : null,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  dateStr,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: isImportant ? Colors.red[700] : null,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!item.isRead)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: Icon(
+                                Icons.circle,
+                                size: 10,
+                                color: isImportant
+                                    ? Colors.redAccent
+                                    : theme.colorScheme.secondary,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
                 ),
               ),
             ],

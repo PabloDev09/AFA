@@ -3,9 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserService 
 {
-  final CollectionReference collectionReferenceUsers;
+  final CollectionReference collectionReferenceUsers = FirebaseFirestore.instance.collection('usuarios');
 
-  UserService() : collectionReferenceUsers = FirebaseFirestore.instance.collection('usuarios');
+  UserService();
 
   Future<void> createUser(User userRegister) async 
   {
@@ -23,11 +23,34 @@ class UserService
     });
   }
 
+
+  Future<bool> checkUser(User? localUser) async 
+  {
+    if (localUser == null) return false;
+
+    final query = await collectionReferenceUsers
+        .where('username', isEqualTo: localUser.username)
+        .limit(1)
+        .get();
+
+    if (query.docs.isEmpty) return false;
+
+    // Mapear datos remotos a User
+    final remoteData = query.docs.first.data() as Map<String, dynamic>;
+    final remoteUser = User.fromMap(remoteData);
+
+    // Usamos tu método equals de la clase User
+    final isEqual = localUser.equals(remoteUser);
+
+    return isEqual;
+  }
+
   Future<List<User>> getUsers() async {
     List<User> usersRegister = [];
     QuerySnapshot queryUsers = await collectionReferenceUsers.get();
 
-    for (var documento in queryUsers.docs) {
+    for (var documento in queryUsers.docs) 
+    {
       final data = documento.data() as Map<String, dynamic>;
       final user = User.fromMap(data);
       usersRegister.add(user);
@@ -36,20 +59,33 @@ class UserService
     return usersRegister;
   }
 
-  Future<List<User>> getUsersByRol(String rol) async 
-  {
-      List<User> usersRol = [];
-      QuerySnapshot querySnapshot = await collectionReferenceUsers
-          .where('rol', isEqualTo: rol)
-          .get();
-    for (var documento in querySnapshot.docs) {
-      final data = documento.data() as Map<String, dynamic>;
-      final user = User.fromMap(data);
-      usersRol.add(user);
-      print("rule $user");
+  Future<List<User>> getUsersByRolAndNumRoute(String rol, int numRoute) async {
+    QuerySnapshot querySnapshot = await collectionReferenceUsers
+        .where('rol', isEqualTo: rol)
+        .where('numRoute', isEqualTo: numRoute)
+        .get();
+
+    List<User> users = <User>[];
+    for (DocumentSnapshot documento in querySnapshot.docs) {
+      Map<String, dynamic> data = documento.data() as Map<String, dynamic>;
+      User user = User.fromMap(data);
+      users.add(user);
     }
-    print(usersRol.first.name);
-    return usersRol;
+    return users;
+  }
+
+  /// Obtiene un User por su username, o null si no existe
+  Future<User?> getUserByUsername(String username) async {
+    QuerySnapshot snap = await collectionReferenceUsers
+      .where('username', isEqualTo: username)
+      .limit(1)
+      .get();
+    if (snap.docs.isEmpty) {
+      return null;
+    }
+    // Mapeamos el primer documento a User
+    Map<String, dynamic> data = snap.docs.first.data() as Map<String, dynamic>;
+    return User.fromMap(data);
   }
 
   Future<String?> getUserIdByEmail(String email) async {

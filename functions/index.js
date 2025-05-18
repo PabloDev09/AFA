@@ -121,6 +121,17 @@ export const borrarRutasAntiguas = onSchedule(
       await batch.commit();
       console.log(`Deleted ${snap.size} old rutas`);
     }
+
+    snap = await db.collection('ruta_conductor')
+                         .where('createdAt', '<', hoyTs)
+                         .get();
+
+    if (!snap.empty) {
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+      console.log(`Deleted ${snap.size} old rutas conductor`);
+    }
   }
 );
 

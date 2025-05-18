@@ -40,16 +40,6 @@ Widget _buildWithLoading(BuildContext context, Widget screen,
   );
 }
 
-
-Future<String?> _checkRole(
-    BuildContext context, String requiredRole, String fallbackRoute) async {
-  final role = await getUserRole();
-  if (role != requiredRole) {
-    return fallbackRoute;
-  }
-  return null;
-}
-
 final GoRouter afaRouter = GoRouter(
   initialLocation: '/',
   routes: [
@@ -83,18 +73,6 @@ final GoRouter afaRouter = GoRouter(
       ),
     ),
     GoRoute(
-      path: '/dashboard',
-      name: 'dashboard',
-      builder: (context, state) => _buildWithLoading(
-        context,
-        const DashboardScreen(),
-        delay: const Duration(seconds: 2),
-      ),
-      redirect: (context, state) async {
-        return _checkRole(context, 'Administrador', '/login');
-      },
-    ),
-    GoRoute(
       path: '/home',
       name: 'home',
       builder: (context, state) => FutureBuilder<String?>(
@@ -110,7 +88,11 @@ final GoRouter afaRouter = GoRouter(
             targetScreen = const UserHomeScreen();
           } else if (role == 'Conductor') {
             targetScreen = const DriverHomeScreen();
-          } else {
+          } 
+          else if (role == 'Administrador') {
+            targetScreen = const DashboardScreen();
+          }
+          else {
             // Si el rol no coincide con los esperados, se muestra loader indefinido.
             targetScreen = const LoadingNoChildScreen();
           }
@@ -122,11 +104,13 @@ final GoRouter afaRouter = GoRouter(
           );
         },
       ),
-      redirect: (context, state) async {
-        if (!isAuthenticated()) return '/login';
-        final role = await getUserRole();
-        if (role == 'Administrador') return '/dashboard';
-        return null;
+      redirect: (context, state) async 
+      {
+        if (!isAuthenticated()) {
+          return '/login';
+        } else {
+          return '/home';
+        }
       },
     ),
     GoRoute(
@@ -156,11 +140,13 @@ final GoRouter afaRouter = GoRouter(
           );
         },
       ),
-      redirect: (context, state) async {
-        if (!isAuthenticated()) return '/login';
-        final role = await getUserRole();
-        if (role == 'Administrador') return '/dashboard';
-        return null;
+      redirect: (context, state) async 
+      {
+        if (!isAuthenticated()) {
+          return '/login';
+        } else {
+          return '/home';
+        }
       },
     ),
   ],

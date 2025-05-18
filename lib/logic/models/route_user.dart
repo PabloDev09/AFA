@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class RouteUser 
 {
   final String fcmToken;
@@ -13,6 +15,10 @@ class RouteUser
   final bool isCancelled;
   final int distanceInMinutes;
   final double distanceInKm;
+  final int numRoute;
+  final int numPick;
+  final String hourPick;
+  final Timestamp createdAt;
 
   RouteUser(
   {
@@ -29,6 +35,10 @@ class RouteUser
     required this.isCancelled,
     required this.distanceInMinutes,
     required this.distanceInKm,
+    required this.numRoute,
+    required this.numPick,
+    required this.hourPick,
+    required this.createdAt
   });
 
   // Método para convertir un Map a un objeto RouteUser
@@ -48,6 +58,10 @@ class RouteUser
       isCancelled: map['isCancelled'] ?? false,
       distanceInMinutes: map['distanceInMinutes'] ?? 0,
       distanceInKm: map['distanceInKm']?.toDouble() ?? 0.0,
+      numRoute: map['numRoute'] ?? 0,
+      numPick: map['numPick'] ?? 0,
+      hourPick: map['hourPick'] ?? '',
+      createdAt: map['createdAt'] ?? Timestamp.now(),
     );
   }
 }

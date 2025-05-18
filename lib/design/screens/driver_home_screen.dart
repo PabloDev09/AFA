@@ -6,6 +6,7 @@ import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/design/components/side_bar_menu.dart';
 import 'package:afa/logic/providers/driver_route_provider.dart';
 import 'package:afa/logic/providers/notification_provider.dart';
+import 'package:afa/logic/services/number_route_service.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -69,18 +70,20 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
   Future<void> _verificarRutaPendiente(BuildContext context) async
    {
     final routeProvider = Provider.of<DriverRouteProvider>(context, listen: false);
-    if (await routeProvider.canResumeRoute()) 
+    final String? username = Provider.of<AuthUserProvider>(context, listen: false).userFireStore?.username;
+    if(username == null) return;
+
+    if (await routeProvider.canResumeRoute(username)) 
     {
       await routeProvider.resumeRoute();
       setState(() {});
     }
   }
 
-  Future<void> _confirmarAccion(bool iniciar, DriverRouteProvider routeProvider) async {
-  String accion = iniciar ? "Iniciar" : "Detener";
-  Color actionColor = iniciar ? Colors.green : Colors.red;
+Future<void> _confirmarDetenerRuta(DriverRouteProvider routeProvider) async {
+  const Color actionColor = Colors.red;
 
-  bool? resultado = await showDialog<bool>(
+  final bool? resultado = await showDialog<bool>(
     context: context,
     builder: (context) {
       return AlertDialog(
@@ -106,10 +109,10 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              Expanded(
+              const Expanded(
                 child: Text(
-                  "$accion Ruta",
-                  style: const TextStyle(
+                  "Detener Ruta",
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -123,7 +126,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
             ],
           ),
         ),
-        content: Text("¿Seguro que quieres $accion la ruta?"),
+        content: const Text("¿Seguro que quieres detener la ruta?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -143,13 +146,10 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
   );
 
   if (resultado == true) {
-    if (iniciar) {
-      await routeProvider.startRoute();
-    } else {
-      await routeProvider.stopRoute();
-    }
+    await routeProvider.stopRoute();
   }
 }
+
 
 
   Widget _dayBuilder(BuildContext context, DateTime day, DateTime focusedDay) {
@@ -218,9 +218,9 @@ Future<void> _showSlidingNotification(
   BuildContext context,
   Afa.Notification n,
 ) async {
-  final overlay = Overlay.of(context); // nada que hacer si no hay Overlay
-
+  final overlay = Overlay.of(context);
   final theme = Theme.of(context);
+  final isImportant = n.isImportant == true;
 
   // 1️⃣ Prepara el reproductor y carga el WAV
   final audioPlayer = AudioPlayer();
@@ -270,10 +270,14 @@ Future<void> _showSlidingNotification(
                     margin: const EdgeInsets.symmetric(horizontal: 12),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isImportant
+                          ? Colors.red.withOpacity(0.1)
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: theme.colorScheme.primary,
+                        color: isImportant
+                            ? Colors.red
+                            : theme.colorScheme.primary,
                         width: 1.5,
                       ),
                     ),
@@ -296,8 +300,12 @@ Future<void> _showSlidingNotification(
                                 _openNotifications();
                               },
                               child: Icon(
-                                Icons.notifications_active,
-                                color: theme.colorScheme.primary,
+                                isImportant
+                                    ? Icons.warning_amber_rounded
+                                    : Icons.notifications_active,
+                                color: isImportant
+                                    ? Colors.red
+                                    : theme.colorScheme.primary,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -305,8 +313,12 @@ Future<void> _showSlidingNotification(
                               child: Text(
                                 n.message,
                                 style: theme.textTheme.bodyLarge!.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onSurface,
+                                  fontWeight: isImportant
+                                      ? FontWeight.bold
+                                      : FontWeight.bold,
+                                  color: isImportant
+                                      ? Colors.red[800]
+                                      : theme.colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -314,7 +326,9 @@ Future<void> _showSlidingNotification(
                             Icon(
                               Icons.circle,
                               size: 10,
-                              color: theme.colorScheme.secondary,
+                              color: isImportant
+                                  ? Colors.redAccent
+                                  : theme.colorScheme.secondary,
                             ),
                           ],
                         ),
@@ -322,7 +336,9 @@ Future<void> _showSlidingNotification(
                         Text(
                           DateFormat('dd/MM/yyyy HH:mm').format(n.date),
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.disabledColor,
+                            color: isImportant
+                                ? Colors.red[700]
+                                : theme.disabledColor,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -358,6 +374,7 @@ Future<void> _showSlidingNotification(
     await audioPlayer.dispose();
   });
 }
+
 
 
 
@@ -717,7 +734,7 @@ Widget _buildCalendar(DriverRouteProvider routeProvider) {
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           color: Colors.white,
-                                          fontSize: routeProvider.isUpdating ? 11 : 14, // 👈 tamaño dinámico
+                                          fontSize: routeProvider.isUpdating ? 11 : 14,
                                         ),
                                       ),
 
@@ -737,8 +754,7 @@ Widget _buildCalendar(DriverRouteProvider routeProvider) {
                               child: ElevatedButton.icon(
                                 onPressed: routeProvider.isLoading
                                     ? null
-                                    : () => _confirmarAccion(
-                                        false, routeProvider),
+                                    : () => _confirmarDetenerRuta(routeProvider),
                                 icon: const Icon(Icons.stop,
                                     color: Colors.white),
                                 label: const Text(
@@ -763,37 +779,24 @@ Widget _buildCalendar(DriverRouteProvider routeProvider) {
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             onPressed: routeProvider.isLoading
-                                ? null
-                                : () => _confirmarAccion(true, routeProvider),
+                              ? null
+                              : () => _showRouteSelectionDialog(routeProvider),
                             icon: routeProvider.isLoading
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      valueColor:
-                                          AlwaysStoppedAnimation<Color>(
-                                              Colors.white),
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.play_arrow,
-                                    color: Colors.white),
+                              ? const SizedBox(
+                                  width: 24, height: 24,
+                                  child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white), strokeWidth: 2),
+                                )
+                              : const Icon(Icons.play_arrow, color: Colors.white),
                             label: Text(
-                              routeProvider.isLoading
-                                  ? 'Iniciando ruta'
-                                  : 'Iniciar Ruta',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
+                              routeProvider.isLoading ? 'Iniciando ruta' : 'Iniciar Ruta',
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                          ),
+                          )
                         ))
                   : SizedBox(
                       width: double.infinity,
@@ -823,4 +826,46 @@ Widget _buildCalendar(DriverRouteProvider routeProvider) {
     ),
   );
 }
+
+Future<void> _showRouteSelectionDialog(DriverRouteProvider routeProvider) async {
+  final String? username = Provider.of<AuthUserProvider>(context, listen: false).userFireStore?.username;
+  if(username == null) return;
+
+  final routes = await NumberRouteService().getDistinctRouteNumbers();
+  int? selectedRoute = routes.isNotEmpty ? routes.first : null;
+
+  bool? confirmed = await showDialog<bool>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('Selecciona número de ruta'),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return DropdownButton<int>(
+              value: selectedRoute,
+              items: routes
+                .map((n) => DropdownMenuItem(value: n, child: Text('Ruta $n')))
+                .toList(),
+              onChanged: (n) => setState(() => selectedRoute = n),
+            );
+          },
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Iniciar'),
+          ),
+        ],
+      );
+    },
+  );
+
+  if (confirmed == true && selectedRoute != null) 
+  {
+    await routeProvider.startRoute(username, selectedRoute!);
+    setState(() {}); 
+  }
+}
+
 }

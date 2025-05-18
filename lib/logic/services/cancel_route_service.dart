@@ -5,7 +5,7 @@ import 'package:afa/logic/models/cancel_route_user.dart';
 class CancelRouteService 
 {
   UserService userService = UserService();
-  CollectionReference collectionReferenceCancel = FirebaseFirestore.instance.collection('rutacancelada');
+  CollectionReference collectionReferenceCancel = FirebaseFirestore.instance.collection('ruta_cancelada');
 
   CancelRouteService();
 

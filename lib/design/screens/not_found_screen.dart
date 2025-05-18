@@ -160,7 +160,7 @@ class NotFoundScreen extends StatelessWidget {
                             ),
                             child: ElevatedButton(
                               onPressed: () {
-                                context.go(PathUrlAfa().pathDashboard);
+                                context.go(PathUrlAfa().pathHome);
                               },
                               style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.transparent,

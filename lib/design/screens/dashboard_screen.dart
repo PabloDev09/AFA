@@ -59,7 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         String fileName = file.name;
 
         Reference storageRef =
-            FirebaseStorage.instance.ref().child('documents/$fileName');
+        FirebaseStorage.instance.ref().child('documents/$fileName');
         UploadTask uploadTask = storageRef.putData(file.bytes!);
 
         TaskSnapshot snapshot = await uploadTask.whenComplete(() => {});
@@ -122,7 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           final textSize =
                               constraints.maxWidth > 200 ? 24.0 : 20.0;
                           return Text(
-                            'Panel de control',
+                            'Panel de administración',
                             style: TextStyle(
                               color:
                                   _isMenuOpen ? Colors.blue[700] : Colors.white,

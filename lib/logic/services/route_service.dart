@@ -3,430 +3,413 @@ import 'dart:convert';
 
 import 'package:afa/logic/models/user.dart';
 import 'package:afa/logic/services/user_service.dart';
+import 'package:afa/logic/services/driver_route_service.dart';
+import 'package:afa/logic/services/cancel_route_service.dart';
+import 'package:afa/utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:afa/logic/models/route_user.dart';
 import 'package:afa/logic/models/cancel_route_user.dart';
-import 'package:afa/logic/services/cancel_route_service.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 
-class RouteService 
-{
-  UserService userService = UserService();
-  CancelRouteService cancelRouteService = CancelRouteService();
-  CollectionReference collectionReferenceRoute = FirebaseFirestore.instance.collection('ruta');
+class RouteService {
+  final UserService _userService = UserService();
+  final CancelRouteService _cancelRouteService = CancelRouteService();
+  final DriverRouteService _driverRouteService = DriverRouteService();
+  final CollectionReference _collectionReferenceRoute =
+      FirebaseFirestore.instance.collection('ruta');
 
   RouteService();
 
-  /// Crea una ruta para el conductor, eliminando la ruta anterior y obteniendo
-  /// los usuarios pendientes de recogida.
-  Future<void> createRoute(LatLng driverLocation) async 
-  {
-    await deleteRoute();
-    await _getUsers(driverLocation);
+  /// Intenta iniciar la ruta [numRoute] para el conductor [username].
+  /// Devuelve true si se asignó correctamente (y creó los usuarios), false en caso contrario.
+  Future<bool> createRoute(
+    LatLng driverLocation,
+    String username,
+    int numRoute,
+  ) async {
+    if (await _driverRouteService.driverHasRoute(username)) return false;
+    if (await _driverRouteService.countDriversOnRoute(numRoute) >= 1) return false;
+    
+    // Asigna el conductor a la ruta
+    await _driverRouteService.assignDriverToRoute(username, numRoute);
+
+    // Borra usuarios de esta ruta previa y crea los nuevos
+    await deleteRoute(numRoute);
+    await _getUsers(driverLocation, numRoute);
+    return true;
   }
 
-  /// Elimina todos los documentos de la colección 'ruta'.
-  Future<void> deleteRoute() async 
-  {
-    QuerySnapshot querySnapshot = await collectionReferenceRoute.get();
-    for (var doc in querySnapshot.docs) 
-    {
+  /// Elimina todos los documentos de 'ruta' para [numRoute].
+  Future<void> deleteRoute(int numRoute) async {
+    QuerySnapshot snapshot = await _collectionReferenceRoute
+        .where('numRoute', isEqualTo: numRoute)
+        .get();
+    for (DocumentSnapshot doc in snapshot.docs) {
       await doc.reference.delete();
     }
   }
 
-  /// Actualiza el campo 'isBeingPicking' a true para indicar que se recogió el usuario.
-  Future<void> pickUpUser(String username) async 
-  {
-    QuerySnapshot querySnapshot = await collectionReferenceRoute
-        .where('username', isEqualTo: username)
+  Future<bool> canContinueRoute(int numRoute) async {
+    QuerySnapshot snapshot = await _collectionReferenceRoute
+        .where('numRoute', isEqualTo: numRoute)
         .get();
-    if (querySnapshot.docs.isNotEmpty) 
-    {
-      await querySnapshot.docs.first.reference
-          .update({'isBeingPicking': true});
-    }
-  }
-
-  /// Cancela la recogida de un usuario, actualizando los campos correspondientes.
-  Future<void> cancelPickUpUser(String username) async 
-  {
-    QuerySnapshot querySnapshot = await collectionReferenceRoute
-        .where('username', isEqualTo: username)
-        .get();
-    if (querySnapshot.docs.isNotEmpty) 
-    {
-      await querySnapshot.docs.first.reference
-          .update({'isBeingPicking': false, 'isNear': false});
-    }
-  }
-
-  /// Retorna la lista de usuarios por filtro
-  Future<List<RouteUser>> getUsersByStatus({
-    required bool Function(RouteUser user) filter,
-  }) async {
-    List<RouteUser> filteredUsers = [];
-    QuerySnapshot querySnapshot = await collectionReferenceRoute.get();
-
-    for (var doc in querySnapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final routeUser = RouteUser.fromMap(data);
-
-      if (filter(routeUser)) {
-        filteredUsers.add(routeUser);
-      }
-    }
-
-    return filteredUsers;
-  }
-
-/// Método genérico reutilizable para validar un estado de usuario
-Future<bool> checkUserStatus(String username, bool Function(RouteUser) condition) async {
-  QuerySnapshot snapshot = await collectionReferenceRoute.get();
-
-  for (var doc in snapshot.docs) {
-    final data = doc.data() as Map<String, dynamic>;
-    final user = RouteUser.fromMap(data);
-
-    if (user.username == username && condition(user)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-
-  /// Verifica si se está en proceso de recogida para un usuario determinado.
-  Future<bool> isGoingToPickUpUser(String username) async 
-  {
-    QuerySnapshot querySnapshot = await collectionReferenceRoute
-        .where('username', isEqualTo: username)
-        .get();
-    if (querySnapshot.docs.isNotEmpty) 
-    {
-      final doc = querySnapshot.docs.first;
-      bool isBeingPicking = doc.get('isBeingPicking');
-      return isBeingPicking;
-    }
-    return false;
-  }
-
-  /// Verifica si hay otro usuario siendo recogido, excluyendo a uno específico.
-  Future<bool> isAnotherUserBeingPicked(String excludeUsername) async {
-    QuerySnapshot querySnapshot = await collectionReferenceRoute.get();
-
-    for (var doc in querySnapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final username = data['username'];
-      final isBeingPicked = data['isBeingPicking'];
-
-      if (username != excludeUsername && isBeingPicked == true) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-
-  /// Verifica si el usuario se encuentra cerca para la recogida.
-  Future<bool> isNearToPickUpUser(String username) async 
-  {
-    QuerySnapshot querySnapshot = await collectionReferenceRoute
-        .where('username', isEqualTo: username)
-        .get();
-    if (querySnapshot.docs.isNotEmpty) 
-    {
-      final doc = querySnapshot.docs.first;
-      bool isNear = doc.get('isNear');
-      return isNear;
-    }
-    return false;
-  }
-
-  /// Modificación del método canContinueRouteCollection.
-  /// Se retornará true solo si existen documentos y TODOS los campos 'createdAt'
-  /// tienen la fecha de hoy. En caso contrario, se retorna false.
-  Future<bool> canContinueRouteCollection() async 
-  {
-    // 1) Trae todos los documentos
-    final snapshot = await collectionReferenceRoute.get();
     if (snapshot.docs.isEmpty) return false;
 
-    // 2) Crea un DateTime que represente “hoy a medianoche”
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    // 3) Recorre cada documento y comprueba su createdAt
-    for (var doc in snapshot.docs) 
-    {
-      final data = doc.data() as Map<String, dynamic>;
-      Timestamp ts = data['createdAt'];
-      final dt = ts.toDate();
-      final createdDate = DateTime(dt.year, dt.month, dt.day);
-
-      if (createdDate != today) 
-      {
+    DateTime today = DateTime.now();
+    for (DocumentSnapshot doc in snapshot.docs) {
+      Timestamp ts = doc.get('createdAt') as Timestamp;
+      DateTime created = ts.toDate();
+      if (created.year != today.year ||
+          created.month != today.month ||
+          created.day != today.day) {
         return false;
       }
     }
-
     return true;
   }
 
-Future<RouteUser?> loadRouteUser(String? username) async {
-  if (username == null) return null;
-
-  final querySnapshot = await collectionReferenceRoute
+Future<void> pickUpUser(String username, int numRoute, int numPick) async {
+  QuerySnapshot snap = await _collectionReferenceRoute
       .where('username', isEqualTo: username)
-      .limit(1)
+      .where('numRoute', isEqualTo: numRoute)
       .get();
 
-  if (querySnapshot.docs.isEmpty) return null;
+  if (snap.docs.isNotEmpty) {
+    await snap.docs.first.reference.update({
+      'isBeingPicking': true,
+    });
 
-  final data = querySnapshot.docs.first.data() as Map<String, dynamic>;
-  return RouteUser.fromMap(data);
+    await _driverRouteService.setNumPickByNumRoute(numRoute, numPick);
+    await _clearRouteIfCompleted(numRoute);
+  }
 }
 
 
-  /// Obtiene los usuarios con rol 'Usuario' y crea un documento por cada uno
-  /// en la colección 'ruta' incluyendo la fecha de creación.
-  /// Si el usuario canceló la recogida en el día actual se activa la notificación.
-  Future<void> _getUsers(LatLng driverLocation) async 
-  {
-    List<User> usersRol = await userService.getUsersByRol('Usuario');
-    List<CancelRouteUser> cancelledUsers = await cancelRouteService.getCanceledUsers();
-    DateTime now = DateTime.now();
+  Future<void> cancelPickUpUser(String username, int numRoute) async {
+    QuerySnapshot snap = await _collectionReferenceRoute
+        .where('username', isEqualTo: username)
+        .where('numRoute', isEqualTo: numRoute)
+        .get();
+    if (snap.docs.isNotEmpty) {
+      await snap.docs.first.reference.update(<String, dynamic>{
+        'isBeingPicking': false,
+        'isNear': false,
+      });
+      
+      await _clearRouteIfCompleted(numRoute);
+    }
+  }
 
-    for (var user in usersRol) 
-    {
-      bool isCancelledToday = cancelledUsers.any((cancelledUser) =>
-        cancelledUser.username == user.username &&
-        cancelledUser.cancelDate.year == now.year &&
-        cancelledUser.cancelDate.month == now.month &&
-        cancelledUser.cancelDate.day == now.day
-      );
+Future<List<RouteUser>> getUsersByStatus({
+  required int numRoute,
+  required bool Function(RouteUser) filter,
+}) async {
+  final List<RouteUser> result = [];
 
-      LatLng dest;
+  try {
+    final QuerySnapshot snapshot = await _collectionReferenceRoute
+        .where('numRoute', isEqualTo: numRoute)
+        .get();
+
+    for (final DocumentSnapshot doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final routeUser = RouteUser.fromMap(data);
+      if (filter(routeUser)) {
+        result.add(routeUser);
+      }
+    }
+  } catch (e) {
+    // Opcional: puedes agregar un logger o lanzar la excepción
+    print('Error al obtener usuarios de la ruta $numRoute: $e');
+  }
+
+  return result;
+}
+
+
+  Future<bool> isGoingToPickUpUser(String username) =>
+      _checkStatus(username, (RouteUser u) => u.isBeingPicking);
+
+  Future<bool> isNearToPickUpUser(String username) =>
+      _checkStatus(username, (RouteUser u) => u.isNear);
+
+  Future<bool> isAnotherUserBeingPicked(String excludeUsername) async {
+    QuerySnapshot snapshot = await _collectionReferenceRoute.get();
+    for (DocumentSnapshot doc in snapshot.docs) {
+      RouteUser ru =
+          RouteUser.fromMap(doc.data() as Map<String, dynamic>);
+      if (ru.username != excludeUsername && ru.isBeingPicking) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Future<RouteUser?> getRouteUser(String? username) async {
+    if (username == null) return null;
+    QuerySnapshot snap = await _collectionReferenceRoute
+        .where('username', isEqualTo: username)
+        .limit(1)
+        .get();
+    if (snap.docs.isEmpty) return null;
+    return RouteUser.fromMap(
+        snap.docs.first.data() as Map<String, dynamic>);
+  }
+
+  Future<void> markUserAsCollected(String username, int numRoute) async {
+    QuerySnapshot snap = await _collectionReferenceRoute
+        .where('username', isEqualTo: username)
+        .where('numRoute', isEqualTo: numRoute)
+        .get();
+    if (snap.docs.isNotEmpty) {
+      await snap.docs.first.reference
+          .update(<String, dynamic>{'isCollected': true});
+      await _clearRouteIfCompleted(numRoute);
+    }
+  }
+
+  Future<void> cancelCurrentPickup(
+      String username, int numRoute) async {
+    QuerySnapshot snap = await _collectionReferenceRoute
+        .where('username', isEqualTo: username)
+        .get();
+    if (snap.docs.isNotEmpty) {
+      await snap.docs.first.reference
+          .update(<String, dynamic>{'isCancelled': true});
+      await _cancelRouteService.cancelRoute(username, DateTime.now());
+      await _clearRouteIfCompleted(numRoute);
+    }
+  }
+
+  Future<void> removeCancelCurrentPickup(
+      String username, int numRoute) async {
+    QuerySnapshot snap = await _collectionReferenceRoute
+        .where('username', isEqualTo: username)
+        .get();
+    if (snap.docs.isNotEmpty) {
+      await snap.docs.first.reference
+          .update(<String, dynamic>{'isCancelled': false});
+      await _cancelRouteService.removeCancelRoute(username, DateTime.now());
+      await _clearRouteIfCompleted(numRoute);
+    }
+  }
+
+  Future<bool> userExistsInRoute(String username) async {
+    QuerySnapshot snap = await _collectionReferenceRoute
+        .where('username', isEqualTo: username)
+        .limit(1)
+        .get();
+    return snap.docs.isNotEmpty;
+  }
+
+  Future<void> updateAllDistances(
+      LatLng driverLocation, int numRoute) async {
+    QuerySnapshot snapshot = await _collectionReferenceRoute
+        .where('numRoute', isEqualTo: numRoute)
+        .get();
+    for (DocumentSnapshot doc in snapshot.docs) {
+      Map<String, dynamic> data =
+          doc.data() as Map<String, dynamic>;
+      bool collected = data['isCollected'] as bool;
+      bool cancelled = data['isCancelled'] as bool;
+      if (collected || cancelled) continue;
+
       int minutes = 0;
-      int distance = 0;
+      double distance = 0.0;
+      bool near = false;
 
-      if (!isCancelledToday) 
-      {
-        final address = user.address;
-        final formattedAddress = _formatAddressForSearch(address);
-        try 
-        {
-          final response = await http
-              .get(Uri.parse('https://nominatim.openstreetmap.org/search?q=$formattedAddress&format=json'))
-              .timeout(const Duration(seconds: 5));
+      try {
+        String addr =
+            _formatAddressForSearch(data['address'] as String);
+        http.Response res = await http
+            .get(Uri.parse(
+                'https://nominatim.openstreetmap.org/search?q=$addr&format=json'))
+            .timeout(const Duration(seconds: 15));
+        if (res.statusCode == 200) {
+          List<dynamic> list =
+              jsonDecode(res.body) as List<dynamic>;
+          double lat = double.parse(list[0]['lat'] as String);
+          double lon = double.parse(list[0]['lon'] as String);
+          LatLng dest = LatLng(lat, lon);
 
-          if (response.statusCode == 200) 
-          {
-          final data = jsonDecode(response.body);
-          final lat = double.parse(data[0]['lat']);
-          final lon = double.parse(data[0]['lon']);
-          dest = LatLng(lat, lon);
-          final matrix = await _getRouteMatrix(driverLocation, dest);
-
-          minutes = matrix['duration'] is int
-              ? matrix['duration']
-              : (matrix['duration'] as double).toInt();
-
-          distance = matrix['distance'] is int
-              ? matrix['distance']
-              : (matrix['distance'] as double).toInt();
-          }
-          
-        } 
-        on TimeoutException 
-        // ignore: empty_catches
-        {
-        } 
+          Map<String, dynamic> matrix =
+              await _getRouteMatrix(driverLocation, dest);
+          minutes = matrix['duration'] as int;
+          distance = matrix['distance'] as double;
+          near = minutes <= 5 && (data['isBeingPicking'] as bool);
+        }
+      } on TimeoutException {
+        // silenciar timeout
       }
 
-      Map<String, dynamic> routeData = 
-      {
+      await doc.reference.update(<String, dynamic>{
+        'distanceInMinutes': minutes,
+        'distanceInKm': distance,
+        'isNear': near,
+      });
+    }
+    await _clearRouteIfCompleted(numRoute);
+  }
+
+  Future<Map<String, dynamic>> _getRouteMatrix(
+      LatLng origin, LatLng destination) async {
+    const String baseUrl =
+        'https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix';
+    Map<String, dynamic> bodyMap = <String, dynamic>{
+      'origins': [
+        {
+          'waypoint': {
+            'location': {
+              'latLng': {
+                'latitude': origin.latitude,
+                'longitude': origin.longitude,
+              }
+            }
+          }
+        }
+      ],
+      'destinations': [
+        {
+          'waypoint': {
+            'location': {
+              'latLng': {
+                'latitude': destination.latitude,
+                'longitude': destination.longitude,
+              }
+            }
+          }
+        }
+      ],
+      'travelMode': 'DRIVE',
+      'routingPreference': 'TRAFFIC_AWARE',
+    };
+    String body = jsonEncode(bodyMap);
+
+    http.Response resp = await http.post(
+      Uri.parse(baseUrl),
+      headers: <String, String>{
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key':
+            'AIzaSyDdjTRtb1Zp-lz8pY650DIGo137bQh9rig',
+        'X-Goog-FieldMask':
+            'originIndex,destinationIndex,duration,distanceMeters',
+      },
+      body: body,
+    );
+
+    dynamic decoded = jsonDecode(resp.body);
+    if (decoded is Map<String, dynamic> && decoded.containsKey('error')) {
+      throw Exception('API error: ${decoded['error']['message']}');
+    }
+    if (decoded is! List<dynamic> || decoded.isEmpty) {
+      throw Exception('Respuesta inválida o vacía de la API');
+    }
+
+    double km = (decoded[0]['distanceMeters'] as num) / 1000;
+    double secs = double.parse(
+        (decoded[0]['duration'] as String).replaceAll('s', ''));
+    int mins = (secs / 60).round();
+
+    return <String, dynamic>{'distance': km, 'duration': mins};
+  }
+
+  String _formatAddressForSearch(String address) {
+    String cleaned = address.replaceAll(',', '').trim();
+    String formatted = cleaned.replaceAll(RegExp(r'\s+'), '+');
+    return formatted;
+  }
+
+  Future<void> _getUsers(
+      LatLng driverLocation, int numRoute) async {
+    List<User> users = await _userService
+        .getUsersByRolAndNumRoute('Usuario', numRoute);
+    List<CancelRouteUser> cancelled =
+        await _cancelRouteService.getCanceledUsers();
+    DateTime today = DateTime.now();
+
+    for (User user in users) {
+      bool isCancelledToday = cancelled.any((CancelRouteUser c) =>
+          c.username == user.username &&
+          c.cancelDate.year == today.year &&
+          c.cancelDate.month == today.month &&
+          c.cancelDate.day == today.day);
+
+      int minutes = 0;
+      double distance = 0.0;
+      bool near = false;
+
+      if (!isCancelledToday) {
+        try {
+          String addr =
+              _formatAddressForSearch(user.address);
+          http.Response res = await http
+              .get(Uri.parse(
+                  'https://nominatim.openstreetmap.org/search?q=$addr&format=json'))
+              .timeout(const Duration(seconds: 5));
+          if (res.statusCode == 200) {
+            List<dynamic> data =
+                jsonDecode(res.body) as List<dynamic>;
+            double lat = double.parse(
+                data[0]['lat'] as String);
+            double lon = double.parse(
+                data[0]['lon'] as String);
+            LatLng dest = LatLng(lat, lon);
+
+            Map<String, dynamic> matrix =
+                await _getRouteMatrix(driverLocation, dest);
+            minutes = matrix['duration'] as int;  
+            distance = matrix['distance'] as double;
+            near = minutes <= 5;
+          }
+        } on TimeoutException {
+          // silencioso
+        }
+      }
+
+      await _collectionReferenceRoute.add(<String, dynamic>{
         'fcmToken': user.fcmToken,
         'mail': user.mail,
         'username': user.username,
         'name': user.name,
-        'surnames': user.surnames,
+        'surnames': Utils().surnamesOneLetter(user.surnames),
         'address': user.address,
         'phoneNumber': user.phoneNumber,
         'isBeingPicking': false,
-        'isNear': false,
+        'isNear': near,
         'isCollected': false,
         'isCancelled': isCancelledToday,
         'distanceInMinutes': minutes,
         'distanceInKm': distance,
+        'numRoute': numRoute,
+        'numPick': user.numPick,
         'createdAt': Timestamp.now(),
-      };
-      await collectionReferenceRoute.add(routeData);
-    }
-  }
-
-  /// Marca a un usuario como recogido, actualizando el campo 'isCollected'.
-  Future<void> markUserAsCollected(String username) async 
-  {
-    QuerySnapshot querySnapshot = await collectionReferenceRoute
-        .where('username', isEqualTo: username)
-        .get();
-    if (querySnapshot.docs.isNotEmpty) 
-    {
-      await querySnapshot.docs.first.reference.update({'isCollected': true});
-    }
-  }
-
-  /// Cancela la recogida actual de un usuario, actualizando el campo 'isCancelled'.
-  Future<void> cancelCurrentPickup(String username) async 
-  {
-    QuerySnapshot querySnapshot = await collectionReferenceRoute
-        .where('username', isEqualTo: username)
-        .get();
-    if (querySnapshot.docs.isNotEmpty) 
-    {
-      await querySnapshot.docs.first.reference.update({'isCancelled': true});
-    }
-  }
-
-    /// Remueve la cancelacion de la recogida actual de un usuario, actualizando el campo 'isCancelled'.
-  Future<void> removeCancelCurrentPickup(String username) async 
-  {
-    QuerySnapshot querySnapshot = await collectionReferenceRoute
-        .where('username', isEqualTo: username)
-        .get();
-    if (querySnapshot.docs.isNotEmpty) 
-    {
-      await querySnapshot.docs.first.reference.update({'isCancelled': false});
-    }
-  }
-
-  /// Comprueba si ya existe un documento de ruta para el username dado.
-  Future<bool> userExistsInRoute(String username) async 
-  {  
-    final query = await collectionReferenceRoute
-        .where('username', isEqualTo: username)
-        .limit(1)
-        .get();
-
-    return query.docs.isNotEmpty;
-  }
-
-  /// Actualiza la distancia y el tiempo de todos los usuarios en la ruta
-  Future<void> updateAllDistances(LatLng driverLocation) async 
-  {
-    QuerySnapshot snapshot = await collectionReferenceRoute.get();
-
-    for (var doc in snapshot.docs) 
-    {
-     if (doc.get('isCollected') == true) continue;
-      if (doc.get('isCancelled') == true) continue;
-
-      final dataDoc = doc.data() as Map<String, dynamic>;
-      final address = dataDoc['address'] as String;
-      final isBeingPicking = dataDoc['isBeingPicking'] as bool;
-      final formattedAddress = _formatAddressForSearch(address);
-      LatLng dest;
-      int minutes = 0;
-      int distance = 0;
-      bool near = false;
-
-      try 
-      {
-        final response = await http
-            .get(Uri.parse('https://nominatim.openstreetmap.org/search?q=$formattedAddress&format=json'))
-            .timeout(const Duration(seconds: 15));
-
-          if (response.statusCode == 200) 
-          {
-          final data = jsonDecode(response.body);
-          final lat = double.parse(data[0]['lat']);
-          final lon = double.parse(data[0]['lon']);
-          dest = LatLng(lat, lon);
-          final matrix = await _getRouteMatrix(driverLocation, dest);
-
-          minutes = matrix['duration'] is int
-              ? matrix['duration']
-              : (matrix['duration'] as double).toInt();
-
-          distance = matrix['distance'] is int
-              ? matrix['distance']
-              : (matrix['distance'] as double).toInt();
-
-            near = minutes <= 5 && isBeingPicking;
-        }
-      } 
-      on TimeoutException 
-      // ignore: empty_catches
-      {
-      }
-       
-       await doc.reference.update(
-      {
-        'distanceInKm': distance,
-        'distanceInMinutes': minutes,
-        'isNear': near,
       });
     }
+
+    await _clearRouteIfCompleted(numRoute);
   }
 
-  Future<Map<String, dynamic>> _getRouteMatrix(LatLng origin, LatLng destination) async 
-  {
-    const String baseUrl = "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix";
-    final Map<String, dynamic> requestBody = 
-    {
-      "origins": [
-        {"waypoint": {"location": {"latLng": {"latitude": origin.latitude, "longitude": origin.longitude}}}}
-      ],
-      "destinations": [
-        {"waypoint": {"location": {"latLng": {"latitude": destination.latitude, "longitude": destination.longitude}}}}
-      ],
-      "travelMode": "DRIVE",
-      "routingPreference": "TRAFFIC_AWARE"
-    };
+  Future<bool> _checkStatus(
+    String username,
+    bool Function(RouteUser) condition,
+  ) async {
+    List<RouteUser> list = await getUsersByStatus(
+        filter: (RouteUser u) => u.username == username,
+        numRoute: 0 /* not used here */);
+    if (list.isEmpty) return false;
+    return condition(list.first);
+  }
 
-    final response = await http.post(
-      Uri.parse(baseUrl),
-      headers: 
-      {
-        "Content-Type": "application/json",
-        "X-Goog-Api-Key": "AIzaSyDdjTRtb1Zp-lz8pY650DIGo137bQh9rig",
-        "X-Goog-FieldMask": "originIndex,destinationIndex,duration,distanceMeters"
-      },
-      body: jsonEncode(requestBody),
-    );
+  Future<void> _clearRouteIfCompleted(int numRoute) async {
+    QuerySnapshot pendingSnap = await _collectionReferenceRoute
+        .where('numRoute', isEqualTo: numRoute)
+        .where('isCollected', isEqualTo: false)
+        .where('isCancelled', isEqualTo: false)
+        .get();
 
-    final decoded = jsonDecode(response.body);
-    if (decoded is Map && decoded.containsKey('error')) 
-    {
-      throw Exception("Error en la API: ${decoded['error']['message']}");
+    if (pendingSnap.docs.isEmpty) {
+      await deleteRoute(numRoute);
     }
-    if (decoded is! List || decoded.isEmpty) 
-    {
-      throw Exception("La respuesta de la API no es una lista válida o está vacía.");
-    }
-
-    final distance = decoded[0]["distanceMeters"] / 1000; // km
-    final durationSeconds = double.parse(decoded[0]["duration"].replaceAll('s', ''));
-    final durationMinutes = (durationSeconds / 60).round();
-
-    return 
-    {
-      "distance": distance,
-      "duration": durationMinutes,
-    };
   }
-
-  _formatAddressForSearch(String address) 
-  {
-    String cleaned = address.replaceAll(',', '').trim();
-    String formatted = cleaned.replaceAll(RegExp(r'\s+'), '+');
-
-    return formatted;
-  }
-
-
 }

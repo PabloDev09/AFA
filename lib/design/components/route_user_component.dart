@@ -93,24 +93,61 @@ void _showConfirmationDialog(
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-      final width = MediaQuery.of(context).size.width;
-      final isCompact = width <= 500;
+@override
+Widget build(BuildContext context) {
+  final width = MediaQuery.of(context).size.width;
+  final isCompact = width <= 500;
+
+  return Consumer<DriverRouteProvider>(
+    builder: (context, driverRouteProvider, _) {
+      final routeUsers = driverRouteProvider.pendingUsers;
+      final bool isSomeoneBeingPicked = routeUsers.any((user) => user.isBeingPicking);
+      final hasProblem = driverRouteProvider.routeDriver.hasProblem;
+
+      routeUsers.sort((a, b) => a.numPick.compareTo(b.numPick));
+    
       
-        return Consumer<DriverRouteProvider>(
-          builder: (context, driverRouteProvider, _) {
-          final routeUsers = driverRouteProvider.pendingUsers;
 
-          // Ordenar de menor a mayor distancia
-          routeUsers.sort((a, b) => a.distanceInMinutes.compareTo(b.distanceInMinutes));
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // ✨ Botón de incidencia ✨
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+            child: Center(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  if (hasProblem) {
+                    driverRouteProvider.clearRouteHasProblem();
+                  } else {
+                    driverRouteProvider.markRouteHasProblem();
+                  }
+                },
+                icon: Icon(
+                  hasProblem
+                      ? Icons.check_circle
+                      : Icons.warning_amber_rounded,
+                  color: Colors.white,
+                ),
+                label: Text(
+                  hasProblem
+                      ? 'Marcar incidencia como resuelta'
+                      : 'Reportar incidencia',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: hasProblem ? Colors.green : Colors.red,
+                  padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  elevation: 4,
+                ),
+              ),
+            ),
+          ),
 
-          final bool isSomeoneBeingPicked = routeUsers.any((user) => user.isBeingPicking);
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-         // Nuevo header con tarjetas de estado
+          // Nuevo header con tarjetas de estado
           Row(
             children: [
               Expanded(
@@ -143,18 +180,17 @@ void _showConfirmationDialog(
           ),
           const SizedBox(height: 20),
 
-            const SizedBox(height: 20),
-            if (routeUsers.isNotEmpty) 
-              Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                alignment: WrapAlignment.center,
-                children: (
-                  // si hay alguien en recogida, filtra solo ese usuario
-                  routeUsers.any((u) => u.isBeingPicking)
+          if (routeUsers.isNotEmpty)
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              alignment: WrapAlignment.center,
+              children: (
+                // si hay alguien en recogida, filtra solo ese usuario
+                routeUsers.any((u) => u.isBeingPicking)
                     ? routeUsers.where((u) => u.isBeingPicking).toList()
                     : routeUsers
-                ).map((user) => 
+              ).map((user) =>
                   SizedBox(
                     width: MediaQuery.of(context).size.width < 600
                         ? MediaQuery.of(context).size.width * 0.95
@@ -163,16 +199,17 @@ void _showConfirmationDialog(
                       child: _buildUserCard(context, user, isSomeoneBeingPicked, isCompact),
                     ),
                   )
-                ).toList(),
-              )
-            else
-              _buildNoUsers(context),
-            const SizedBox(height: 20),
-          ],
-        );
-      },
-    );
-  }
+              ).toList(),
+            )
+          else
+            _buildNoUsers(context),
+          const SizedBox(height: 20),
+        ],
+      );
+    },
+  );
+}
+
 
   Widget _buildNoUsers(BuildContext context) {
     return Center(
@@ -508,7 +545,7 @@ Widget _buildActionButtons(
               'Recoger Usuario',
               '¿Está seguro de que desea recoger a ${user.name}?',
               () => Provider.of<DriverRouteProvider>(context, listen: false)
-                        .pickUpUser(user.username),
+                        .pickUpUser(user.username, user.numPick),
               Colors.blue,
             );
           },

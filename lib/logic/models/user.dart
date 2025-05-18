@@ -10,6 +10,10 @@ class User
   final String rol;
   final bool isActivate;
   final String fcmToken;
+  final String numMember;
+  final int numRoute;
+  final int numPick;
+  final String hourPick;
 
   const User(
   {
@@ -23,6 +27,10 @@ class User
     this.rol = "",
     this.isActivate = false,
     this.fcmToken = "",
+    this.numMember = "",
+    this.numRoute = 0,
+    this.numPick = 0,
+    this.hourPick = ""
   });
 
   factory User.fromMap(Map<String, dynamic> data) 
@@ -38,6 +46,10 @@ class User
       rol: data['rol'] ?? '',
       isActivate: data['isActivate'] ?? false,
       fcmToken: data['fcmToken'] ?? '',
+      numMember: data['numMember'] ?? '',
+      numRoute: data['numRoute'] ?? 0,
+      numPick: data['numPick'] ?? 0,
+      hourPick: data['hourPick'] ?? '',
     );
   }
 
@@ -55,6 +67,49 @@ class User
       'rol': rol,
       'isActivate': isActivate,
       'fcmToken': fcmToken,
+      'numMember':  numMember,
+      'numRoute': numRoute,
+      'numPick': numPick,
+      'hourPick': hourPick
     };
   }
+
+   @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is User &&
+      mail       == other.mail &&
+      username   == other.username &&
+      password   == other.password &&
+      name       == other.name &&
+      surnames   == other.surnames &&
+      address    == other.address &&
+      phoneNumber== other.phoneNumber &&
+      rol        == other.rol &&
+      isActivate == other.isActivate &&
+      fcmToken   == other.fcmToken &&
+      numMember  == other.numMember &&
+      numRoute   == other.numRoute &&
+      numPick    == other.numPick &&
+      hourPick   == other.hourPick;
+  }
+
+  @override
+  int get hashCode =>
+    mail.hashCode       ^
+    username.hashCode   ^
+    password.hashCode   ^
+    name.hashCode       ^
+    surnames.hashCode   ^
+    address.hashCode    ^
+    phoneNumber.hashCode^
+    rol.hashCode        ^
+    isActivate.hashCode ^
+    fcmToken.hashCode   ^
+    numMember.hashCode  ^
+    numRoute.hashCode   ^
+    numPick.hashCode    ^
+    hourPick.hashCode;
+
+  bool equals(User other) => this == other;
 }

@@ -38,13 +38,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final role = await getUserRole();
   Provider.of<AuthUserProvider>(context,listen: false).loadUser();
   if(mounted){
-    if (role == 'Admin') {
-      context.go(PathUrlAfa().pathDashboard);
-    } else if (role == 'Conductor') {
+    if (role == 'Administrador' || role == 'Conductor' || role == 'Usuario')
+     {
       context.go(PathUrlAfa().pathHome);
-    } else if (role == 'Usuario') {
-      context.go(PathUrlAfa().pathHome);
-    } else {
+    }
+    else {
     ScaffoldMessenger.of(context).showSnackBar
     (
       const SnackBar(
@@ -106,6 +104,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
  Widget _buildLoginForm() 
  {
+    double fontSize;
+    if(MediaQuery.of(context).size.width <= 500 && MediaQuery.of(context).size.width >= 430)
+    {
+      fontSize = 16;
+    }
+    else if(MediaQuery.of(context).size.width < 430)
+    {
+      fontSize = 12;
+    }
+    else
+    {
+      fontSize = 20;
+    }
+
+
   final theme = Theme.of(context);
   return Form(
     key: _formKey,
@@ -168,93 +181,92 @@ class _LoginScreenState extends State<LoginScreen> {
               _buildFloatingPasswordField(),
               const SizedBox(height: 20),
               SizedBox(
-  width: double.infinity,
-  child: Container(
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [
-          Color(0xFF063970),
-          Color(0xFF2196F3),
-        ],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: ElevatedButton(
-      onPressed: () async {
-        if (_isLoading) return;
+                width: double.infinity,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF063970),
+                        Color(0xFF2196F3),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (_isLoading) return;
 
-        if (!_formKey.currentState!.validate()) return;
+                      if (!_formKey.currentState!.validate()) return;
 
-        setState(() => _isLoading = true);
+                      setState(() => _isLoading = true);
 
-        final email = _userController.text.trim();
-        final pwd = _passwordController.text.trim();
-        final provider = Provider.of<ActiveUserProvider>(context, listen: false);
-        final authProvider = Provider.of<AuthUserProvider>(context, listen: false);
+                      final email = _userController.text.trim();
+                      final pwd = _passwordController.text.trim();
+                      final provider = Provider.of<ActiveUserProvider>(context, listen: false);
+                      final authProvider = Provider.of<AuthUserProvider>(context, listen: false);
 
-        try {
-          bool isAutenticated = await provider.authenticateUser(email, pwd);
+                      try {
+                        bool isAutenticated = await provider.authenticateUser(email, pwd);
 
-          if (!isAutenticated) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Usuario no autorizado.'),
-                backgroundColor: Colors.red,
+                        if (!isAutenticated) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('El usuario o la contraseña no son válidos.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          setState(() => _isLoading = false);
+                          return;
+                        }
+
+                        await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pwd);
+                      } on FirebaseAuthException {
+                        await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: pwd);
+                      }
+
+                      authProvider.loadUser();
+                      _navigateAccordingToRole(email);
+
+                      setState(() => _isLoading = false);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      minimumSize: const Size(0, 50),
+                    ).copyWith(
+                      overlayColor: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.hovered)) {
+                          return Colors.white.withOpacity(0.2);
+                        }
+                        return null;
+                      }),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Text(
+                            'Iniciar sesión',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: fontSize,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
               ),
-            );
-            setState(() => _isLoading = false);
-            return;
-          }
-
-          await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pwd);
-        } on FirebaseAuthException {
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: pwd);
-        }
-
-        authProvider.loadUser();
-        _navigateAccordingToRole(email);
-
-        setState(() => _isLoading = false);
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.transparent,
-        shadowColor: Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        minimumSize: const Size(0, 50),
-      ).copyWith(
-        overlayColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.hovered)) {
-            return Colors.white.withOpacity(0.2);
-          }
-          return null;
-        }),
-      ),
-      child: _isLoading
-          ? const SizedBox(
-              height: 24,
-              width: 24,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2.5,
-              ),
-            )
-          : const Text(
-              'Iniciar sesión',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-    ),
-  ),
-),
-
               const SizedBox(height: 15),
               SizedBox(
                 width: double.infinity,
@@ -274,9 +286,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     'assets/images/google_logo.png',
                     height: 24,
                   ),
-                  label: const Text(
+                  label: Text(
                     'Continuar con Google',
-                    style: TextStyle(fontSize: 20),
+                    style: TextStyle(fontSize: fontSize),
                   ),
                 ),
               ),
@@ -289,6 +301,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: const Text(
                     '¿No tienes cuenta? Regístrate',
                     style: TextStyle(color: Color(0xFF063970), fontSize: 16),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ),

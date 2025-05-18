@@ -58,7 +58,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> with TickerProviderStat
 
     if (username != null) 
     { 
-      if(await userRouteProvider.checkIfRouteActive(username))
+      if(await userRouteProvider.canResumeRouteUser(username))
       {
         await userRouteProvider.startListening();
       }
@@ -153,7 +153,7 @@ Future<void> _confirmarAccion(bool cancelar,UserRouteProvider userProvider) asyn
     if (cancelar) {
       await userProvider.cancelPickupForDate(username, _selectedDay);
     } else {
-      await userProvider.removeCancelPickup(username, _selectedDay);
+      await userProvider.removeCancelPickupForDate(username, _selectedDay);
     }
 
     await userProvider.getCancelDates(username);
@@ -184,9 +184,9 @@ Future<void> _showSlidingNotification(
   BuildContext context,
   Afa.Notification n,
 ) async {
-  final overlay = Overlay.of(context); // nada que hacer si no hay Overlay
-
+  final overlay = Overlay.of(context);
   final theme = Theme.of(context);
+  final isImportant = n.isImportant == true;
 
   // 1️⃣ Prepara el reproductor y carga el WAV
   final audioPlayer = AudioPlayer();
@@ -236,10 +236,14 @@ Future<void> _showSlidingNotification(
                     margin: const EdgeInsets.symmetric(horizontal: 12),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isImportant
+                          ? Colors.red.withOpacity(0.1)
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: theme.colorScheme.primary,
+                        color: isImportant
+                            ? Colors.red
+                            : theme.colorScheme.primary,
                         width: 1.5,
                       ),
                     ),
@@ -262,8 +266,12 @@ Future<void> _showSlidingNotification(
                                 _openNotifications();
                               },
                               child: Icon(
-                                Icons.notifications_active,
-                                color: theme.colorScheme.primary,
+                                isImportant
+                                    ? Icons.warning_amber_rounded
+                                    : Icons.notifications_active,
+                                color: isImportant
+                                    ? Colors.red
+                                    : theme.colorScheme.primary,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -271,8 +279,12 @@ Future<void> _showSlidingNotification(
                               child: Text(
                                 n.message,
                                 style: theme.textTheme.bodyLarge!.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onSurface,
+                                  fontWeight: isImportant
+                                      ? FontWeight.bold
+                                      : FontWeight.bold,
+                                  color: isImportant
+                                      ? Colors.red[800]
+                                      : theme.colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -280,7 +292,9 @@ Future<void> _showSlidingNotification(
                             Icon(
                               Icons.circle,
                               size: 10,
-                              color: theme.colorScheme.secondary,
+                              color: isImportant
+                                  ? Colors.redAccent
+                                  : theme.colorScheme.secondary,
                             ),
                           ],
                         ),
@@ -288,7 +302,9 @@ Future<void> _showSlidingNotification(
                         Text(
                           DateFormat('dd/MM/yyyy HH:mm').format(n.date),
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.disabledColor,
+                            color: isImportant
+                                ? Colors.red[700]
+                                : theme.disabledColor,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -324,6 +340,7 @@ Future<void> _showSlidingNotification(
     await audioPlayer.dispose();
   });
 }
+
 
  
   Widget _dayBuilder(BuildContext context, DateTime day, DateTime focusedDay) 
@@ -801,7 +818,7 @@ Widget _buildCalendar(UserRouteProvider userRouteProvider) {
                         ? null
                         : () async {
                             setState(() => userRouteProvider.isUpdating = true);
-                            await userRouteProvider.loadRouteUser(
+                            await userRouteProvider.resumeRouteUser(
                               Provider.of<AuthUserProvider>(context, listen: false)
                                   .userFireStore
                                   ?.username,

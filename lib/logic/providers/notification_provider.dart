@@ -5,7 +5,7 @@ class NotificationProvider extends ChangeNotifier
 {
   final List<Notification> notifications = [];
 
-  void addNotification(String notification) 
+  void addNotification(String notification, bool isImportant) 
   {
     notifications.add
     (
@@ -15,6 +15,7 @@ class NotificationProvider extends ChangeNotifier
         date: DateTime.now(),
         isRead: false,
         isNew: true,
+        isImportant: isImportant
       ),
     );
     notifyListeners();

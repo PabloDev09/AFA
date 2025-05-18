@@ -605,19 +605,21 @@ Widget build(BuildContext context) {
                           },
                         ),
                         const SizedBox(height: 15),
-                        _buildFloatingDropdown(
-                          label: 'Ciudad',
-                          hint: 'Seleccione ciudad',
-                          value: registerProvider.selectedCity,
-                          items: registerProvider.cities,
-                          onChanged: (newValue) {
-                            if (newValue != null) registerProvider.setSelectedCity(newValue);
-                          },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) return 'Seleccione una ciudad';
-                            return null;
-                          },
-                        ),
+                        registerProvider.isLoadingCities
+                          ? const Center(child: CircularProgressIndicator())
+                          : _buildFloatingDropdown(
+                              label: 'Ciudad',
+                              hint: 'Seleccione ciudad',
+                              value: registerProvider.selectedCity,
+                              items: registerProvider.cities,
+                              onChanged: (newValue) {
+                                if (newValue != null) registerProvider.setSelectedCity(newValue);
+                              },
+                              validator: (value) {
+                                if (value == null || value.isEmpty) return 'Seleccione una ciudad';
+                                return null;
+                              },
+                            ),
                       ],
                     );
                   } else {
@@ -656,7 +658,7 @@ Widget build(BuildContext context) {
                                   return null;
                                 },
                               ),
-                      ),
+                        ),
                       ],
                     );
                   }
@@ -677,7 +679,8 @@ Widget build(BuildContext context) {
                     const Expanded(
                       child: Text(
                         'Acepto los términos y condiciones',
-                        style: TextStyle(fontSize: 18),
+                        style: TextStyle(fontSize: 18,),
+                        
                       ),
                     ),
                   ],

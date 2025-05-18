@@ -1,7 +1,4 @@
 import 'package:afa/logic/providers/auth_user_provider.dart';
-import 'package:afa/logic/providers/driver_route_provider.dart';
-import 'package:afa/logic/providers/notification_provider.dart';
-import 'package:afa/logic/providers/user_route_provider.dart';
 import 'package:afa/logic/router/path/path_url_afa.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -108,9 +105,6 @@ class _SidebarMenuState extends State<SidebarMenu> {
                 onPressed: () async {
                   await FirebaseAuth.instance.signOut();
                   Provider.of<AuthUserProvider>(context, listen: false).logout();
-                  Provider.of<NotificationProvider>(context, listen: false).clearNotifications();
-                  Provider.of<DriverRouteProvider>(context, listen: false).clearRoutes();
-                  Provider.of<UserRouteProvider>(context, listen: false).clearRoutes();
                   context.go(PathUrlAfa().pathLogin);
                 },
                 child: const Row(
@@ -161,8 +155,6 @@ class _SidebarMenuState extends State<SidebarMenu> {
               child: Column(
                 children: [
                   _buildMenuItem(Icons.home, "Inicio", 0, PathUrlAfa().pathHome),
-                  const SizedBox(height: 10),
-                  _buildMenuItem(Icons.dashboard, "Panel de control", 1, PathUrlAfa().pathDashboard),
                   const SizedBox(height: 10),
                   _buildMenuItem(Icons.map, "Mapa", 2, PathUrlAfa().pathMap),
                   const SizedBox(height: 10),

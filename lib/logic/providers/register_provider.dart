@@ -45,11 +45,11 @@ class RegisterProvider extends ChangeNotifier
   
   void setSelectedProvince(String province) async {
     selectedCity = null;
-    selectedProvince = province;
-    cities = [];
     isLoadingCities = true;
+    selectedProvince = province;
     notifyListeners();
 
+    cities = [];
     
     try {
       cities = await _getProvincesCities.getCitiesByProvince(province);
