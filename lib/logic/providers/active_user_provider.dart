@@ -46,4 +46,26 @@ class ActiveUserProvider extends ChangeNotifier
     activeUsers.removeWhere((u) => u.username == user.username);
     notifyListeners();
   }
+
+    Future<void> assignRoute(User user, int numRoute, int numPick) 
+    async {
+      final sameRoute = activeUsers
+        .where((u) => u.numRoute == numRoute)
+        .toList()
+        ..sort((a, b) => a.numPick.compareTo(b.numPick));
+
+      for (var u in sameRoute.reversed) {
+        if (u.numPick >= numPick) {
+          u.numPick = u.numPick + 1;
+          await _userService.updateUser(u, u.mail, u.username);
+        }
+      }
+
+      user.numRoute = numRoute;
+      user.numPick = numPick;
+
+      await _userService.updateUser(user, user.mail, user.username);
+
+      notifyListeners();
+  }
 }

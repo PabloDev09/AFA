@@ -125,7 +125,9 @@ class UserService
         'phoneNumber': user.phoneNumber,
         'rol': user.rol,
         'isActivate': user.isActivate,
-        'fcmToken': user.fcmToken
+        'fcmToken': user.fcmToken,
+        'numRoute':user.numRoute,
+        'numPick':user.numPick
       });
     } else {
       throw Exception("Usuario no encontrado");

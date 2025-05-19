@@ -11,11 +11,11 @@ class User
   final bool isActivate;
   final String fcmToken;
   final String numMember;
-  final int numRoute;
-  final int numPick;
+  late int numRoute;
+  late int numPick;
   final String hourPick;
 
-  const User(
+  User(
   {
     required this.mail,
     required this.username,

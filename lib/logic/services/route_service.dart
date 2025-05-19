@@ -412,4 +412,41 @@ Future<List<RouteUser>> getUsersByStatus({
       await deleteRoute(numRoute);
     }
   }
+
+  Future<int> getMaxRouteNumber() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('ruta_numero')
+        .orderBy('numRoute', descending: true)
+        .limit(1)
+        .get();
+    if (snapshot.docs.isEmpty) return 0;
+    return snapshot.docs.first.get('numRoute') as int;
+  }
+
+  Future<List<int>> getAllRouteNumbers() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('ruta_numero')
+        .orderBy('numRoute')
+        .get();
+    return snapshot.docs
+        .map((doc) => doc.get('numRoute') as int)
+        .toList();
+  }
+
+  Future<void> createRouteNumber(int numRoute) async {
+    await FirebaseFirestore.instance
+        .collection('ruta_numero')
+        .add({'numRoute': numRoute});
+  }
+
+  Future<void> deleteRouteNumber(int numRoute) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('ruta_numero')
+        .where('numRoute', isEqualTo: numRoute)
+        .get();
+    for (var doc in snapshot.docs) {
+      await doc.reference.delete();
+    }
+  }
+
 }

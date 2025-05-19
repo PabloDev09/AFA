@@ -1,8 +1,10 @@
 import 'package:afa/design/components/pending_user_component.dart';
 import 'package:afa/design/components/active_user_component.dart';
+import 'package:afa/logic/models/user.dart';
 import 'package:afa/logic/providers/active_user_provider.dart';
 import 'package:afa/logic/providers/pending_user_provider.dart';
 import 'package:afa/design/components/side_bar_menu.dart';
+import 'package:afa/logic/services/route_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -23,6 +25,167 @@ class _DashboardScreenState extends State<DashboardScreen>
   bool _isLoading = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  final RouteService _routeService = RouteService();
+  
+  Future<void> _showAssignRouteDialog() async {
+    final activeProvider = Provider.of<ActiveUserProvider>(context, listen: false);
+    User? selectedUser;
+    List<int> rutas = await _routeService.getAllRouteNumbers();
+    int selectedRoute = 0;
+    int pickOrder = 1;
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Asignar Ruta'),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 1. Selector de usuario
+                DropdownButton<User>(
+                  isExpanded: true,
+                  hint: const Text('Selecciona un usuario'),
+                  value: selectedUser,
+                  items: activeProvider.activeUsers
+                  .where((u) => u.rol.trim() == 'Usuario')
+                  .map((u) {
+                    return DropdownMenuItem(
+                      value: u,
+                      child: Text('${u.name} ${u.surnames}'),
+                    );
+                  }).toList(),
+                  onChanged: (u) => setState(() => selectedUser = u),
+                ),
+                const SizedBox(height: 12),
+                // 2. Selector de numRoute
+                Row(
+                  children: [
+                    const Text('Ruta:'),
+                    const SizedBox(width: 8),
+                    DropdownButton<int>(
+                      value: selectedRoute,
+                      items: rutas
+                        .map((r) => DropdownMenuItem(value: r, child: Text('$r')))
+                        .toList(),
+                      onChanged: (r) => setState(() => selectedRoute = r!),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // 3. Campo numérico para pickOrder
+                TextField(
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Orden de recogida',
+                    hintText: '1, 2, 3...',
+                  ),
+                  onChanged: (txt) {
+                    final v = int.tryParse(txt);
+                    if (v != null && v > 0) setState(() => pickOrder = v);
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () {
+              if (selectedUser != null) {
+                activeProvider.assignRoute(selectedUser!, selectedRoute, pickOrder);
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+    /// Diálogo para crear una nueva ruta en Firestore
+  void _showCreateRouteDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Crear nueva ruta'),
+        content: const Text('¿Estás seguro de crear una nueva ruta?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              setState(() => _isLoading = true);
+              // Obtener último numRoute y añadir +1
+              int last = await _routeService.getMaxRouteNumber();
+              await _routeService.createRouteNumber(last + 1);
+              setState(() => _isLoading = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Nueva ruta creada exitosamente')),
+              );
+            },
+            child: const Text('Crear'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Diálogo para borrar una ruta existente
+  void _showDeleteRouteDialog() async {
+    setState(() => _isLoading = true);
+    List<int> rutas = await _routeService.getAllRouteNumbers();
+    setState(() => _isLoading = false);
+
+    int? selectedRoute = 0;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Borrar ruta'),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return DropdownButton<int>(
+              isExpanded: true,
+              hint: const Text('Selecciona una ruta'),
+              value: selectedRoute,
+              items: rutas
+                  .map((r) => DropdownMenuItem(
+                        value: r,
+                        child: Text('Ruta $r'),
+                      ))
+                  .toList(),
+              onChanged: (r) => setState(() => selectedRoute = r),
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: 
+              () async {
+                Navigator.pop(context);
+                setState(() => _isLoading = true);
+                await _routeService.deleteRouteNumber(selectedRoute!);
+                setState(() => _isLoading = false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Ruta $selectedRoute eliminada')),
+                );
+              },
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -224,6 +387,153 @@ class _DashboardScreenState extends State<DashboardScreen>
           ],
         ),
         actions: [
+          if(_showActiveUsers)
+          Builder(
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              // Se define el contenido del botón según el ancho de la pantalla.
+              final Widget content = screenWidth >= 800
+                  ? const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          'Crear Ruta',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    )
+                  : const Icon(Icons.add, color: Colors.white);
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: InkWell(
+                  onTap: _showCreateRouteDialog,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth >= 800 ? 16 : 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Colors.blueAccent, Colors.lightBlue],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          offset: Offset(0, 2),
+                          blurRadius: 6,
+                        )
+                      ],
+                    ),
+                    child: content,
+                  ),
+                ),
+              );
+            },
+          ),
+          if(_showActiveUsers)
+          Builder(
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              // Se define el contenido del botón según el ancho de la pantalla.
+              final Widget content = screenWidth >= 800
+                  ? const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.route, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          'Asignar Ruta',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    )
+                  : const Icon(Icons.route, color: Colors.white);
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: InkWell(
+                  onTap: _showAssignRouteDialog,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth >= 800 ? 16 : 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Colors.blueAccent, Colors.lightBlue],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          offset: Offset(0, 2),
+                          blurRadius: 6,
+                        )
+                      ],
+                    ),
+                    child: content,
+                  ),
+                ),
+              );
+            },
+          ),
+          if(_showActiveUsers)
+          Builder(
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              // Se define el contenido del botón según el ancho de la pantalla.
+              final Widget content = screenWidth >= 800
+                  ? const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.delete, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          'Borrar Ruta',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    )
+                  : const Icon(Icons.delete, color: Colors.white);
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: InkWell(
+                  onTap: _showDeleteRouteDialog,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth >= 800 ? 16 : 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Colors.blueAccent, Colors.lightBlue],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          offset: Offset(0, 2),
+                          blurRadius: 6,
+                        )
+                      ],
+                    ),
+                    child: content,
+                  ),
+                ),
+              );
+            },
+          ),
           Builder(
             builder: (context) {
               final screenWidth = MediaQuery.of(context).size.width;
