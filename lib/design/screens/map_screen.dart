@@ -63,16 +63,11 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
     _mapController?.animateCamera(CameraUpdate.newLatLng(_driverLocation));
   }
 
-  void _calculateDistance() 
-  {
-    setState(() {
-    });
-
-    Future.delayed(const Duration(seconds: 3), () 
-    {
+  void _calculateDistance() {
+    setState(() {});
+    Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
-        setState(() {
-        });
+        setState(() {});
       }
     });
   }
@@ -103,18 +98,24 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
         ),
         title: Row(
           children: [
-            Icon(
-              Icons.map, // Aquí puedes poner el icono que desees
-              color: _isMenuOpen ? Colors.blue[700] : Colors.white,
-              size: 30,
-            ),
-            const SizedBox(width: 10), // Espacio entre el icono y el texto
-            Text(
-              'Mapa',
-              style: TextStyle(
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Icon(
+                Icons.map, // Icono en AppBar
                 color: _isMenuOpen ? Colors.blue[700] : Colors.white,
-                fontSize: screenWidth < 360 ? 18 : 24,
-                fontWeight: FontWeight.bold,
+                size: 30,
+              ),
+            ),
+            const SizedBox(width: 10),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Mapa',
+                style: TextStyle(
+                  color: _isMenuOpen ? Colors.blue[700] : Colors.white,
+                  fontSize: screenWidth < 360 ? 18 : 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -193,12 +194,15 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
                 ),
               ),
               alignment: Alignment.center,
-              child: const Text(
-                '© 2025 AFA Andújar',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontFamily: 'Montserrat',
+              child: const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  '© 2025 AFA Andújar',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontFamily: 'Montserrat',
+                  ),
                 ),
               ),
             ),
@@ -208,8 +212,7 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _buildMenuButton(String label, IconData icon, VoidCallback onPressed) 
-  {
+  Widget _buildMenuButton(String label, IconData icon, VoidCallback onPressed) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
@@ -222,8 +225,14 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
       ),
       child: ElevatedButton.icon(
         onPressed: onPressed,
-        icon: Icon(icon, color: Colors.white),
-        label: Text(label, style: const TextStyle(color: Colors.white)),
+        icon: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Icon(icon, color: Colors.white),
+        ),
+        label: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(label, style: const TextStyle(color: Colors.white)),
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,

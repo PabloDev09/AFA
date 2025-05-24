@@ -2,6 +2,7 @@ import 'package:afa/design/components/pending_user_component.dart';
 import 'package:afa/design/components/active_user_component.dart';
 import 'package:afa/logic/models/user.dart';
 import 'package:afa/logic/providers/active_user_provider.dart';
+import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/providers/pending_user_provider.dart';
 import 'package:afa/design/components/side_bar_menu.dart';
 import 'package:afa/logic/services/route_service.dart';
@@ -22,59 +23,142 @@ class _DashboardScreenState extends State<DashboardScreen>
     with SingleTickerProviderStateMixin {
   bool _showActiveUsers = false;
   bool _isMenuOpen = false;
-  bool _isLoading = false;
+  late ScrollController _scrollController;
+  bool _scrolledDown = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   final RouteService _routeService = RouteService();
   
-  Future<void> _showAssignRouteDialog() async {
-    final activeProvider = Provider.of<ActiveUserProvider>(context, listen: false);
-    User? selectedUser;
-    List<int> rutas = await _routeService.getAllRouteNumbers();
-    int selectedRoute = 0;
-    int pickOrder = 1;
+    @override
+  void initState() {
+    super.initState();
 
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Asignar Ruta'),
-        content: StatefulBuilder(
-          builder: (context, setState) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 1. Selector de usuario
-                DropdownButton<User>(
-                  isExpanded: true,
-                  hint: const Text('Selecciona un usuario'),
-                  value: selectedUser,
-                  items: activeProvider.activeUsers
-                  .where((u) => u.rol.trim() == 'Usuario')
-                  .map((u) {
-                    return DropdownMenuItem(
-                      value: u,
-                      child: Text('${u.name} ${u.surnames}'),
-                    );
-                  }).toList(),
-                  onChanged: (u) => setState(() => selectedUser = u),
+      _scrollController = ScrollController();
+      _scrollController.addListener(() {
+    if (_scrollController.offset > 20 && !_scrolledDown) {
+      setState(() {
+        _scrolledDown = true;
+      });
+    } else if (_scrollController.offset <= 20 && _scrolledDown) {
+      setState(() {
+        _scrolledDown = false;
+      });
+    }
+  });
+
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    _fadeAnimation =
+        CurvedAnimation(parent: _animationController, curve: Curves.easeIn);
+    _animationController.forward();
+
+
+  WidgetsBinding.instance.addPostFrameCallback((_) async 
+  {
+    await Provider.of<AuthUserProvider>(context, listen: false).loadUser();
+  });
+  }
+
+@override
+void dispose() {
+  _scrollController.dispose();
+  _animationController.dispose();
+  super.dispose();
+}
+  void _toggleMenu() {
+    setState(() {
+      _isMenuOpen = !_isMenuOpen;
+    });
+  }
+
+
+Future<void> _showAssignRouteDialog() async {
+  final activeProvider = Provider.of<ActiveUserProvider>(context, listen: false);
+  User? selectedUser;
+  List<int> rutas = await _routeService.getAllRouteNumbers();
+
+  // Agregar opción especial 0 para "Desasignar"
+  rutas.insert(0, 0);
+
+  int selectedRoute = rutas.first; // Ahora 0 será el valor inicial
+  int pickOrder = 1;
+
+  showDialog(
+    context: context,
+    builder: (_) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      titlePadding: EdgeInsets.zero,
+      title: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF063970), Color(0xFF2196F3)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(12),
+            topRight: Radius.circular(12),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Asignar Ruta',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 12),
-                // 2. Selector de numRoute
-                Row(
-                  children: [
-                    const Text('Ruta:'),
-                    const SizedBox(width: 8),
-                    DropdownButton<int>(
-                      value: selectedRoute,
-                      items: rutas
-                        .map((r) => DropdownMenuItem(value: r, child: Text('$r')))
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+      content: StatefulBuilder(
+        builder: (context, setState) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButton<User>(
+                isExpanded: true,
+                hint: const Text('Selecciona un usuario'),
+                value: selectedUser,
+                items: activeProvider.activeUsers
+                    .where((u) => u.rol.trim() == 'Usuario')
+                    .map((u) => DropdownMenuItem(
+                          value: u,
+                          child: Text('${u.name} ${u.surnames}'),
+                        ))
+                    .toList(),
+                onChanged: (u) => setState(() => selectedUser = u),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Text('Ruta:'),
+                  const SizedBox(width: 8),
+                  DropdownButton<int>(
+                    value: selectedRoute,
+                    items: rutas
+                        .map((r) => DropdownMenuItem(
+                              value: r,
+                              child: Text(r == 0 ? 'Desasignar' : 'Ruta $r'),
+                            ))
                         .toList(),
-                      onChanged: (r) => setState(() => selectedRoute = r!),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // 3. Campo numérico para pickOrder
+                    onChanged: (r) => setState(() => selectedRoute = r!),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (selectedRoute != 0) // Ocultar campo si es "Desasignar"
                 TextField(
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
@@ -86,137 +170,186 @@ class _DashboardScreenState extends State<DashboardScreen>
                     if (v != null && v > 0) setState(() => pickOrder = v);
                   },
                 ),
-              ],
-            );
-          },
+            ],
+          );
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancelar"),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          ElevatedButton(
-            onPressed: () {
-              if (selectedUser != null) {
+        TextButton(
+          style: TextButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: () {
+            if (selectedUser != null) {
                 activeProvider.assignRoute(selectedUser!, selectedRoute, pickOrder);
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('Confirmar'),
+            }
+            Navigator.pop(context);
+          },
+          child: const Text("Confirmar"),
+        ),
+      ],
+    ),
+  );
+}
+
+void _showCreateRouteDialog() {
+  showDialog(
+    context: context,
+    builder: (_) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      titlePadding: EdgeInsets.zero,
+      title: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF063970), Color(0xFF2196F3)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(12),
+            topRight: Radius.circular(12),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Crear nueva ruta',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
       ),
-    );
-  }
-
-    /// Diálogo para crear una nueva ruta en Firestore
-  void _showCreateRouteDialog() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Crear nueva ruta'),
-        content: const Text('¿Estás seguro de crear una nueva ruta?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+      content: const Text('¿Estás seguro de crear una nueva ruta?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              setState(() => _isLoading = true);
-              // Obtener último numRoute y añadir +1
-              int last = await _routeService.getMaxRouteNumber();
-              await _routeService.createRouteNumber(last + 1);
-              setState(() => _isLoading = false);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Nueva ruta creada exitosamente')),
-              );
-            },
-            child: const Text('Crear'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Diálogo para borrar una ruta existente
-  void _showDeleteRouteDialog() async {
-    setState(() => _isLoading = true);
-    List<int> rutas = await _routeService.getAllRouteNumbers();
-    setState(() => _isLoading = false);
-
-    int? selectedRoute = 0;
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Borrar ruta'),
-        content: StatefulBuilder(
-          builder: (context, setState) {
-            return DropdownButton<int>(
-              isExpanded: true,
-              hint: const Text('Selecciona una ruta'),
-              value: selectedRoute,
-              items: rutas
-                  .map((r) => DropdownMenuItem(
-                        value: r,
-                        child: Text('Ruta $r'),
-                      ))
-                  .toList(),
-              onChanged: (r) => setState(() => selectedRoute = r),
+          onPressed: () async {
+            Navigator.pop(context);
+            int last = await _routeService.getMaxRouteNumber();
+            await _routeService.createRouteNumber(last + 1);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Nueva ruta creada exitosamente'), backgroundColor: Colors.green),
             );
           },
+          child: const Text('Crear'),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+      ],
+    ),
+  );
+}
+
+void _showDeleteRouteDialog() async {
+  List<int> rutas = await _routeService.getAllRouteNumbers();
+
+  int? selectedRoute = rutas.isNotEmpty ? rutas.first : null;
+
+  showDialog(
+    context: context,
+    builder: (_) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      titlePadding: EdgeInsets.zero,
+      title: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF063970), Color(0xFF2196F3)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          ElevatedButton(
-            onPressed: 
-              () async {
-                Navigator.pop(context);
-                setState(() => _isLoading = true);
-                await _routeService.deleteRouteNumber(selectedRoute!);
-                setState(() => _isLoading = false);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Ruta $selectedRoute eliminada')),
-                );
-              },
-            child: const Text('Eliminar'),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(12),
+            topRight: Radius.circular(12),
           ),
-        ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Eliminar ruta',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
       ),
-    );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
-    _fadeAnimation =
-        CurvedAnimation(parent: _animationController, curve: Curves.easeIn);
-    _animationController.forward();
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  void _toggleMenu() {
-    setState(() {
-      _isMenuOpen = !_isMenuOpen;
-    });
-  }
+      content: StatefulBuilder(
+        builder: (context, setState) {
+          return DropdownButton<int>(
+            isExpanded: true,
+            hint: const Text('Selecciona una ruta'),
+            value: selectedRoute,
+            items: rutas.map((r) {
+              return DropdownMenuItem(
+                value: r,
+                child: Text('Ruta $r'),
+              );
+            }).toList(),
+            onChanged: (r) => setState(() => selectedRoute = r),
+          );
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: selectedRoute != null
+              ? () async {
+                  Navigator.pop(context);
+                  await _routeService.deleteRouteNumber(selectedRoute!);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Ruta $selectedRoute eliminada'), backgroundColor: Colors.green),
+                  );
+                }
+              : null,
+          child: const Text('Eliminar'),
+        ),
+      ],
+    ),
+  );
+}
 
   Future<void> _uploadDocument() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles();
 
       if (result != null && result.files.isNotEmpty) {
-        setState(() => _isLoading = true);
 
         var file = result.files.first;
         String fileName = file.name;
@@ -234,355 +367,216 @@ class _DashboardScreenState extends State<DashboardScreen>
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Documento subido con éxito")),
+          const SnackBar(content: Text("Documento subido con éxito"), backgroundColor: Colors.green),
         );
       }
     } catch (e) {
       print("❌ Error al subir documento: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al subir el documento")),
+        const SnackBar(content: Text("Error al subir el documento"), backgroundColor: Colors.green),
       );
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    } 
   }
 
-  @override
-  Widget build(BuildContext context) {
+Widget buildActionButton({
+  required BuildContext context,
+  required IconData icon,
+  required String label,
+  required VoidCallback onTap,
+}) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final bool showText = screenWidth >= 900;
+
+  // Tamaño dinámico del icono
+  final double iconSize = showText ? 24 : 18;
+
+  final Widget content = showText
+      ? Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white, size: iconSize),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        )
+      : Icon(icon, color: Colors.white, size: iconSize);
+
+  final button = Container(
+    padding: EdgeInsets.symmetric(
+      horizontal: showText ? 16 : 8,  // menos padding si no muestra texto
+      vertical: showText ? 10 : 6,
+    ),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [Colors.blueAccent, Colors.lightBlue],
+      ),
+      borderRadius: BorderRadius.circular(8),
+      boxShadow: const [
+        BoxShadow(
+          color: Colors.black26,
+          offset: Offset(0, 2),
+          blurRadius: 6,
+        )
+      ],
+    ),
+    child: content,
+  );
+
+  Widget scaledButton = button;
+
+  // Si no muestra texto, envolver en FittedBox para reducir tamaño completo
+  if (!showText) {
+    scaledButton = FittedBox(
+      fit: BoxFit.scaleDown,
+      child: button,
+    );
+  }
+
+  return Padding(
+    padding: const EdgeInsets.only(right: 8.0),
+    child: InkWell(
+      onTap: onTap,
+      child: showText ? button : Tooltip(message: label, child: scaledButton),
+    ),
+  );
+}
+
+
+    @override
+    Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor:
-            _isMenuOpen ? const Color.fromARGB(30, 0, 0, 0) : Colors.transparent,
-        elevation: 0,
-        title: Row(
-          children: [
-            IconButton(
-              icon: Icon(
-                _isMenuOpen ? Icons.close : Icons.menu,
-                color: _isMenuOpen ? Colors.blue[700] : Colors.white,
+      backgroundColor: _isMenuOpen
+          ? const Color.fromARGB(30, 0, 0, 0)
+          : _scrolledDown
+              ? Colors.black.withOpacity(0.5)  // negro transparente al hacer scroll
+              : Colors.transparent,
+
+          elevation: 0,
+          title: Row(
+            children: [
+              IconButton(
+                icon: Icon(
+                  _isMenuOpen ? Icons.close : Icons.menu,
+                  color: _isMenuOpen ? Colors.blue[700] : Colors.white,
+                ),
+                onPressed: _toggleMenu,
               ),
-              onPressed: _toggleMenu,
-            ),
-            Expanded(
-              flex: 1,
-              child: Align(
+
+              // Aquí ponemos el bloque que quieres al lado del menú, sin Expanded
+              Align(
                 alignment: Alignment.centerLeft,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.dashboard,
-                        color: _isMenuOpen ? Colors.blue[700] : Colors.white,
-                        size: 30,
-                      ),
-                      const SizedBox(width: 8),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final textSize =
-                              constraints.maxWidth > 200 ? 24.0 : 20.0;
-                          return Text(
-                            'Panel de administración',
-                            style: TextStyle(
-                              color:
-                                  _isMenuOpen ? Colors.blue[700] : Colors.white,
-                              fontSize: textSize,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          );
+                      Consumer<PendingUserProvider>(
+                        builder: (context, userPendingProvider, child) {
+                          final count = userPendingProvider.pendingUsers.length;
+                          return count > 0
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '$count',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox();
                         },
                       ),
+                      const SizedBox(width: 3),
+                      const Icon(Icons.person_add_alt_rounded, color: Colors.white),
+                      const SizedBox(width: 3),
+                      Switch(
+                        value: _showActiveUsers,
+                        onChanged: (bool value) {
+                          setState(() {
+                            _showActiveUsers = value;
+                          });
+                        },
+                        activeColor: Colors.white,
+                        activeTrackColor: Colors.lightBlue,
+                        inactiveThumbColor: Colors.white,
+                        inactiveTrackColor: Colors.grey,
+                      ),
+                      const SizedBox(width: 3),
+                      const Icon(Icons.person, color: Colors.white),
+                      const SizedBox(width: 3),
+                      Consumer<ActiveUserProvider>(
+                        builder: (context, activeProvider, child) {
+                          final activeCount = activeProvider.activeUsers.length;
+                          return activeCount > 0
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '$activeCount',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox();
+                        },
+                      ),
+                      const SizedBox(width: 10),
                     ],
                   ),
                 ),
               ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Row(
-                        children: [
-                          Consumer<PendingUserProvider>(
-                            builder: (context, userPendingProvider, child) {
-                              final count = userPendingProvider.pendingUsers.length;
-                              return count > 0
-                                  ? Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 5, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red,
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Text(
-                                        '$count',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    )
-                                  : const SizedBox();
-                            },
-                          ),
-                          const SizedBox(width: 6),
-                          const Icon(Icons.person_add_alt_rounded,
-                              color: Colors.white),
-                          const SizedBox(width: 6),
-                          Switch(
-                            value: _showActiveUsers,
-                            onChanged: (bool value) {
-                              setState(() {
-                                _showActiveUsers = value;
-                              });
-                            },
-                            activeColor: Colors.white,
-                            activeTrackColor: Colors.lightBlue,
-                            inactiveThumbColor: Colors.white,
-                            inactiveTrackColor: Colors.grey,
-                          ),
-                          const SizedBox(width: 6),
-                          const Icon(Icons.person, color: Colors.white),
-                          const SizedBox(width: 6),
-                          Consumer<ActiveUserProvider>(
-                            builder: (context, activeProvider, child) {
-                              final activeCount =
-                                  activeProvider.activeUsers.length;
-                              return activeCount > 0
-                                  ? Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 5, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green,
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Text(
-                                        '$activeCount',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    )
-                                  : const SizedBox();
-                            },
-                          ),
-                          const SizedBox(width: 10),
-                        ],
-                      );
-                    },
-                  ),
-                ),
+            ],
+          ),
+          actions: [
+            if (_showActiveUsers)
+              buildActionButton(
+                context: context,
+                icon: Icons.add,
+                label: 'Crear Ruta',
+                onTap: _showCreateRouteDialog,
               ),
+            if (_showActiveUsers)
+              buildActionButton(
+                context: context,
+                icon: Icons.route,
+                label: 'Asignar Ruta',
+                onTap: _showAssignRouteDialog,
+              ),
+            if (_showActiveUsers)
+              buildActionButton(
+                context: context,
+                icon: Icons.delete,
+                label: 'Eliminar Ruta',
+                onTap: _showDeleteRouteDialog,
+              ),
+            buildActionButton(
+              context: context,
+              icon: Icons.upload_file,
+              label: 'Subir Documento',
+              onTap: _uploadDocument,
             ),
           ],
-        ),
-        actions: [
-          if(_showActiveUsers)
-          Builder(
-            builder: (context) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              // Se define el contenido del botón según el ancho de la pantalla.
-              final Widget content = screenWidth >= 800
-                  ? const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.add, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text(
-                          'Crear Ruta',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    )
-                  : const Icon(Icons.add, color: Colors.white);
-              return Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: InkWell(
-                  onTap: _showCreateRouteDialog,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth >= 800 ? 16 : 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Colors.blueAccent, Colors.lightBlue],
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black26,
-                          offset: Offset(0, 2),
-                          blurRadius: 6,
-                        )
-                      ],
-                    ),
-                    child: content,
-                  ),
-                ),
-              );
-            },
-          ),
-          if(_showActiveUsers)
-          Builder(
-            builder: (context) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              // Se define el contenido del botón según el ancho de la pantalla.
-              final Widget content = screenWidth >= 800
-                  ? const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.route, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text(
-                          'Asignar Ruta',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    )
-                  : const Icon(Icons.route, color: Colors.white);
-              return Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: InkWell(
-                  onTap: _showAssignRouteDialog,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth >= 800 ? 16 : 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Colors.blueAccent, Colors.lightBlue],
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black26,
-                          offset: Offset(0, 2),
-                          blurRadius: 6,
-                        )
-                      ],
-                    ),
-                    child: content,
-                  ),
-                ),
-              );
-            },
-          ),
-          if(_showActiveUsers)
-          Builder(
-            builder: (context) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              // Se define el contenido del botón según el ancho de la pantalla.
-              final Widget content = screenWidth >= 800
-                  ? const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.delete, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text(
-                          'Borrar Ruta',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    )
-                  : const Icon(Icons.delete, color: Colors.white);
-              return Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: InkWell(
-                  onTap: _showDeleteRouteDialog,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth >= 800 ? 16 : 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Colors.blueAccent, Colors.lightBlue],
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black26,
-                          offset: Offset(0, 2),
-                          blurRadius: 6,
-                        )
-                      ],
-                    ),
-                    child: content,
-                  ),
-                ),
-              );
-            },
-          ),
-          Builder(
-            builder: (context) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              // Se define el contenido del botón según el ancho de la pantalla.
-              final Widget content = screenWidth >= 800
-                  ? const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.upload_file, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text(
-                          'Subir Documento',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    )
-                  : const Icon(Icons.upload_file, color: Colors.white);
-              return Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: InkWell(
-                  onTap: _uploadDocument,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth >= 800 ? 16 : 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Colors.blueAccent, Colors.lightBlue],
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black26,
-                          offset: Offset(0, 2),
-                          blurRadius: 6,
-                        )
-                      ],
-                    ),
-                    child: content,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
       ),
       body: Stack(
         children: [
@@ -590,12 +584,8 @@ class _DashboardScreenState extends State<DashboardScreen>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  theme.brightness == Brightness.dark
-                      ? const Color(0xFF1E1E1E)
-                      : const Color(0xFF063970),
-                  theme.brightness == Brightness.dark
-                      ? const Color(0xFF121212)
-                      : const Color(0xFF66B3FF),
+                  theme.brightness == Brightness.dark ? const Color(0xFF1E1E1E) : const Color(0xFF063970),
+                  theme.brightness == Brightness.dark ? const Color(0xFF121212) : const Color(0xFF66B3FF),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -605,8 +595,8 @@ class _DashboardScreenState extends State<DashboardScreen>
               children: [
                 Expanded(
                   child: SingleChildScrollView(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 20, vertical: 50),
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 50),
                     child: FadeTransition(
                       opacity: _fadeAnimation,
                       child: _showActiveUsers
@@ -622,9 +612,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             Positioned.fill(
               child: GestureDetector(
                 onTap: _toggleMenu,
-                child: Container(
-                  color: Colors.black.withOpacity(0.5),
-                ),
+                child: Container(color: Colors.black.withOpacity(0.5)),
               ),
             ),
           if (_isMenuOpen)
@@ -632,40 +620,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               left: 0,
               top: 0,
               bottom: 0,
-              child: SidebarMenu(
-                selectedIndex: 1,
-              ),
-            ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 60,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.transparent,
-                    Colors.black54,
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-              alignment: Alignment.center,
-              child: const Text(
-                '© 2025 AFA Andújar',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontFamily: 'Montserrat',
-                ),
-              ),
-            ),
-          ),
-          if (_isLoading)
-            const Positioned.fill(
-              child: Center(child: CircularProgressIndicator()),
+              child: SidebarMenu(selectedIndex: 1),
             ),
         ],
       ),

@@ -44,8 +44,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> with TickerProviderStat
 
    WidgetsBinding.instance.addPostFrameCallback((_) async 
    {
-      final authProvider = Provider.of<AuthUserProvider>(context, listen: false);
-      await authProvider.loadUser();
+      final authProvider = Provider.of<AuthUserProvider>(context, listen: false)..loadUser();
       await _verificarRutaPendiente(authProvider.userFireStore?.username);
   });
 
@@ -186,11 +185,19 @@ Future<void> _showSlidingNotification(
 ) async {
   final overlay = Overlay.of(context);
   final theme = Theme.of(context);
+  final isAlert = n.isAlert == true;
   final isImportant = n.isImportant == true;
 
-  // 1️⃣ Prepara el reproductor y carga el WAV
+  // Escoge la ruta del audio según si es alerta, importante o normal
+  final audioPath = isAlert
+      ? 'sounds/notification-alert.mp3'
+      : isImportant
+          ? 'sounds/notification-important.mp3'
+          : 'sounds/notification.wav';
+
+  // 1️⃣ Prepara el reproductor y carga el audio correcto
   final audioPlayer = AudioPlayer();
-  await audioPlayer.setSource(AssetSource('sounds/notification.wav'));
+  await audioPlayer.setSource(AssetSource(audioPath));
 
   // 2️⃣ Controlador de animación con vsync válido
   final controller = AnimationController(
@@ -236,14 +243,18 @@ Future<void> _showSlidingNotification(
                     margin: const EdgeInsets.symmetric(horizontal: 12),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isImportant
+                      color: isAlert
                           ? Colors.red.withOpacity(0.1)
-                          : Colors.white,
+                          : isImportant
+                              ? Colors.green.withOpacity(0.1)
+                              : Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isImportant
+                        color: isAlert
                             ? Colors.red
-                            : theme.colorScheme.primary,
+                            : isImportant
+                                ? Colors.green
+                                : theme.colorScheme.primary,
                         width: 1.5,
                       ),
                     ),
@@ -266,12 +277,16 @@ Future<void> _showSlidingNotification(
                                 _openNotifications();
                               },
                               child: Icon(
-                                isImportant
+                                isAlert
                                     ? Icons.warning_amber_rounded
-                                    : Icons.notifications_active,
-                                color: isImportant
+                                    : isImportant
+                                        ? Icons.check_circle
+                                        : Icons.notifications_active,
+                                color: isAlert
                                     ? Colors.red
-                                    : theme.colorScheme.primary,
+                                    : isImportant
+                                        ? Colors.green
+                                        : theme.colorScheme.primary,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -279,12 +294,12 @@ Future<void> _showSlidingNotification(
                               child: Text(
                                 n.message,
                                 style: theme.textTheme.bodyLarge!.copyWith(
-                                  fontWeight: isImportant
-                                      ? FontWeight.bold
-                                      : FontWeight.bold,
-                                  color: isImportant
+                                  fontWeight: FontWeight.bold,
+                                  color: isAlert
                                       ? Colors.red[800]
-                                      : theme.colorScheme.onSurface,
+                                      : isImportant
+                                          ? Colors.green[800]
+                                          : theme.colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -292,9 +307,11 @@ Future<void> _showSlidingNotification(
                             Icon(
                               Icons.circle,
                               size: 10,
-                              color: isImportant
+                              color: isAlert
                                   ? Colors.redAccent
-                                  : theme.colorScheme.secondary,
+                                  : isImportant
+                                      ? Colors.greenAccent
+                                      : theme.colorScheme.secondary,
                             ),
                           ],
                         ),
@@ -302,9 +319,11 @@ Future<void> _showSlidingNotification(
                         Text(
                           DateFormat('dd/MM/yyyy HH:mm').format(n.date),
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: isImportant
+                            color: isAlert
                                 ? Colors.red[700]
-                                : theme.disabledColor,
+                                : isImportant
+                                    ? Colors.green[700]
+                                    : theme.disabledColor,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -326,7 +345,7 @@ Future<void> _showSlidingNotification(
   // 5️⃣ Retrasa el play y la animación hasta después del build actual
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     try {
-      await audioPlayer.play(AssetSource('sounds/notification.wav'));
+      await audioPlayer.play(AssetSource(audioPath));
     } catch (_) {
       // Silenciar errores de autoplay en web
     }
@@ -340,6 +359,7 @@ Future<void> _showSlidingNotification(
     await audioPlayer.dispose();
   });
 }
+
 
 
  

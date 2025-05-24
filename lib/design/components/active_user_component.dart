@@ -14,21 +14,25 @@ class ActiveUserComponent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Título fijo para usuarios activos
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.person, color: Colors.white, size: 30),
-                SizedBox(width: 6),
-                Text(
-                  'Usuarios Activos',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
+              const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.person, color: Colors.white, size: 30),
+                    SizedBox(width: 6),
+                    Text(
+                      'Usuarios Activos',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
             const SizedBox(height: 20),
             // Si no hay usuarios, se muestra un mensaje centrado
             if (activeUserProvider.activeUsers.isEmpty)
@@ -42,15 +46,14 @@ class ActiveUserComponent extends StatelessWidget {
     );
   }
 
-  /// Muestra un mensaje centrado en caso de que no haya usuarios activos.
   Widget _buildNoUsersDirectly(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    double fontSize = MediaQuery.of(context).size.width * 0.02;
-    fontSize = fontSize.clamp(14, 18);
+  final screenHeight = MediaQuery.of(context).size.height;
 
-    return SizedBox(
-      height: screenHeight * 0.7,
-      child: const Center(
+  return SizedBox(
+    height: screenHeight * 0.7,
+    child: const Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -100,40 +103,45 @@ class ActiveUserComponent extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  /// Construye las tarjetas de usuarios activos en una cuadrícula.
+
   Widget _buildActiveUsersCards(BuildContext context, List<User> activeUsers) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        int columns;
-        double fontSize = constraints.maxWidth * 0.02;
-        fontSize = fontSize.clamp(22, 24);
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      int columns;
+      double fontSize = constraints.maxWidth * 0.02;
+      fontSize = fontSize.clamp(22, 24);
 
-        double columnFactor = constraints.maxWidth / 375;
-        columns = columnFactor.floor();
-        double decimalPart = columnFactor - columns;
-        fontSize = (fontSize + decimalPart * 6).clamp(22, 25);
+      double columnFactor = constraints.maxWidth / 375;
+      columns = columnFactor.floor();
+      double decimalPart = columnFactor - columns;
+      fontSize = (fontSize + decimalPart * 6).clamp(22, 25);
 
-        const double spacing = 16;
-        final double totalSpacing = spacing * (columns - 1);
-        final double itemWidth = (constraints.maxWidth - totalSpacing) / columns;
+      const double spacing = 16;
+      final double totalSpacing = spacing * (columns - 1);
+      final double itemWidth = (constraints.maxWidth - totalSpacing) / columns;
 
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: activeUsers.map((user) {
-            return SizedBox(
+      return Wrap(
+        spacing: spacing,
+        runSpacing: spacing,
+        children: activeUsers.map((user) {
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            child: SizedBox(
               width: itemWidth,
               height: 385,
               child: _buildUserContainer(context, user, fontSize),
-            );
-          }).toList(),
-        );
-      },
-    );
-  }
+            ),
+          );
+        }).toList(),
+      );
+    },
+  );
+}
+
 
   /// Contenedor interno para cada usuario activo.
   Widget _buildUserContainer(BuildContext context, User user, double fontSize) {

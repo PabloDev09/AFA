@@ -45,6 +45,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
 
    WidgetsBinding.instance.addPostFrameCallback((_) async 
    {
+    await Provider.of<AuthUserProvider>(context, listen: false).loadUser();
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     LocationPermission permission = await Geolocator.checkPermission();
 
@@ -61,8 +62,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
     {
       await _verificarRutaPendiente(context);
     }
-
-    await Provider.of<AuthUserProvider>(context, listen: false).loadUser();
   });
 
   }
@@ -71,12 +70,10 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
    {
     final routeProvider = Provider.of<DriverRouteProvider>(context, listen: false);
     final String? username = Provider.of<AuthUserProvider>(context, listen: false).userFireStore?.username;
-    if(username == null) return;
 
-    if (await routeProvider.canResumeRoute(username)) 
+    if (await routeProvider.canResumeRoute(username!)) 
     {
       await routeProvider.resumeRoute();
-      setState(() {});
     }
   }
 
@@ -220,11 +217,19 @@ Future<void> _showSlidingNotification(
 ) async {
   final overlay = Overlay.of(context);
   final theme = Theme.of(context);
+  final isAlert = n.isAlert == true;
   final isImportant = n.isImportant == true;
 
-  // 1️⃣ Prepara el reproductor y carga el WAV
+  // Escoge la ruta del audio según si es alerta, importante o normal
+  final audioPath = isAlert
+      ? 'sounds/notification-alert.mp3'
+      : isImportant
+          ? 'sounds/notification-important.mp3'
+          : 'sounds/notification.wav';
+
+  // 1️⃣ Prepara el reproductor y carga el audio correcto
   final audioPlayer = AudioPlayer();
-  await audioPlayer.setSource(AssetSource('sounds/notification.wav'));
+  await audioPlayer.setSource(AssetSource(audioPath));
 
   // 2️⃣ Controlador de animación con vsync válido
   final controller = AnimationController(
@@ -270,14 +275,18 @@ Future<void> _showSlidingNotification(
                     margin: const EdgeInsets.symmetric(horizontal: 12),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isImportant
+                      color: isAlert
                           ? Colors.red.withOpacity(0.1)
-                          : Colors.white,
+                          : isImportant
+                              ? Colors.green.withOpacity(0.1)
+                              : Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isImportant
+                        color: isAlert
                             ? Colors.red
-                            : theme.colorScheme.primary,
+                            : isImportant
+                                ? Colors.green
+                                : theme.colorScheme.primary,
                         width: 1.5,
                       ),
                     ),
@@ -300,12 +309,16 @@ Future<void> _showSlidingNotification(
                                 _openNotifications();
                               },
                               child: Icon(
-                                isImportant
+                                isAlert
                                     ? Icons.warning_amber_rounded
-                                    : Icons.notifications_active,
-                                color: isImportant
+                                    : isImportant
+                                        ? Icons.check_circle
+                                        : Icons.notifications_active,
+                                color: isAlert
                                     ? Colors.red
-                                    : theme.colorScheme.primary,
+                                    : isImportant
+                                        ? Colors.green
+                                        : theme.colorScheme.primary,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -313,12 +326,12 @@ Future<void> _showSlidingNotification(
                               child: Text(
                                 n.message,
                                 style: theme.textTheme.bodyLarge!.copyWith(
-                                  fontWeight: isImportant
-                                      ? FontWeight.bold
-                                      : FontWeight.bold,
-                                  color: isImportant
+                                  fontWeight: FontWeight.bold,
+                                  color: isAlert
                                       ? Colors.red[800]
-                                      : theme.colorScheme.onSurface,
+                                      : isImportant
+                                          ? Colors.green[800]
+                                          : theme.colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -326,9 +339,11 @@ Future<void> _showSlidingNotification(
                             Icon(
                               Icons.circle,
                               size: 10,
-                              color: isImportant
+                              color: isAlert
                                   ? Colors.redAccent
-                                  : theme.colorScheme.secondary,
+                                  : isImportant
+                                      ? Colors.greenAccent
+                                      : theme.colorScheme.secondary,
                             ),
                           ],
                         ),
@@ -336,9 +351,11 @@ Future<void> _showSlidingNotification(
                         Text(
                           DateFormat('dd/MM/yyyy HH:mm').format(n.date),
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: isImportant
+                            color: isAlert
                                 ? Colors.red[700]
-                                : theme.disabledColor,
+                                : isImportant
+                                    ? Colors.green[700]
+                                    : theme.disabledColor,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -360,7 +377,7 @@ Future<void> _showSlidingNotification(
   // 5️⃣ Retrasa el play y la animación hasta después del build actual
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     try {
-      await audioPlayer.play(AssetSource('sounds/notification.wav'));
+      await audioPlayer.play(AssetSource(audioPath));
     } catch (_) {
       // Silenciar errores de autoplay en web
     }
@@ -374,8 +391,6 @@ Future<void> _showSlidingNotification(
     await audioPlayer.dispose();
   });
 }
-
-
 
 
   @override
@@ -829,7 +844,7 @@ Widget _buildCalendar(DriverRouteProvider routeProvider) {
 
 Future<void> _showRouteSelectionDialog(DriverRouteProvider routeProvider) async {
   final String? username = Provider.of<AuthUserProvider>(context, listen: false).userFireStore?.username;
-  if(username == null) return;
+  if (username == null) return;
 
   final routes = await NumberRouteService().getDistinctRouteNumbers();
   int? selectedRoute = routes.isNotEmpty ? routes.first : null;
@@ -838,22 +853,71 @@ Future<void> _showRouteSelectionDialog(DriverRouteProvider routeProvider) async 
     context: context,
     builder: (context) {
       return AlertDialog(
-        title: const Text('Selecciona número de ruta'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        titlePadding: EdgeInsets.zero,
+        title: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF063970),
+                Color(0xFF2196F3),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Selecciona número de ruta',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.pop(context, false),
+              ),
+            ],
+          ),
+        ),
         content: StatefulBuilder(
           builder: (context, setState) {
-            return DropdownButton<int>(
+            return DropdownButtonFormField<int>(
               value: selectedRoute,
+              decoration: const InputDecoration(
+                labelText: "Ruta",
+                border: OutlineInputBorder(),
+              ),
               items: routes
-                .map((n) => DropdownMenuItem(value: n, child: Text('Ruta $n')))
-                .toList(),
+                  .map((n) => DropdownMenuItem(value: n, child: Text('Ruta $n')))
+                  .toList(),
               onChanged: (n) => setState(() => selectedRoute = n),
             );
           },
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Iniciar'),
           ),
         ],
@@ -861,11 +925,11 @@ Future<void> _showRouteSelectionDialog(DriverRouteProvider routeProvider) async 
     },
   );
 
-  if (confirmed == true && selectedRoute != null) 
-  {
+  if (confirmed == true && selectedRoute != null) {
     await routeProvider.startRoute(username, selectedRoute!);
     setState(() {}); 
   }
 }
+
 
 }

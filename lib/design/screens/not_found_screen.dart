@@ -100,20 +100,19 @@ class NotFoundScreen extends StatelessWidget {
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
                       alignment: Alignment.center,
-                      child: const Column(
-                        children: [
-                          Text(
-                            'Página no encontrada',
-                            style: TextStyle(
-                              fontFamily: 'Montserrat', 
-                              color: Colors.white,
-                              fontSize: 26,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.2,
-                            ),
-                            textAlign: TextAlign.center,
+                      child: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Página no encontrada',
+                          style: TextStyle(
+                            fontFamily: 'Montserrat', 
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
                           ),
-                        ],
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
 
@@ -122,21 +121,27 @@ class NotFoundScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(30.0),
                       child: Column(
                         children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 90,
-                            color: Colors.orange[700],
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Icon(
+                              Icons.error_outline,
+                              size: 90,
+                              color: Colors.orange[700],
+                            ),
                           ),
                           const SizedBox(height: 20),
-                          const Text(
-                            'Oops! La página que buscas no existe o ha sido movida.',
-                            style: TextStyle(
-                              fontFamily: 'Montserrat', // ✅ Montserrat
-                              fontSize: 17,
-                              color: Colors.black87,
-                              height: 1.4,
+                          const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Oops! La página que buscas no existe o ha sido movida.',
+                              style: TextStyle(
+                                fontFamily: 'Montserrat',
+                                fontSize: 17,
+                                color: Colors.black87,
+                                height: 1.4,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 30),
                           Container(
@@ -163,33 +168,35 @@ class NotFoundScreen extends StatelessWidget {
                                 context.go(PathUrlAfa().pathHome);
                               },
                               style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  minimumSize: const Size(0, 50),
-                                ).copyWith(
-                                  overlayColor: WidgetStateProperty.resolveWith((states) {
-                                    if (states.contains(WidgetState.hovered)) {
-                                      return Colors.white.withOpacity(0.2);
-                                    }
-                                    return null;
-                                  }),
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                              child: const Text(
-                                'Volver al inicio',
-                                style: TextStyle(
-                                  fontFamily: 'Montserrat',
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
+                                minimumSize: const Size(0, 50),
+                              ).copyWith(
+                                overlayColor: WidgetStateProperty.resolveWith((states) {
+                                  if (states.contains(WidgetState.hovered)) {
+                                    return Colors.white.withOpacity(0.2);
+                                  }
+                                  return null;
+                                }),
+                              ),
+                              child: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'Volver al inicio',
+                                  style: TextStyle(
+                                    fontFamily: 'Montserrat',
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-
                         ],
                       ),
                     ),
@@ -217,11 +224,14 @@ class NotFoundScreen extends StatelessWidget {
                 ),
               ),
               alignment: Alignment.center,
-              child: const Text(
-                '© 2025 AFA Andújar',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
+              child: const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  '© 2025 AFA Andújar',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ),

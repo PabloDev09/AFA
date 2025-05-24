@@ -423,14 +423,17 @@ Future<List<RouteUser>> getUsersByStatus({
     return snapshot.docs.first.get('numRoute') as int;
   }
 
-  Future<List<int>> getAllRouteNumbers() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('ruta_numero')
-        .orderBy('numRoute')
-        .get();
-    return snapshot.docs
-        .map((doc) => doc.get('numRoute') as int)
-        .toList();
+  Future<List<int>> getAllRouteNumbers() async 
+  {
+  final snapshot = await FirebaseFirestore.instance
+      .collection('ruta_numero')
+      .orderBy('numRoute')
+      .get();
+
+  return snapshot.docs
+      .map((doc) => doc.get('numRoute') as int)
+      .where((num) => num != 0) // <-- filtra el 0
+      .toList();
   }
 
   Future<void> createRouteNumber(int numRoute) async {

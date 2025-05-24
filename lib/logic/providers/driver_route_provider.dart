@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:afa/logic/models/route_driver.dart';
 import 'package:afa/logic/services/driver_route_service.dart';
+import 'package:afa/logic/services/route_service.dart';
 import 'package:afa/utils.dart';
 import 'package:flutter/material.dart';
-import 'package:afa/logic/services/route_service.dart';
 import 'package:afa/logic/models/route_user.dart';
 import 'package:afa/logic/providers/notification_provider.dart';
 import 'package:geolocator/geolocator.dart';
@@ -43,6 +43,7 @@ class DriverRouteProvider extends ChangeNotifier {
       _notificationProvider.addNotification(
         "Error al obtener la ubicación del conductor.",
         true,
+        false
       );
     }
   }
@@ -79,6 +80,7 @@ class DriverRouteProvider extends ChangeNotifier {
       _notificationProvider.addNotification(
         "Ubicación del conductor no disponible.",
         true,
+        false
       );
       return;
     }
@@ -94,12 +96,13 @@ class DriverRouteProvider extends ChangeNotifier {
       if (created) {
         await _updateRouteDriver(username);
         await _getAllUsers(routeDriver.numRoute);
-        _notificationProvider.addNotification("Ruta iniciada.", false);
+        _notificationProvider.addNotification("Ruta iniciada.", false, false);
         await startListening();
       } else {
         _notificationProvider.addNotification(
           "Ya existe una ruta activa con ese número.",
           true,
+          false
         );
       }
     } finally {
@@ -110,15 +113,15 @@ class DriverRouteProvider extends ChangeNotifier {
 
   Future<void> resumeRoute() async {
     await setDriverLocation();
+    isLoading = true;
     if (driverLocation == null || routeDriver.username.isEmpty) {
       _notificationProvider.addNotification(
         "No hay ruta para reanudar o ubicación no disponible.",
         true,
+        false
       );
       return;
     }
-
-    isLoading = true;
     notifyListeners();
     try {
       await _updateRouteDriver(routeDriver.username);
@@ -127,7 +130,7 @@ class DriverRouteProvider extends ChangeNotifier {
         routeDriver.numRoute,
       );
       await _getAllUsers(routeDriver.numRoute);
-      _notificationProvider.addNotification("Ruta reanudada.", false);
+      _notificationProvider.addNotification("Ruta reanudada.", false, false);
       await startListening();
     } finally {
       isLoading = false;
@@ -139,13 +142,13 @@ class DriverRouteProvider extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
     try {
-      // Solo una llamada a Firestore para obtener driver
       final driver = await _driverRouteService.getDriverByUsername(username);
-      if (driver == null) return false;
-
-      routeDriver = driver;
+      routeDriver = driver!;
+      debugPrint("${routeDriver.numRoute} OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO");
       return await _routeService.canContinueRoute(routeDriver.numRoute);
-    } finally {
+    } 
+    finally 
+    {
       isLoading = false;
       notifyListeners();
     }
@@ -156,13 +159,13 @@ class DriverRouteProvider extends ChangeNotifier {
     await _driverRouteService.removeDriverFromRoute(routeDriver.username);
     await _clearAllUsers();
     await stopListening();
-    _notificationProvider.addNotification("Ruta finalizada.", false);
+    _notificationProvider.addNotification("Ruta finalizada.", false, false);
     notifyListeners();
   }
 
   Future<void> pickUpUser(String username, int numPick) async {
     await _routeService.pickUpUser(username, routeDriver.numRoute, numPick);
-    _notificationProvider.addNotification("Recogiendo a $username.", false);
+    _notificationProvider.addNotification("Recogiendo a $username.", false, false);
     await _getAllUsers(routeDriver.numRoute);
     notifyListeners();
   }
@@ -172,6 +175,7 @@ class DriverRouteProvider extends ChangeNotifier {
     _notificationProvider.addNotification(
       "Recogida de $username cancelada.",
       false,
+      false
     );
     await _getAllUsers(routeDriver.numRoute);
     notifyListeners();
@@ -179,25 +183,30 @@ class DriverRouteProvider extends ChangeNotifier {
 
   Future<void> markUserAsCollected(String username) async {
     await _routeService.markUserAsCollected(username, routeDriver.numRoute);
-    _notificationProvider.addNotification("$username ha sido recogido.", false);
+    _notificationProvider.addNotification("$username ha sido recogido.", false, false);
     await _getAllUsers(routeDriver.numRoute);
     notifyListeners();
   }
 
   Future<void> markRouteHasProblem() async {
     await _driverRouteService.markProblem(routeDriver.username);
+    routeDriver.hasProblem = true;
     _notificationProvider.addNotification(
-      "Tu alerta de incidencia en la ruta ha sido registrada correctamente. ",
+      "Tu alerta de incidencia en la ruta ha sido reportada. ",
       true,
+      false
     );
+    
     notifyListeners();
   }
 
   Future<void> clearRouteHasProblem() async {
     await _driverRouteService.clearProblem(routeDriver.username);
+    routeDriver.hasProblem = false;
     _notificationProvider.addNotification(
-      "Tu alerta de incidencia en la ruta ha sido resuelta correctamente. ",
-      true,
+      "Tu alerta de incidencia en la ruta ha sido resuelta. ",
+      false,
+      true
     );
     notifyListeners();
   }
@@ -214,11 +223,12 @@ class DriverRouteProvider extends ChangeNotifier {
           routeDriver.numRoute,
         );
         await _getAllUsers(routeDriver.numRoute);
-        _notificationProvider.addNotification("Ruta actualizada.", false);
+        _notificationProvider.addNotification("Ruta actualizada.", false, false);
       } else {
         _notificationProvider.addNotification(
           "Ubicación del conductor no disponible.",
           true,
+          false
         );
       }
     } finally {
@@ -260,6 +270,7 @@ class DriverRouteProvider extends ChangeNotifier {
       _notificationProvider.addNotification(
         "No se pudo cargar la información del conductor.",
         true,
+        false
       );
     }
     notifyListeners();

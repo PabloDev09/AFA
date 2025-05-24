@@ -111,42 +111,50 @@ Widget build(BuildContext context) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ✨ Botón de incidencia ✨
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-            child: Center(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  if (hasProblem) {
-                    driverRouteProvider.clearRouteHasProblem();
-                  } else {
-                    driverRouteProvider.markRouteHasProblem();
-                  }
-                },
-                icon: Icon(
-                  hasProblem
-                      ? Icons.check_circle
-                      : Icons.warning_amber_rounded,
-                  color: Colors.white,
-                ),
-                label: Text(
-                  hasProblem
-                      ? 'Marcar incidencia como resuelta'
-                      : 'Reportar incidencia',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: hasProblem ? Colors.green : Colors.red,
-                  padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: (hasProblem ? Colors.green : Colors.red).withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: hasProblem ? Colors.green : Colors.red,
+                width: 1.5,
+              ),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                if (hasProblem) {
+                  driverRouteProvider.clearRouteHasProblem();
+                } else {
+                  driverRouteProvider.markRouteHasProblem();
+                }
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    hasProblem ? Icons.check_circle : Icons.warning_amber_rounded,
+                    color: hasProblem ? Colors.green : Colors.red,
                   ),
-                  elevation: 4,
-                ),
+                  const SizedBox(width: 8),
+                  Text(
+                    hasProblem ? 'Marcar incidencia como resuelta' : 'Reportar incidencia',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: hasProblem ? Colors.green : Colors.red,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-
+        ),
+        const SizedBox(height: 10),
           // Nuevo header con tarjetas de estado
           Row(
             children: [

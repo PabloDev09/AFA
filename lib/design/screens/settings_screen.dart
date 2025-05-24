@@ -28,7 +28,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _surnamesController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
-  
 
   bool _isMenuOpen = false;
 
@@ -38,7 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-    @override
+  @override
   void initState() {
     super.initState();
     _initialLoad = (() async {
@@ -51,11 +50,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final authProvider = Provider.of<AuthUserProvider>(context, listen: false);
     final userRouteProvider =
         Provider.of<UserRouteProvider>(context, listen: false);
- 
+
     await authProvider.loadUser();
     final username = authProvider.userFireStore?.username;
-    if (username != null) 
-    {
+    if (username != null) {
       userRouteProvider.startListening();
       await userRouteProvider.getCancelDates(username);
     }
@@ -73,139 +71,158 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-  final theme = Theme.of(context);
+    final theme = Theme.of(context);
 
-  return FutureBuilder(
-    future: _initialLoad,
-    builder: (context, snapshot) {
-      if (snapshot.connectionState != ConnectionState.done) {
-        return const Scaffold(
-          body: Center(child: LoadingNoChildScreen()),
-        );
-      }
+    return FutureBuilder(
+      future: _initialLoad,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: LoadingNoChildScreen()),
+          );
+        }
 
-      final user = Provider.of<AuthUserProvider>(context).userFireStore!;
+        final user = Provider.of<AuthUserProvider>(context).userFireStore!;
 
-      return Scaffold(
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          backgroundColor: _isMenuOpen ? const Color.fromARGB(30, 0, 0, 0) : Colors.transparent,
-          elevation: 0,
-          title: Row(
-            children: [
-              IconButton(
-                icon: Icon(
-                  _isMenuOpen ? Icons.close : Icons.menu,
-                  color: _isMenuOpen ? Colors.blue[700] : Colors.white,
+        return Scaffold(
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            backgroundColor: _isMenuOpen
+                ? const Color.fromARGB(30, 0, 0, 0)
+                : Colors.transparent,
+            elevation: 0,
+            title: Row(
+              children: [
+                IconButton(
+                  icon: Icon(
+                    _isMenuOpen ? Icons.close : Icons.menu,
+                    color: _isMenuOpen ? Colors.blue[700] : Colors.white,
+                  ),
+                  onPressed: _toggleMenu,
                 ),
-                onPressed: _toggleMenu,
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                "Ajustes",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Ajustes",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        body: _buildBody(context, user, theme),
-      );
-    },
-  );
-}
+          body: _buildBody(context, user, theme),
+        );
+      },
+    );
+  }
 
   Widget _buildBody(BuildContext context, User user, ThemeData theme) {
-  return Stack(
-    children: [
-      Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              theme.brightness == Brightness.dark
-                  ? const Color(0xFF1E1E1E)
-                  : const Color(0xFF063970),
-              theme.brightness == Brightness.dark
-                  ? const Color(0xFF121212)
-                  : const Color(0xFF66B3FF),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Stack(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                theme.brightness == Brightness.dark
+                    ? const Color(0xFF1E1E1E)
+                    : const Color(0xFF063970),
+                theme.brightness == Brightness.dark
+                    ? const Color(0xFF121212)
+                    : const Color(0xFF66B3FF),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 6,
-                        spreadRadius: 1,
-                        offset: Offset(2, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text("${user.name} ${user.surnames}",
-                          style: const TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      _infoRow(Icons.person, "Usuario", user.username),
-                      _infoRow(Icons.email, "Correo", user.mail),
-                      _infoRow(Icons.phone, "Teléfono", user.phoneNumber),
-                      _infoRow(Icons.location_on, "Dirección", user.address),
-                      const SizedBox(height: 20),
-                      if (!_isVerifying && !_showEditForm)
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 6,
+                          spreadRadius: 1,
+                          offset: Offset(2, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
                         Center(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              _showPasswordDialog(user);
-                            },
-                            child: const Text("Modificar datos"),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              "${user.name} ${user.surnames}",
+                              style: const TextStyle(
+                                  fontSize: 24, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                        ), 
-                    ],
+                        ),
+                        const SizedBox(height: 12),
+                        _infoRow(Icons.person, "Usuario", user.username),
+                        _infoRow(Icons.email, "Correo", user.mail),
+                        _infoRow(Icons.phone, "Teléfono", user.phoneNumber),
+                        _infoRow(Icons.location_on, "Dirección", user.address),
+                        const SizedBox(height: 20),
+                        if (!_isVerifying && !_showEditForm)
+                          Center(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  _showPasswordDialog(user);
+                                },
+                                child: const Text("Modificar datos"),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-      if (_isMenuOpen)
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: _toggleMenu,
-            child: Container(
-              color: Colors.black.withOpacity(0.5),
-            ),
+            ],
           ),
         ),
-      if (_isMenuOpen)
-        const Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          child: SidebarMenu(selectedIndex: 3),
-        ),
-    ],
-  );
-}
+        if (_isMenuOpen)
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _toggleMenu,
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
+              ),
+            ),
+          ),
+        if (_isMenuOpen)
+          const Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: SidebarMenu(selectedIndex: 3),
+          ),
+      ],
+    );
+  }
 
   Widget _infoRow(IconData icon, String label, String value) {
     return Padding(
@@ -214,8 +231,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Icon(icon, color: Colors.blue),
           const SizedBox(width: 10),
-          Text("$label: ", style: const TextStyle(fontWeight: FontWeight.bold)),
-          Expanded(child: Text(value)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              "$label: ",
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(value),
+            ),
+          ),
         ],
       ),
     );
@@ -231,12 +260,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('Confirmar contraseña', style: TextStyle(fontWeight: FontWeight.bold)),
+              shape:
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'Confirmar contraseña',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text("Introduce tu contraseña para continuar:"),
+                  const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      "Introduce tu contraseña para continuar:",
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _passwordController,
@@ -249,7 +292,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          localIsPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                          localIsPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                           color: const Color(0xFF063970),
                         ),
                         onPressed: () {
@@ -267,12 +312,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child: const Text("Cancelar"),
+                  child: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text("Cancelar"),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    final isValid = await Provider.of<AuthUserProvider>(context, listen: false)
-                        .verifyPassword(user.mail, _passwordController.text);
+                    final isValid =
+                        await Provider.of<AuthUserProvider>(context, listen: false)
+                            .verifyPassword(user.mail, _passwordController.text);
 
                     if (isValid) {
                       Navigator.of(context).pop();
@@ -287,7 +336,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       });
                     }
                   },
-                  child: const Text("Verificar"),
+                  child: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text("Verificar"),
+                  ),
                 ),
               ],
             );
@@ -302,8 +354,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Editar usuario', style: TextStyle(fontWeight: FontWeight.bold)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              'Editar usuario',
+              style: TextStyle(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
           content: Form(
             key: _formKey,
             child: SingleChildScrollView(
@@ -313,27 +373,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   TextFormField(
                     controller: _nameController,
                     decoration: const InputDecoration(labelText: 'Nombre'),
-                    validator: (value) => value == null || value.isEmpty ? 'Campo obligatorio' : null,
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Campo obligatorio' : null,
                   ),
                   TextFormField(
                     controller: _newPasswordController,
                     decoration: const InputDecoration(labelText: 'Contraseña'),
-                    validator: (value) => value == null || value.isEmpty ? 'Campo obligatorio' : null,
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Campo obligatorio' : null,
                   ),
                   TextFormField(
                     controller: _surnamesController,
                     decoration: const InputDecoration(labelText: 'Apellidos'),
-                    validator: (value) => value == null || value.isEmpty ? 'Campo obligatorio' : null,
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Campo obligatorio' : null,
                   ),
                   TextFormField(
                     controller: _phoneController,
                     decoration: const InputDecoration(labelText: 'Teléfono'),
-                    validator: (value) => value == null || value.isEmpty ? 'Campo obligatorio' : null,
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Campo obligatorio' : null,
                   ),
                   TextFormField(
                     controller: _addressController,
                     decoration: const InputDecoration(labelText: 'Dirección'),
-                    validator: (value) => value == null || value.isEmpty ? 'Campo obligatorio' : null,
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Campo obligatorio' : null,
                   ),
                 ],
               ),
@@ -344,7 +409,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text("Cancelar"),
+              child: const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text("Cancelar"),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
@@ -371,7 +439,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ));
                 }
               },
-              child: const Text("Guardar cambios"),
+              child: const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text("Guardar cambios"),
+              ),
             ),
           ],
         );

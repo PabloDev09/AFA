@@ -9,7 +9,7 @@ class RouteDriver
   final String phoneNumber;
   final int numRoute;
   final int numPick;
-  final bool hasProblem;
+  bool hasProblem;
   final Timestamp createdAt;
 
   RouteDriver(
@@ -21,7 +21,7 @@ class RouteDriver
     required this.phoneNumber,
     required this.numRoute,
     required this.numPick,
-    required this.hasProblem,
+    this.hasProblem = false,
     required this.createdAt
   });
 

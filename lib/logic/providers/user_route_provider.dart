@@ -56,7 +56,7 @@ class UserRouteProvider extends ChangeNotifier {
       if (isRouteActive && !auxIsRouteActive) {
         isRouteActive = false;
         clearRoutes();
-        _notificationProvider.addNotification("La ruta ha finalizado.", false);
+        _notificationProvider.addNotification("La ruta ha finalizado.", false, false);
         isUpdating = false;
         notifyListeners();
         return;
@@ -73,7 +73,8 @@ class UserRouteProvider extends ChangeNotifier {
           auxHasProblem
               ? "El conductor ha tenido un problema, la ruta ha sido parada temporalmente."
               : "El conductor ha resuelto el problema, la ruta ha sido reactivada.",
-          true,
+          auxHasProblem,
+          !auxHasProblem
         );
       }
 
@@ -83,6 +84,7 @@ class UserRouteProvider extends ChangeNotifier {
         _notificationProvider.addNotification(
           "El conductor está atendiendo a otro pasajero.",
           false,
+          false
         );
       }
 
@@ -94,6 +96,7 @@ class UserRouteProvider extends ChangeNotifier {
               ? "Prepárate, el conductor se dirige hacia ti."
               : "La recogida ha sido cancelada por el conductor.",
           false,
+          true
         );
       }
 
@@ -103,6 +106,7 @@ class UserRouteProvider extends ChangeNotifier {
         _notificationProvider.addNotification(
           "El conductor llegará en aproximadamente 5 minutos.",
           false,
+          true
         );
       }
 
@@ -125,7 +129,7 @@ class UserRouteProvider extends ChangeNotifier {
       await _getUserAndDriver(username);
       isRouteActive = true;
       await startListening();
-      _notificationProvider.addNotification("La ruta está activa.", false);
+      _notificationProvider.addNotification("La ruta está activa.", false, false);
     } finally {
       isLoading = false;
       notifyListeners();
@@ -163,6 +167,7 @@ class UserRouteProvider extends ChangeNotifier {
     _notificationProvider.addNotification(
       "La recogida del ${DateFormat('dd/MM/yyyy').format(cancelDate.toLocal())} ha sido cancelada correctamente.",
       false,
+      false
     );
     await getCancelDates(username);
   }
@@ -175,6 +180,7 @@ class UserRouteProvider extends ChangeNotifier {
     _notificationProvider.addNotification(
       "La recogida cancelada del ${DateFormat('dd/MM/yyyy').format(removeCancelDate.toLocal())} ha sido reanudada correctamente.",
       false,
+      false
     );
     await getCancelDates(username);
   }
@@ -182,13 +188,13 @@ class UserRouteProvider extends ChangeNotifier {
   Future<void> cancelCurrentPickup() async {
     await _routeService.cancelCurrentPickup(routeUser.username, routeUser.numRoute);
     await _getUserAndDriver(routeUser.username);
-    _notificationProvider.addNotification("La recogida de hoy ha sido cancelada.", false);
+    _notificationProvider.addNotification("La recogida de hoy ha sido cancelada.", false, false);
   }
 
   Future<void> removeCancelCurrentPickup() async {
     await _routeService.removeCancelCurrentPickup(routeUser.username, routeUser.numRoute);
     await _getUserAndDriver(routeUser.username);
-    _notificationProvider.addNotification("La recogida de hoy ha sido reanudada.", false);
+    _notificationProvider.addNotification("La recogida de hoy ha sido reanudada.", false, false);
   }
 
   Future<void> _getUserAndDriver(String username) async {

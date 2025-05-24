@@ -7,15 +7,17 @@ import 'package:provider/provider.dart';
 class PendingUserComponent extends StatelessWidget {
   const PendingUserComponent({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<PendingUserProvider>(
-      builder: (context, userPendingProvider, _) {
-        final pendingUsers = userPendingProvider.pendingUsers;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Row(
+@override
+Widget build(BuildContext context) {
+  return Consumer<PendingUserProvider>(
+    builder: (context, userPendingProvider, _) {
+      final pendingUsers = userPendingProvider.pendingUsers;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.person_add_alt_rounded, color: Colors.white, size: 30),
@@ -30,29 +32,30 @@ class PendingUserComponent extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            if (pendingUsers.isEmpty)
-              _buildNoUsersDirectly(context)
-            else
-              _buildPendingUsersCards(context, pendingUsers),
-            const SizedBox(height: 20),
-          ],
-        );
-      },
-    );
-  }
+          ),
+          const SizedBox(height: 20),
+          if (pendingUsers.isEmpty)
+            _buildNoUsersDirectly(context)
+          else
+            _buildPendingUsersCards(context, pendingUsers),
+          const SizedBox(height: 20),
+        ],
+      );
+    },
+  );
+}
+
 
   Widget _buildNoUsersDirectly(BuildContext context) {
-    double fontSize = MediaQuery.of(context).size.width * 0.02;
-    fontSize = fontSize.clamp(14, 18);
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.7,
-      child: Center(
+  return SizedBox(
+    height: MediaQuery.of(context).size.height * 0.7,
+    child: const Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Ícono principal para peticiones pendientes con "X" pequeña en la esquina superior derecha
-            const SizedBox(
+            SizedBox(
               width: 120,
               height: 120,
               child: Stack(
@@ -76,8 +79,8 @@ class PendingUserComponent extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
-            const Text(
+            SizedBox(height: 20),
+            Text(
               'No hay peticiones de registro',
               style: TextStyle(
                 fontSize: 28,
@@ -85,11 +88,11 @@ class PendingUserComponent extends StatelessWidget {
                 color: Colors.black87,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               'En cuanto existan usuarios pendientes se mostrarán aquí.',
               style: TextStyle(
-                fontSize: fontSize * 0.9,
+                fontSize: 20,
                 color: Colors.black54,
               ),
               textAlign: TextAlign.center,
@@ -97,36 +100,45 @@ class PendingUserComponent extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildPendingUsersCards(BuildContext context, List<User> pendingUsers) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        int columns;
-        double fontSize = constraints.maxWidth * 0.02;
-        fontSize = fontSize.clamp(22, 24);
-        double columnFactor = constraints.maxWidth / 340;
-        columns = columnFactor.floor();
-        double decimalPart = columnFactor - columns;
-        fontSize = (fontSize + decimalPart * 6).clamp(22, 25);
-        const double spacing = 16;
-        final double totalSpacing = spacing * (columns - 1);
-        final double itemWidth = (constraints.maxWidth - totalSpacing) / columns;
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: pendingUsers.map((user) {
-            return SizedBox(
-              width: itemWidth,
-              height: 350,
-              child: _buildUserContainer(context, user, fontSize),
-            );
-          }).toList(),
-        );
-      },
-    );
-  }
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      int columns;
+      double fontSize = constraints.maxWidth * 0.02;
+      fontSize = fontSize.clamp(22, 24);
+      double columnFactor = constraints.maxWidth / 340;
+      columns = columnFactor.floor();
+      double decimalPart = columnFactor - columns;
+      fontSize = (fontSize + decimalPart * 6).clamp(22, 25);
+      const double spacing = 16;
+      final double totalSpacing = spacing * (columns - 1);
+      final double itemWidth = (constraints.maxWidth - totalSpacing) / columns;
+      return Wrap(
+        spacing: spacing,
+        runSpacing: spacing,
+        children: pendingUsers.map((user) {
+          return SizedBox(
+            width: itemWidth,
+            height: 350,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: SizedBox(
+                width: itemWidth,  // Mantén la misma anchura para que escale bien
+                height: 350,       // Altura fija para la tarjeta
+                child: _buildUserContainer(context, user, fontSize),
+              ),
+            ),
+          );
+        }).toList(),
+      );
+    },
+  );
+}
+
 
   /// Contenedor interno. Va dentro de un SizedBox.
   Widget _buildUserContainer(BuildContext context, User user, double fontSize) {
