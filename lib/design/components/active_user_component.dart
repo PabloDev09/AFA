@@ -168,6 +168,8 @@ class ActiveUserComponent extends StatelessWidget {
       Icons.phone: Colors.orange.shade300,
       Icons.location_on: Colors.red.shade300,
       Icons.security: Colors.purple.shade300,
+      Icons.route: Colors.yellow.shade300,
+      Icons.numbers: Colors.brown.shade300,
     };
 
     return Column(
@@ -201,6 +203,9 @@ class ActiveUserComponent extends StatelessWidget {
                 _buildUserInfoRow(Icons.phone, 'Teléfono:', user.phoneNumber, fontSize, iconColors),
                 _buildUserInfoRow(Icons.location_on, 'Dirección:', user.address, fontSize, iconColors),
                 _buildUserInfoRow(Icons.security, 'Rol:', user.rol, fontSize, iconColors),
+                _buildUserInfoRow(Icons.route, 'Ruta:', user.numRoute.toString(), fontSize, iconColors),
+                _buildUserInfoRow(Icons.numbers, 'Orden:', user.numPick.toString(), fontSize, iconColors),
+
               ],
             ),
           ),

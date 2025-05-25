@@ -126,6 +126,7 @@ Future<void> _showAssignRouteDialog() async {
         builder: (context, setState) {
           return Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DropdownButton<User>(
                 isExpanded: true,
@@ -141,6 +142,29 @@ Future<void> _showAssignRouteDialog() async {
                 onChanged: (u) => setState(() => selectedUser = u),
               ),
               const SizedBox(height: 12),
+
+              // 👇 Mostrar información del usuario seleccionado
+              if (selectedUser != null)
+                Card(
+                  color: Colors.blue[50],
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("👤 Usuario: ${selectedUser!.name} ${selectedUser!.surnames}",
+                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 6),
+                        Text("🛣 Ruta actual: ${selectedUser?.numRoute ?? 0}"),
+                        const SizedBox(height: 6),
+                        Text("🔢 Orden: ${selectedUser?.numPick ?? 'Sin determinar'}"),
+                      ],
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 12),
               Row(
                 children: [
                   const Text('Ruta:'),
@@ -153,12 +177,21 @@ Future<void> _showAssignRouteDialog() async {
                               child: Text(r == 0 ? 'Desasignar' : 'Ruta $r'),
                             ))
                         .toList(),
-                    onChanged: (r) => setState(() => selectedRoute = r!),
+                    onChanged: (r) {
+                      setState(() {
+                        selectedRoute = r!;
+                        // Si desasigna, resetear pickOrder a null
+                        if (selectedRoute == 0) {
+                          pickOrder = 1;
+                        }
+                      });
+                    },
                   ),
                 ],
               ),
+
               const SizedBox(height: 12),
-              if (selectedRoute != 0) // Ocultar campo si es "Desasignar"
+              if (selectedRoute != 0) // 👈 Mostrar solo si no es "Desasignar"
                 TextField(
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
