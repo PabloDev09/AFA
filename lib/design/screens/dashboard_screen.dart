@@ -373,7 +373,7 @@ void _showDeleteRouteDialog() async {
     } catch (e) {
       print("❌ Error al subir documento: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al subir el documento"), backgroundColor: Colors.green),
+        const SnackBar(content: Text("Error al subir el documento"), backgroundColor: Colors.red),
       );
     } 
   }
@@ -385,7 +385,7 @@ Widget buildActionButton({
   required VoidCallback onTap,
 }) {
   final screenWidth = MediaQuery.of(context).size.width;
-  final bool showText = screenWidth >= 900;
+  final bool showText = screenWidth >= 1000;
 
   // Tamaño dinámico del icono
   final double iconSize = showText ? 24 : 18;

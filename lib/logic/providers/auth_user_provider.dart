@@ -40,6 +40,7 @@ class AuthUserProvider extends ChangeNotifier
   }
 
   Future<void> loadUser() async {
+    if(firebase.FirebaseAuth.instance.currentUser == null) return;
     userFireStore =
         await _userService.logUser(firebase.FirebaseAuth.instance.currentUser?.email);
     isAuthenticated = userFireStore != null;
