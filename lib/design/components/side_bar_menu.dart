@@ -156,6 +156,8 @@ class _SidebarMenuState extends State<SidebarMenu> {
                 children: [
                   _buildMenuItem(Icons.home, "Inicio", 0, PathUrlAfa().pathHome),
                   const SizedBox(height: 10),
+                  _buildMenuItem(Icons.document_scanner, "Tablon de anuncios", 1, PathUrlAfa().pathNoticeBoard),
+                  const SizedBox(height: 10),
                   _buildMenuItem(Icons.map, "Mapa", 2, PathUrlAfa().pathMap),
                   const SizedBox(height: 10),
                   _buildMenuItem(Icons.settings, "Configuración", 3, PathUrlAfa().pathSettings),

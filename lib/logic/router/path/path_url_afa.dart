@@ -6,5 +6,7 @@ class PathUrlAfa
   final String pathMap = "/map";
   final String pathHome = "/home";
   final String pathSettings = "/settings";
+  final String pathNoticeBoard = "/noticeBoard";
+
 
 }

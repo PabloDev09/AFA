@@ -3,6 +3,7 @@ import 'package:afa/design/screens/driver_home_screen.dart';
 import 'package:afa/design/screens/loading_no_child_screen.dart';
 import 'package:afa/design/screens/login_screen.dart';
 import 'package:afa/design/screens/not_found_screen.dart';
+import 'package:afa/design/screens/notice_board_screen.dart';
 import 'package:afa/design/screens/register_screen.dart';
 import 'package:afa/design/screens/settings_screen.dart';
 import 'package:afa/design/screens/user_home_screen.dart';
@@ -145,7 +146,43 @@ final GoRouter afaRouter = GoRouter(
         if (!isAuthenticated()) {
           return '/login';
         } else {
-          return '/home';
+          return '/settings';
+        }
+      },
+    ),
+    GoRoute(
+      path: '/noticeBoard',
+      name: 'noticeBoard',
+      builder: (context, state) => FutureBuilder<String?>(
+        future: getUserRole(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            // Mientras no se obtenga el rol se muestra el loader indefinidamente.
+            return const LoadingNoChildScreen();
+          }
+          final role = snapshot.data;
+          Widget targetScreen;
+          if (role == 'Usuario' || role == 'Conductor' || role == 'Administrador') {
+            targetScreen = const NoticeBoardScreen();
+          } 
+          else {
+            // Si el rol no coincide con los esperados, se muestra loader indefinido.
+            targetScreen = const LoadingNoChildScreen();
+          }
+
+          return _buildWithLoading(
+            context,
+            targetScreen,
+            delay: const Duration(seconds: 3),
+          );
+        },
+      ),
+      redirect: (context, state) async 
+      {
+        if (!isAuthenticated()) {
+          return '/login';
+        } else {
+          return '/noticeBoard';
         }
       },
     ),
