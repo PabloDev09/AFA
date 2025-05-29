@@ -25,14 +25,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> with TickerProviderStat
 {
   late DateTime _selectedDay;
   late DateTime _focusedDay;
-
-  bool _isMenuOpen = false;
-
-  void _toggleMenu() {
-    setState(() {
-      _isMenuOpen = !_isMenuOpen;
-    });
-  }
  
 @override
   void initState() 
@@ -65,8 +57,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> with TickerProviderStat
     }
   }
  
-Future<void> _confirmarAccion(bool cancelar,UserRouteProvider userProvider) async 
-{
+Future<void> _confirmarAccion(bool cancelar, UserRouteProvider userProvider) async {
   final username = Provider.of<AuthUserProvider>(context, listen: false)
       .userFireStore
       ?.username;
@@ -77,88 +68,145 @@ Future<void> _confirmarAccion(bool cancelar,UserRouteProvider userProvider) asyn
     return;
   }
 
-  String accion = cancelar ? "Cancelar" : "Reanudar";
-  Color actionColor = cancelar ? Colors.red : Colors.green;
+  final String accion = cancelar ? "Cancelar" : "Reanudar";
+  final LinearGradient confirmGradient = cancelar
+      ? const LinearGradient(
+          colors: [Color(0xFFB71C1C), Color(0xFFE53935)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        )
+      : const LinearGradient(
+        colors: [Color(0xFF2E7D32), Color(0xFF66BB6A),],          
+        begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
 
-  bool? confirmacion = await showDialog<bool>(
+  final bool? confirmacion = await showDialog<bool>(
     context: context,
-    builder: (context) {
-      return AlertDialog(
-        // Aplica la misma curva de borde al diálogo
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        // Elimina padding para que el gradiente cubra todo el ancho superior
-        titlePadding: EdgeInsets.zero,
-        title: Container(
-          // Gradiente con bordes superiores redondeados
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF063970),
-                Color(0xFF2196F3),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(12),
-              topRight: Radius.circular(12),
-            ),
+    builder: (_) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      titlePadding: EdgeInsets.zero,
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16), // padding lateral
+
+      // TITULAR
+      title: Container(
+        decoration: BoxDecoration(
+          gradient: confirmGradient,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(12),
+            topRight: Radius.circular(12),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  "$accion Recogida",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                '$accion Recogida',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => Navigator.pop(context, false),
+            ),
+          ],
+        ),
+      ),
+
+      // CONTENIDO
+      content: Text(
+        "¿Seguro que quieres $accion la recogida del día "
+        "${DateFormat('dd/MM/yyyy').format(_selectedDay)}?",
+        style: const TextStyle(fontSize: 16),
+      ),
+
+      // ACCIONES
+      actions: [
+        Row(
+          children: [
+            // Botón Cancelar
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context, false),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey[800],
+                  side: BorderSide(color: Colors.grey.shade400),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 20), // más espacio
+
+            // Botón Confirmar con degradado dinámico
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: confirmGradient,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context, true);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ).copyWith(
+                    overlayColor: MaterialStateProperty.resolveWith((states) {
+                      if (states.contains(MaterialState.hovered)) {
+                        return Colors.white.withOpacity(0.2);
+                      }
+                      return null;
+                    }),
+                  ),
+                  child: const Text(
+                    'Confirmar',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.pop(context, false),
-              ),
-            ],
-          ),
-        ),
-        content: Text(
-          "¿Seguro que quieres $accion la recogida del día "
-          "${DateFormat('dd/MM/yyyy').format(_selectedDay)}?",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancelar"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              backgroundColor: actionColor,
-              foregroundColor: Colors.white,
             ),
-            child: const Text("Confirmar"),
-          ),
-        ],
-      );
-    },
+          ],
+        ),
+      ],
+    ),
   );
 
-  if (confirmacion ?? false) {
+  if (confirmacion == true) {
     if (cancelar) {
       await userProvider.cancelPickupForDate(username, _selectedDay);
     } else {
       await userProvider.removeCancelPickupForDate(username, _selectedDay);
     }
-
     await userProvider.getCancelDates(username);
     setState(() {});
   }
 }
+
+
 
 
  
@@ -426,16 +474,20 @@ Future<void> _showSlidingNotification(
   {
     final theme = Theme.of(context);
     return Scaffold(
+      drawer: const Drawer( child: SidebarMenu(selectedIndex: 0),),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            tooltip: 'Abrir menú', 
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Row(
           children: [
-            IconButton(
-              icon: Icon(_isMenuOpen ? Icons.close : Icons.menu, color: _isMenuOpen ? Colors.blue : Colors.white),
-              onPressed: _toggleMenu,
-            ),
             const Spacer(),
             Consumer<NotificationProvider>(
               builder: (_, notificationProvider, __) {
@@ -577,22 +629,6 @@ Future<void> _showSlidingNotification(
               ),
             ),
           ),
-          if (_isMenuOpen)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: _toggleMenu,
-                child: Container(color: Colors.black54),
-              ),
-            ),
-          if (_isMenuOpen)
-            const Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: SidebarMenu(
-                selectedIndex: 0,
-              ),
-            ),
         ],
       ),
     );

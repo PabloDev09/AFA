@@ -3,6 +3,7 @@ import 'package:afa/logic/models/user.dart';
 import 'package:afa/logic/providers/driver_route_provider.dart';
 import 'package:afa/logic/providers/notification_provider.dart';
 import 'package:afa/logic/providers/user_route_provider.dart';
+import 'package:afa/logic/router/services/navigator_service.dart';
 import 'package:afa/logic/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import 'package:flutter/material.dart';
@@ -72,18 +73,27 @@ class AuthUserProvider extends ChangeNotifier
     }
   }
 
-  // Inicia comprobación cada 15 minutos de que el usuario en Firestore coincide con el local
   Future<void> _startPeriodicValidation() async {
     _validationTimer?.cancel();
-    _validationTimer = Timer.periodic(const Duration(minutes: 15), (_) async {
+    _validationTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
       if(userFireStore == null) return;
       if(await _userService.checkUser(userFireStore) == false)
       {
-        logout();
+        await logout();
+        NavigatorService.goToLoginWithMessage();
+        notifyListeners();
       }
     });
   }
 
+    
+  Future<String> getRol() async 
+  {
+    await loadUser();
+    String? rol = await _userService.getUserRoleByEmail(userFireStore!.mail);
+    if(rol == null) return '';
+    return rol;
+  }
 
   @override
   void dispose() {

@@ -372,7 +372,7 @@ Future<List<RouteUser>> getUsersByStatus({
         'mail': user.mail,
         'username': user.username,
         'name': user.name,
-        'surnames': Utils().surnamesOneLetter(user.surnames),
+        'surnames': Utils().getSurnameInitials(user.surnames),
         'address': user.address,
         'phoneNumber': user.phoneNumber,
         'isBeingPicking': false,

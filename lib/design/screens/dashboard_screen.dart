@@ -22,7 +22,6 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen>
     with SingleTickerProviderStateMixin {
   bool _showActiveUsers = false;
-  bool _isMenuOpen = false;
   late ScrollController _scrollController;
   bool _scrolledDown = false;
   late AnimationController _animationController;
@@ -67,11 +66,6 @@ void dispose() {
   _animationController.dispose();
   super.dispose();
 }
-  void _toggleMenu() {
-    setState(() {
-      _isMenuOpen = !_isMenuOpen;
-    });
-  }
 
 
 Future<void> _showAssignRouteDialog() async {
@@ -79,17 +73,20 @@ Future<void> _showAssignRouteDialog() async {
   User? selectedUser;
   List<int> rutas = await _routeService.getAllRouteNumbers();
 
-  // Agregar opción especial 0 para "Desasignar"
+  // Añadir opción para desasignar al principio
   rutas.insert(0, 0);
-
-  int selectedRoute = rutas.first; // Ahora 0 será el valor inicial
+  int selectedRoute = rutas.first;
   int pickOrder = 1;
 
   showDialog(
     context: context,
     builder: (_) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       titlePadding: EdgeInsets.zero,
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+
+      // TITULAR
       title: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -108,127 +105,228 @@ Future<void> _showAssignRouteDialog() async {
             const Expanded(
               child: Text(
                 'Asignar Ruta',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),
             IconButton(
               icon: const Icon(Icons.close, color: Colors.white),
+              tooltip: 'Cerrar',
               onPressed: () => Navigator.pop(context),
             ),
           ],
         ),
       ),
+
+      // CONTENIDO
       content: StatefulBuilder(
         builder: (context, setState) {
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DropdownButton<User>(
-                isExpanded: true,
-                hint: const Text('Selecciona un usuario'),
-                value: selectedUser,
-                items: activeProvider.activeUsers
-                    .where((u) => u.rol.trim() == 'Usuario')
-                    .map((u) => DropdownMenuItem(
-                          value: u,
-                          child: Text('${u.name} ${u.surnames}'),
-                        ))
-                    .toList(),
-                onChanged: (u) => setState(() => selectedUser = u),
-              ),
-              const SizedBox(height: 12),
-
-              // 👇 Mostrar información del usuario seleccionado
-              if (selectedUser != null)
-                Card(
-                  color: Colors.blue[50],
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("👤 Usuario: ${selectedUser!.name} ${selectedUser!.surnames}",
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 6),
-                        Text("🛣 Ruta actual: ${selectedUser?.numRoute ?? 0}"),
-                        const SizedBox(height: 6),
-                        Text("🔢 Orden: ${selectedUser?.numPick ?? 'Sin determinar'}"),
-                      ],
+          return SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // DROPDOWN USUARIO
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<User>(
+                      isExpanded: true,
+                      hint: const Text('Selecciona un usuario'),
+                      value: selectedUser,
+                      items: activeProvider.activeUsers
+                          .where((u) => u.rol.trim() == 'Usuario')
+                          .map((u) => DropdownMenuItem(
+                                value: u,
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.account_circle_outlined, color: Colors.blueAccent),
+                                    const SizedBox(width: 8),
+                                    Text('${u.name} ${u.surnames}'),
+                                  ],
+                                ),
+                              ))
+                          .toList(),
+                      onChanged: (u) => setState(() => selectedUser = u),
                     ),
                   ),
                 ),
 
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Text('Ruta:'),
-                  const SizedBox(width: 8),
-                  DropdownButton<int>(
-                    value: selectedRoute,
-                    items: rutas
-                        .map((r) => DropdownMenuItem(
-                              value: r,
-                              child: Text(r == 0 ? 'Desasignar' : 'Ruta $r'),
-                            ))
-                        .toList(),
-                    onChanged: (r) {
-                      setState(() {
-                        selectedRoute = r!;
-                        // Si desasigna, resetear pickOrder a null
-                        if (selectedRoute == 0) {
-                          pickOrder = 1;
-                        }
-                      });
+                // INFO USUARIO
+                if (selectedUser != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.blue.shade100),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.account_circle_outlined, size: 20, color: Colors.blueAccent),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${selectedUser?.name} ${selectedUser?.surnames}',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.alt_route, color: Colors.indigo.shade700),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Ruta actual: ${selectedUser?.numRoute}',
+                              style: TextStyle(fontWeight: FontWeight.w500, color: Colors.indigo.shade700),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on, color: Colors.teal.shade700),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Parada actual: ${selectedUser?.numPick}',
+                              style: TextStyle(fontWeight: FontWeight.w500, color: Colors.teal.shade700),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                if (selectedUser != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      isExpanded: true,
+                      hint: const Text('Selecciona una ruta'),
+                      value: selectedRoute,
+                      items: rutas
+                          .map((r) => DropdownMenuItem(
+                                value: r,
+                                child: Row(
+                                  children: [
+                                    Icon(r == 0 ? Icons.clear : Icons.alt_route,
+                                        color: r == 0 ? Colors.red : Colors.indigo),
+                                    const SizedBox(width: 8),
+                                    Text(r == 0 ? 'Desasignar ruta' : 'Ruta $r'),
+                                  ],
+                                ),
+                              ))
+                          .toList(),
+                      onChanged: (r) {
+                        setState(() {
+                          selectedRoute = r!;
+                          if (selectedRoute == 0) pickOrder = 1;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+
+                // CAMPO PARADA
+                if (selectedRoute != 0)
+                  TextField(
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      icon: Icon(Icons.location_on, color: Color(0xFF00796B)),
+                      labelText: 'Parada',
+                      hintText: '1, 2, 3...',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (txt) {
+                      final v = int.tryParse(txt);
+                      if (v != null && v > 0) pickOrder = v;
                     },
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-              if (selectedRoute != 0) // 👈 Mostrar solo si no es "Desasignar"
-                TextField(
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Orden de recogida',
-                    hintText: '1, 2, 3...',
-                  ),
-                  onChanged: (txt) {
-                    final v = int.tryParse(txt);
-                    if (v != null && v > 0) setState(() => pickOrder = v);
-                  },
-                ),
-            ],
+              ],
+            ),
           );
         },
       ),
+
+      // ACCIONES
+      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text("Cancelar"),
-        ),
-        TextButton(
-          style: TextButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-          ),
-          onPressed: () {
-            if (selectedUser != null) {
-                activeProvider.assignRoute(selectedUser!, selectedRoute, pickOrder);
-            }
-            Navigator.pop(context);
-          },
-          child: const Text("Confirmar"),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.grey.shade400),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Cancelar', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF063970), Color(0xFF2196F3)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ElevatedButton(
+                  onPressed:() {
+                          if(selectedUser == null || pickOrder == 0) return;
+                          Navigator.pop(context);
+                          activeProvider.assignRoute(selectedUser!, selectedRoute, pickOrder);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ).copyWith(
+                      overlayColor: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.hovered)) {
+                          return Colors.white.withOpacity(0.2);
+                        }
+                        return null;
+                      }),
+                    ),
+                  child: const Text(
+                    'Asignar',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     ),
   );
 }
+
+
+
+
+
 
 void _showCreateRouteDialog() {
   showDialog(
@@ -236,6 +334,7 @@ void _showCreateRouteDialog() {
     builder: (_) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       titlePadding: EdgeInsets.zero,
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
       title: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -270,24 +369,65 @@ void _showCreateRouteDialog() {
       ),
       content: const Text('¿Estás seguro de crear una nueva ruta?'),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        TextButton(
-          style: TextButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-          ),
-          onPressed: () async {
-            Navigator.pop(context);
-            int last = await _routeService.getMaxRouteNumber();
-            await _routeService.createRouteNumber(last + 1);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Nueva ruta creada exitosamente'), backgroundColor: Colors.green),
-            );
-          },
-          child: const Text('Crear'),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey[800],
+                  side: BorderSide(color: Colors.grey.shade400),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('Cancelar', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF063970), Color(0xFF2196F3)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ElevatedButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    int last = await _routeService.getMaxRouteNumber();
+                    await _routeService.createRouteNumber(last + 1);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Nueva ruta creada con éxito'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ).copyWith(
+                      overlayColor: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.hovered)) {
+                          return Colors.white.withOpacity(0.2);
+                        }
+                        return null;
+                      }),
+                    ),
+                  child: const Text('Crear', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     ),
@@ -296,7 +436,6 @@ void _showCreateRouteDialog() {
 
 void _showDeleteRouteDialog() async {
   List<int> rutas = await _routeService.getAllRouteNumbers();
-
   int? selectedRoute = rutas.isNotEmpty ? rutas.first : null;
 
   showDialog(
@@ -304,10 +443,11 @@ void _showDeleteRouteDialog() async {
     builder: (_) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       titlePadding: EdgeInsets.zero,
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
       title: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF063970), Color(0xFF2196F3)],
+            colors: [Color(0xFFB71C1C), Color(0xFFE53935)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -338,45 +478,105 @@ void _showDeleteRouteDialog() async {
       ),
       content: StatefulBuilder(
         builder: (context, setState) {
-          return DropdownButton<int>(
-            isExpanded: true,
-            hint: const Text('Selecciona una ruta'),
-            value: selectedRoute,
-            items: rutas.map((r) {
-              return DropdownMenuItem(
-                value: r,
-                child: Text('Ruta $r'),
-              );
-            }).toList(),
-            onChanged: (r) => setState(() => selectedRoute = r),
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Selecciona una ruta a eliminar:'),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    isExpanded: true,
+                    value: selectedRoute,
+                    hint: const Text('Selecciona una ruta'),
+                    items: rutas.map((r) {
+                      return DropdownMenuItem(
+                        value: r,
+                        child: Text('Ruta $r'),
+                      );
+                    }).toList(),
+                    onChanged: (r) => setState(() => selectedRoute = r),
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        TextButton(
-          style: TextButton.styleFrom(
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
-          ),
-          onPressed: selectedRoute != null
-              ? () async {
-                  Navigator.pop(context);
-                  await _routeService.deleteRouteNumber(selectedRoute!);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Ruta $selectedRoute eliminada'), backgroundColor: Colors.green),
-                  );
-                }
-              : null,
-          child: const Text('Eliminar'),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey[800],
+                  side: BorderSide(color: Colors.grey.shade400),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('Cancelar', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Colors.red, Color(0xFFB71C1C)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ElevatedButton(
+                  onPressed: selectedRoute != null
+                      ? () async {
+                          Navigator.pop(context);
+                          await _routeService.deleteRouteNumber(selectedRoute!);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Ruta $selectedRoute eliminada con éxito'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ).copyWith(
+                      overlayColor: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.hovered)) {
+                          return Colors.white.withOpacity(0.2);
+                        }
+                        return null;
+                      }),
+                    ),
+                  child: const Text('Eliminar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     ),
   );
 }
+
 
   Future<void> _uploadDocument() async {
     try {
@@ -388,13 +588,13 @@ void _showDeleteRouteDialog() async {
         String fileName = file.name;
 
         Reference storageRef =
-        FirebaseStorage.instance.ref().child('documents/$fileName');
+        FirebaseStorage.instance.ref().child('documentos/$fileName');
         UploadTask uploadTask = storageRef.putData(file.bytes!);
 
         TaskSnapshot snapshot = await uploadTask.whenComplete(() => {});
         String downloadUrl = await snapshot.ref.getDownloadURL();
 
-        await FirebaseFirestore.instance.collection('documents').add({
+        await FirebaseFirestore.instance.collection('documentos').add({
           'title': fileName,
           'fileUrl': downloadUrl,
         });
@@ -411,7 +611,7 @@ void _showDeleteRouteDialog() async {
     } 
   }
 
-Widget buildActionButton({
+  Widget buildActionButton({
   required BuildContext context,
   required IconData icon,
   required String label,
@@ -419,9 +619,16 @@ Widget buildActionButton({
 }) {
   final screenWidth = MediaQuery.of(context).size.width;
   final bool showText = screenWidth >= 1000;
-
-  // Tamaño dinámico del icono
   final double iconSize = showText ? 24 : 18;
+
+  // ✅ Gradiente condicional según el texto
+  final Gradient buttonGradient = (label.toLowerCase() == 'eliminar ruta')
+      ? const LinearGradient(
+          colors: [Color(0xFFB71C1C), Color(0xFFE53935)],
+        )
+      : const LinearGradient(
+          colors: [Colors.blueAccent, Colors.lightBlue],
+        );
 
   final Widget content = showText
       ? Row(
@@ -442,20 +649,18 @@ Widget buildActionButton({
 
   final button = Container(
     padding: EdgeInsets.symmetric(
-      horizontal: showText ? 16 : 8,  // menos padding si no muestra texto
+      horizontal: showText ? 16 : 8,
       vertical: showText ? 10 : 6,
     ),
     decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [Colors.blueAccent, Colors.lightBlue],
-      ),
+      gradient: buttonGradient,
       borderRadius: BorderRadius.circular(8),
       boxShadow: const [
         BoxShadow(
           color: Colors.black26,
           offset: Offset(0, 2),
           blurRadius: 6,
-        )
+        ),
       ],
     ),
     child: content,
@@ -463,7 +668,6 @@ Widget buildActionButton({
 
   Widget scaledButton = button;
 
-  // Si no muestra texto, envolver en FittedBox para reducir tamaño completo
   if (!showText) {
     scaledButton = FittedBox(
       fit: BoxFit.scaleDown,
@@ -475,10 +679,16 @@ Widget buildActionButton({
     padding: const EdgeInsets.only(right: 8.0),
     child: InkWell(
       onTap: onTap,
-      child: showText ? button : Tooltip(message: label, child: scaledButton),
+      child: showText
+          ? button
+          : Tooltip(
+              message: label,
+              child: scaledButton,
+            ),
     ),
   );
 }
+
 
 
     @override
@@ -486,25 +696,22 @@ Widget buildActionButton({
     final theme = Theme.of(context);
 
     return Scaffold(
+      drawer: const Drawer( child: SidebarMenu(selectedIndex: 0),),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-      backgroundColor: _isMenuOpen
-          ? const Color.fromARGB(30, 0, 0, 0)
-          : _scrolledDown
-              ? Colors.black.withOpacity(0.5)  // negro transparente al hacer scroll
+      leading: Builder(
+        builder: (context) => IconButton(
+          icon: const Icon(Icons.menu, color: Colors.white),
+          tooltip: 'Abrir menú', 
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
+      ),
+      backgroundColor: _scrolledDown
+              ? Colors.black.withOpacity(0.4)  // negro transparente al hacer scroll
               : Colors.transparent,
-
           elevation: 0,
           title: Row(
             children: [
-              IconButton(
-                icon: Icon(
-                  _isMenuOpen ? Icons.close : Icons.menu,
-                  color: _isMenuOpen ? Colors.blue[700] : Colors.white,
-                ),
-                onPressed: _toggleMenu,
-              ),
-
               // Aquí ponemos el bloque que quieres al lado del menú, sin Expanded
               Align(
                 alignment: Alignment.centerLeft,
@@ -585,6 +792,13 @@ Widget buildActionButton({
             if (_showActiveUsers)
               buildActionButton(
                 context: context,
+                icon: Icons.delete,
+                label: 'Eliminar Ruta',
+                onTap: _showDeleteRouteDialog,
+              ),
+            if (_showActiveUsers)
+              buildActionButton(
+                context: context,
                 icon: Icons.add,
                 label: 'Crear Ruta',
                 onTap: _showCreateRouteDialog,
@@ -592,16 +806,9 @@ Widget buildActionButton({
             if (_showActiveUsers)
               buildActionButton(
                 context: context,
-                icon: Icons.route,
+                icon: Icons.alt_route,
                 label: 'Asignar Ruta',
                 onTap: _showAssignRouteDialog,
-              ),
-            if (_showActiveUsers)
-              buildActionButton(
-                context: context,
-                icon: Icons.delete,
-                label: 'Eliminar Ruta',
-                onTap: _showDeleteRouteDialog,
               ),
             buildActionButton(
               context: context,
@@ -611,7 +818,8 @@ Widget buildActionButton({
             ),
           ],
       ),
-      body: Stack(
+      body: 
+      Stack(
         children: [
           Container(
             decoration: BoxDecoration(
@@ -626,6 +834,7 @@ Widget buildActionButton({
             ),
             child: Column(
               children: [
+                const SizedBox(height: 5),
                 Expanded(
                   child: SingleChildScrollView(
                     controller: _scrollController,
@@ -641,22 +850,11 @@ Widget buildActionButton({
               ],
             ),
           ),
-          if (_isMenuOpen)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: _toggleMenu,
-                child: Container(color: Colors.black.withOpacity(0.5)),
-              ),
-            ),
-          if (_isMenuOpen)
-            const Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: SidebarMenu(selectedIndex: 1),
-            ),
+
         ],
       ),
     );
   }
+  
+
 }

@@ -131,41 +131,76 @@ class _SidebarMenuState extends State<SidebarMenu> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 240, // smaller width
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(2, 0)),
-        ],
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0), // smaller padding
-            child: Center(
-              child: Image.asset("assets/images/logo.png", height: 160, fit: BoxFit.contain), // smaller logo
-            ),
+Widget build(BuildContext context) {
+  return Container(
+    width: 240,
+    decoration: const BoxDecoration(
+      color: Colors.white,
+      boxShadow: [
+        BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(2, 0)),
+      ],
+    ),
+    child: Column(
+      children: [
+        // X de cerrar (izquierda)
+        Container(
+          alignment: Alignment.topLeft,
+          padding: const EdgeInsets.only(top: 12, left: 12),
+          child: IconButton(
+            icon: const Icon(Icons.close),
+            iconSize: 28,
+            color: Colors.blue[800],
+            tooltip: 'Cerrar',
+            onPressed: () {
+              Navigator.of(context).pop(); // Cierra el drawer animadamente
+            },
           ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 8), // smaller padding
-              child: Column(
-                children: [
+        ),
+
+        // Logo
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Center(
+            child: Image.asset("assets/images/logo.png", height: 160, fit: BoxFit.contain),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Menú
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Column(
+              children: [
+                
+                if (Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.rol != 'Administrador') ...[
                   _buildMenuItem(Icons.home, "Inicio", 0, PathUrlAfa().pathHome),
                   const SizedBox(height: 10),
-                  _buildMenuItem(Icons.map, "Mapa", 2, PathUrlAfa().pathMap),
+                  _buildMenuItem(Icons.map, "Mapa", 1, PathUrlAfa().pathMap),
+                  const SizedBox(height: 10),
+                  _buildMenuItem(Icons.assignment, "Tablon de anuncios", 2, PathUrlAfa().pathNoticeBoard),
                   const SizedBox(height: 10),
                   _buildMenuItem(Icons.settings, "Configuración", 3, PathUrlAfa().pathSettings),
-                ],
-              ),
+                ]
+                else...[
+                  _buildMenuItem(Icons.home, "Inicio", 0, PathUrlAfa().pathHome),
+                  const SizedBox(height: 10),
+                  _buildMenuItem(Icons.assignment, "Tablon de anuncios", 1, PathUrlAfa().pathNoticeBoard),
+                  const SizedBox(height: 10),
+                  _buildMenuItem(Icons.settings, "Configuración", 2, PathUrlAfa().pathSettings),
+                ]
+                ,
+              ],
             ),
           ),
-          _buildUserProfile(),
-        ],
-      ),
-    );
-  }
+        ),
+
+        // Perfil y botón cerrar sesión
+        _buildUserProfile(),
+      ],
+    ),
+  );
+}
+
 }

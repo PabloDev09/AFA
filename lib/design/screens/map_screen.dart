@@ -1,7 +1,10 @@
 import 'package:afa/design/components/side_bar_menu.dart';
+import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
+
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -11,7 +14,6 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMixin {
-  bool _isMenuOpen = false;
   late AnimationController _animationController;
 
   LatLng _currentLocation = const LatLng(38.0358053, -4.0247146);
@@ -25,7 +27,13 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     )..forward();
-    _determinePosition();
+    
+
+  WidgetsBinding.instance.addPostFrameCallback((_) async 
+   {
+    await Provider.of<AuthUserProvider>(context, listen: false).loadUser();
+    await _determinePosition();
+  });
   }
 
   Future<void> _determinePosition() async {
@@ -44,12 +52,6 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
     });
 
     _mapController?.animateCamera(CameraUpdate.newLatLng(_currentLocation));
-  }
-
-  void _toggleMenu() {
-    setState(() {
-      _isMenuOpen = !_isMenuOpen;
-    });
   }
 
   void _moveDriver() {
@@ -81,45 +83,18 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
+      drawer: const Drawer( child: SidebarMenu(selectedIndex: 1),),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(30, 0, 0, 0),
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            _isMenuOpen ? Icons.close : Icons.menu,
-            color: _isMenuOpen ? Colors.blue[700] : Colors.white,
-            size: 30,
-          ),
-          onPressed: _toggleMenu,
+      leading: Builder(
+        builder: (context) => IconButton(
+          icon: const Icon(Icons.menu, color: Colors.white), 
+          tooltip: 'Abrir menú', 
+          onPressed: () => Scaffold.of(context).openDrawer(),
         ),
-        title: Row(
-          children: [
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Icon(
-                Icons.map, // Icono en AppBar
-                color: _isMenuOpen ? Colors.blue[700] : Colors.white,
-                size: 30,
-              ),
-            ),
-            const SizedBox(width: 10),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                'Mapa',
-                style: TextStyle(
-                  color: _isMenuOpen ? Colors.blue[700] : Colors.white,
-                  fontSize: screenWidth < 360 ? 18 : 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
+      ),
         actions: [
           _buildMenuButton("Centrar", Icons.my_location, _determinePosition),
           _buildMenuButton("Conductor", Icons.directions_car, _moveDriver),
@@ -144,7 +119,7 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
               Marker(
                 markerId: const MarkerId("current"),
                 position: _currentLocation,
-                infoWindow: const InfoWindow(title: "Tu ubicación"),
+                infoWindow: const InfoWindow(title: "Tu parada"),
                 icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
               ),
               Marker(
@@ -155,27 +130,6 @@ class _MapScreenState extends State<MapScreen> with SingleTickerProviderStateMix
               ),
             },
           ),
-
-          // Sidebar Menu cuando está activo
-          if (_isMenuOpen)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: _toggleMenu,
-                child: Container(
-                  color: Colors.black.withOpacity(0.5),
-                ),
-              ),
-            ),
-          if (_isMenuOpen)
-            const Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: SidebarMenu(
-                selectedIndex: 2,
-              ),
-            ),
-
           // Footer con fondo degradado (se mantiene en la parte inferior)
           Positioned(
             bottom: 0,

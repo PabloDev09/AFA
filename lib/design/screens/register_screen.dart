@@ -274,11 +274,11 @@ Widget build(BuildContext context) {
           ),
         ),
         // Contenedor con formulario
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: verticalMargin),
-            child: Center(
-              child: SingleChildScrollView(
+        SingleChildScrollView(
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: verticalMargin),
+              child: Center(
                 child: SizedBox(
                   width: containerWidth,
                   // El formulario sigue desplazándose sin interferir con el footer

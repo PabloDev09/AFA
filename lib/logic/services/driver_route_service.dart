@@ -62,7 +62,7 @@ class DriverRouteService {
       fcmToken: user.fcmToken,
       username: user.username,
       name: user.name,
-      surnames: Utils().surnamesOneLetter(user.surnames),        
+      surnames: Utils().getSurnameInitials(user.surnames),        
       phoneNumber: user.phoneNumber,
       numRoute: numRoute,
       numPick: 0,

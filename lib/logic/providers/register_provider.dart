@@ -41,6 +41,7 @@ class RegisterProvider extends ChangeNotifier
     "@yandex.com",
     "@gmx.com",
     "@fastmail.com",
+    "@afaandujar.org"
   ];
   
   void setSelectedProvince(String province) async {
@@ -75,7 +76,7 @@ class RegisterProvider extends ChangeNotifier
   // Une los componentes de la dirección en una sola cadena.
   String joinAddress(String street, String city, String province, String postalCode,) 
   {
-    return [street.trim(), postalCode.trim().isNotEmpty ? '${postalCode.trim()} ${city.trim()}' : city.trim(), province.trim(), 'España'].where((s) => s.isNotEmpty).join(', ');
+    return [street.trim(), postalCode.trim().isNotEmpty ? '${postalCode.trim()}, ${city.trim()}' : city.trim(), province.trim(), 'España'].where((s) => s.isNotEmpty).join(', ');
   }
 
   /// Comprueba si la contraseña cumple con criterios de seguridad.

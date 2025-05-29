@@ -24,19 +24,24 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   
   @override
+  void initState() {
+    super.initState();
+  }
+  
+  @override
   void dispose() {
     _userController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
+
   /// Método que navega a la pantalla correspondiente según el rol del usuario.
  Future<void> _navigateAccordingToRole(String email) async {
-
-
   // Carga el rol y lo almacena globalmente
   final role = await getUserRole();
   Provider.of<AuthUserProvider>(context,listen: false).loadUser();
+
   if(mounted){
     if (role == 'Administrador' || role == 'Conductor' || role == 'Usuario')
      {
@@ -56,51 +61,248 @@ class _LoginScreenState extends State<LoginScreen> {
 
 
   Future<void> _signInWithGoogle() async {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn(
-        clientId: '253008576813-licpgrjsnuhh9i918tlrda6veitsg0c6.apps.googleusercontent.com',
-      ).signIn();
+  final GoogleSignInAccount? googleUser = await GoogleSignIn(
+    clientId: '253008576813-licpgrjsnuhh9i918tlrda6veitsg0c6.apps.googleusercontent.com',
+  ).signIn();
+  if (googleUser == null) return;
 
-      if (googleUser == null) return;
+  final googleAuth = await googleUser.authentication;
+  final oauthCredential = GoogleAuthProvider.credential(
+    accessToken: googleAuth.accessToken,
+    idToken: googleAuth.idToken,
+  );
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+  // 1) Comprobamos los métodos de sign-in para este email
+  final email = googleUser.email;
+  final methods = await FirebaseAuth.instance.fetchSignInMethodsForEmail(email);
 
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      // Autenticamos en Firebase primero
-      final UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithCredential(credential);
-
-      final String email = googleUser.email;
-
-      // Llamamos a authenticateGoogleUser y esperamos su resultado
-      final bool isValidUser = await Provider.of<ActiveUserProvider>(
-        context,
-        listen: false,
-      ).authenticateGoogleUser(email);
-
-      // Si no es válido, eliminamos y deslogueamos
-      if (!isValidUser) 
-      {
-        await userCredential.user?.delete(); // Elimina de FirebaseAuth
-        await FirebaseAuth.instance.signOut(); // Cierra sesión
-        await GoogleSignIn().signOut(); // Cierra sesión de Google también
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Usuario no autorizado, sesión cerrada.'),
-            backgroundColor: Colors.red,
+  if (methods.contains('password')) {
+    // 2) Si existe email/password, pedimos la contraseña para vincular
+    String? pwd = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          title: const Text('Introduce tu contraseña'),
+          content: TextField(
+            controller: controller,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Contraseña'),
           ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, controller.text),
+              child: const Text('Vincular cuentas'),
+            ),
+          ],
         );
-        return;
-      }
+      },
+    );
 
-      // Si todo está bien, navega
+    if (pwd == null || pwd.isEmpty) return;
+    
+    try {
+      // 3) Iniciamos sesión con email/password para obtener la user
+      final emailUserCred = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: pwd);
+
+      // 4) Vinculamos la credencial de Google a ese user
+      await emailUserCred.user?.linkWithCredential(oauthCredential);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cuenta vinculada con éxito.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Provider.of<AuthUserProvider>(context,listen: false).loadUser();
       _navigateAccordingToRole(email);
+      return;
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error vinculando cuentas: ${e.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
   }
 
+  // 5) Si no existía email/password, simplemente autenticamos con Google
+  await FirebaseAuth.instance.signInWithCredential(oauthCredential);
+  
+  Provider.of<AuthUserProvider>(context,listen: false).loadUser();
+  // Aquí puedes validar con tu provider si quieres o navegar directo:
+  _navigateAccordingToRole(email);
+}
+
+/// Lógica principal de login/email↔Google link
+Future<void> _signInWithMailAndPassword() async {
+  if (_isLoading) {
+    return;
+  }
+  if (!_formKey.currentState!.validate()) {
+    return;
+  }
+
+  setState(() => _isLoading = true);
+  final email = _userController.text.trim();
+  final pwd = _passwordController.text.trim();
+
+  final provider = Provider.of<ActiveUserProvider>(context, listen: false);
+  final authProvider = Provider.of<AuthUserProvider>(context, listen: false);
+
+  // 1) Autenticación personalizada
+  final isAuthenticated = await provider.authenticateUser(email, pwd);
+  if (!isAuthenticated) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Usuario o contraseña no válidos.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    setState(() => _isLoading = false);
+    return;
+  }
+
+  try {
+    // 2) Obtener proveedores en Firebase
+    final methods = await FirebaseAuth.instance.fetchSignInMethodsForEmail(email);
+
+    if (methods.contains('password')) {
+      // Tiene email/password → login directo
+      await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pwd);
+
+    } else if (methods.contains('google.com')) {
+      // Ya existe solo con Google → intentar password login por si ya está linkeado
+      try {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pwd);
+      } on FirebaseAuthException {
+        // Si el login con contraseña falla, se procede a vincular
+        await _maybeLinkGoogleIfNotAlready(email, pwd);
+      }
+
+    } else {
+      // No existe → crear cuenta con email/password
+      try {
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: pwd);
+      } on FirebaseAuthException catch (e2) {
+        if (e2.code == 'email-already-in-use') {
+          // 1) Intentar login directo con email/password
+          try {
+            await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pwd);
+          } on FirebaseAuthException {
+            // Solo aquí realizamos el flujo de link
+            await _maybeLinkGoogleIfNotAlready(email, pwd);
+          }
+          // En ambos casos (login directo o link), ya estamos autenticados
+          authProvider.loadUser();
+          _navigateAccordingToRole(email);
+          return;
+        } else {
+          rethrow;
+        }
+      }
+    }
+
+    // 3) Tras login/create/link exitoso → cargar y navegar
+    authProvider.loadUser();
+    _navigateAccordingToRole(email);
+
+  } on FirebaseAuthException catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error de autenticación: ${e.message}'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } finally {
+    setState(() => _isLoading = false);
+  }
+}
+
+/// Verifica si el usuario actual ya tiene link con email/password;
+/// si no, ofrece diálogo y realiza el link
+Future<void> _maybeLinkGoogleIfNotAlready(String email, String password) async {
+  // Comprueba el usuario actualmente autenticado
+  final currentUser = FirebaseAuth.instance.currentUser;
+  if (currentUser != null) {
+    final providers = currentUser.providerData.map((p) => p.providerId).toList();
+    // Si ya está vinculado con email/password, saltar
+    if (providers.contains('password')) 
+    {
+      return;
+    }
+  }
+
+  // Mostrar diálogo de confirmación para vincular
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      titlePadding: EdgeInsets.zero,
+      title: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF063970), Color(0xFF2196F3)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(12),
+            topRight: Radius.circular(12),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Vincular con Google',
+                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => Navigator.pop(context, false),
+            ),
+          ],
+        ),
+      ),
+      content: const Text('Tu cuenta existe con Google. ¿Deseas vincular también tu contraseña?'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+        ElevatedButton.icon(
+          icon: Image.asset('assets/images/google_logo.png', height: 18),
+          label: const Text('Vincular', style: TextStyle(color: Colors.black)),
+          style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+          onPressed: () => Navigator.pop(context, true),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmed != true) return;
+
+  // Sign-in con popup de Google para obtener credenciales frescas
+  final googleProvider = GoogleAuthProvider();
+  final result = await FirebaseAuth.instance.signInWithPopup(googleProvider);
+  final user = result.user!;
+  
+  // Link de la credencial de email/password
+  final emailCred = EmailAuthProvider.credential(email: email, password: password);
+  try {
+    await user.linkWithCredential(emailCred);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Cuenta vinculada con éxito.'), backgroundColor: Colors.green, duration: Duration(seconds: 2),),
+    );
+  } on FirebaseAuthException catch (e) {
+    if (e.code != 'credential-already-in-use') rethrow;
+  }
+  await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
+}
 
  Widget _buildLoginForm() 
  {
@@ -195,42 +397,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: ElevatedButton(
-                    onPressed: () async {
-                      if (_isLoading) return;
-
-                      if (!_formKey.currentState!.validate()) return;
-
-                      setState(() => _isLoading = true);
-
-                      final email = _userController.text.trim();
-                      final pwd = _passwordController.text.trim();
-                      final provider = Provider.of<ActiveUserProvider>(context, listen: false);
-                      final authProvider = Provider.of<AuthUserProvider>(context, listen: false);
-
-                      try {
-                        bool isAutenticated = await provider.authenticateUser(email, pwd);
-
-                        if (!isAutenticated) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('El usuario o la contraseña no son válidos.'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          setState(() => _isLoading = false);
-                          return;
-                        }
-
-                        await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pwd);
-                      } on FirebaseAuthException {
-                        await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: pwd);
-                      }
-
-                      authProvider.loadUser();
-                      _navigateAccordingToRole(email);
-
-                      setState(() => _isLoading = false);
-                    },
+                    onPressed: _signInWithMailAndPassword,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
@@ -372,7 +539,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     final double screenWidth = MediaQuery.of(context).size.width;
     final double containerWidth = screenWidth * 0.9 > 900 ? 900 : screenWidth * 0.9;
 

@@ -2,19 +2,20 @@ import 'package:afa/design/screens/dashboard_screen.dart';
 import 'package:afa/design/screens/driver_home_screen.dart';
 import 'package:afa/design/screens/loading_no_child_screen.dart';
 import 'package:afa/design/screens/login_screen.dart';
+import 'package:afa/design/screens/map_screen.dart';
 import 'package:afa/design/screens/not_found_screen.dart';
+import 'package:afa/design/screens/notice_board_screen.dart';
 import 'package:afa/design/screens/register_screen.dart';
 import 'package:afa/design/screens/settings_screen.dart';
 import 'package:afa/design/screens/user_home_screen.dart';
 import 'package:afa/design/screens/welcome_screen.dart';
+import 'package:afa/logic/router/services/navigator_service.dart';
 import 'package:afa/logic/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-
-Future<String?> getUserRole() async 
-{
+Future<String?> getUserRole() async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return null;
 
@@ -22,8 +23,7 @@ Future<String?> getUserRole() async
   return await userService.getUserRoleByEmail(user.email!);
 }
 
-bool isAuthenticated() 
-{
+bool isAuthenticated() {
   return FirebaseAuth.instance.currentUser != null;
 }
 
@@ -41,7 +41,22 @@ Widget _buildWithLoading(BuildContext context, Widget screen,
 }
 
 final GoRouter afaRouter = GoRouter(
+  navigatorKey: NavigatorService.navigatorKey,
   initialLocation: '/',
+  redirect: (context, state) {
+    final isLoggedIn = isAuthenticated();
+    final goingToPublic = state.matchedLocation == '/' || state.matchedLocation == '/login' || state.matchedLocation == '/register';
+
+    if (!isLoggedIn && !goingToPublic) {
+      return '/login'; 
+    }
+
+    if (isLoggedIn && state.matchedLocation == '/login') {
+      return '/home'; 
+    }
+
+    return null;
+  },
   routes: [
     GoRoute(
       path: '/',
@@ -54,11 +69,6 @@ final GoRouter afaRouter = GoRouter(
     GoRoute(
       path: '/login',
       name: 'login',
-      /// Si el usuario ya está autenticado, redirige a /home
-      redirect: (context, state) {
-        if (isAuthenticated()) return '/home';
-        return null;
-      },
       builder: (context, state) => _buildWithLoading(
         context,
         const LoginScreen(),
@@ -79,7 +89,6 @@ final GoRouter afaRouter = GoRouter(
         future: getUserRole(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            // Mientras no se obtenga el rol se muestra el loader indefinidamente.
             return const LoadingNoChildScreen();
           }
           final role = snapshot.data;
@@ -88,15 +97,11 @@ final GoRouter afaRouter = GoRouter(
             targetScreen = const UserHomeScreen();
           } else if (role == 'Conductor') {
             targetScreen = const DriverHomeScreen();
-          } 
-          else if (role == 'Administrador') {
+          } else if (role == 'Administrador') {
             targetScreen = const DashboardScreen();
-          }
-          else {
-            // Si el rol no coincide con los esperados, se muestra loader indefinido.
+          } else {
             targetScreen = const LoadingNoChildScreen();
           }
-
           return _buildWithLoading(
             context,
             targetScreen,
@@ -104,14 +109,27 @@ final GoRouter afaRouter = GoRouter(
           );
         },
       ),
-      redirect: (context, state) async 
-      {
-        if (!isAuthenticated()) {
-          return '/login';
-        } else {
-          return '/home';
-        }
-      },
+    ),
+    GoRoute(
+      path: '/map',
+      name: 'map',
+      builder: (context, state) => FutureBuilder<String?>(
+        future: getUserRole(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const LoadingNoChildScreen();
+          }
+          final role = snapshot.data;
+          if (role == 'Usuario' || role == 'Conductor') {
+            return _buildWithLoading(
+              context,
+              const MapScreen(),
+              delay: const Duration(seconds: 3),
+            );
+          }
+          return const LoadingNoChildScreen();
+        },
+      ),
     ),
     GoRoute(
       path: '/settings',
@@ -120,44 +138,53 @@ final GoRouter afaRouter = GoRouter(
         future: getUserRole(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            // Mientras no se obtenga el rol se muestra el loader indefinidamente.
             return const LoadingNoChildScreen();
           }
           final role = snapshot.data;
-          Widget targetScreen;
-          if (role == 'Usuario' || role == 'Conductor') {
-            targetScreen = const SettingsScreen();
-          } 
-          else {
-            // Si el rol no coincide con los esperados, se muestra loader indefinido.
-            targetScreen = const LoadingNoChildScreen();
+          if (role == 'Usuario' ||
+              role == 'Conductor' ||
+              role == 'Administrador') {
+            return _buildWithLoading(
+              context,
+              const SettingsScreen(),
+              delay: const Duration(seconds: 3),
+            );
           }
-
-          return _buildWithLoading(
-            context,
-            targetScreen,
-            delay: const Duration(seconds: 3),
-          );
+          return const LoadingNoChildScreen();
         },
       ),
-      redirect: (context, state) async 
-      {
-        if (!isAuthenticated()) {
-          return '/login';
-        } else {
-          return '/home';
-        }
-      },
+    ),
+    GoRoute(
+      path: '/noticeboard',
+      name: 'noticeboard',
+      builder: (context, state) => FutureBuilder<String?>(
+        future: getUserRole(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const LoadingNoChildScreen();
+          }
+          final role = snapshot.data;
+          if (role == 'Usuario' ||
+              role == 'Conductor' ||
+              role == 'Administrador') {
+            return _buildWithLoading(
+              context,
+              const NoticeBoardScreen(),
+              delay: const Duration(seconds: 3),
+            );
+          }
+          return const LoadingNoChildScreen();
+        },
+      ),
     ),
   ],
   errorBuilder: (context, state) => FutureBuilder(
-  future: Future.delayed(const Duration(seconds: 3)),
-  builder: (context, snapshot) {
-    if (snapshot.connectionState != ConnectionState.done) {
-      return const LoadingNoChildScreen(); 
-    }
-    return const NotFoundScreen();
-  },
-)
-
+    future: Future.delayed(const Duration(seconds: 3)),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState != ConnectionState.done) {
+        return const LoadingNoChildScreen();
+      }
+      return const NotFoundScreen();
+    },
+  ),
 );

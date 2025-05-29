@@ -381,13 +381,20 @@ Widget _buildUserStatusCard(
                     child: ElevatedButton.icon(
                       onPressed: user.isCancelled
                           ? null
-                          : () => _showConfirmation(
-                                context,
-                                'Cancelar Recogida',
-                                '¿Seguro que quieres cancelar la recogida?',
-                                () => userRouteProvider.cancelCurrentPickup(),
-                                Colors.redAccent,
-                              ),
+                            : () => _showConfirmation(
+                          context,
+                          'Cancelar Recogida',
+                          '¿Seguro que quieres cancelar la recogida de hoy?',
+                          () => userRouteProvider.cancelCurrentPickup(),
+                          const LinearGradient(
+                            colors: [
+                              Color(0xFFB71C1C),
+                              Color(0xFFE53935),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
                       icon: const Icon(Icons.cancel, color: Colors.white, semanticLabel: 'Icono cancelar'),
                       label: const Text('Cancelar Recogida', style: TextStyle(color: Colors.white)),
                       style: ElevatedButton.styleFrom(
@@ -403,9 +410,13 @@ Widget _buildUserStatusCard(
                           ? () => _showConfirmation(
                                 context,
                                 'Reanudar Recogida',
-                                '¿Quieres reanudar la recogida?',
+                                '¿Quieres reanudar la recogida de hoy?',
                                 () => userRouteProvider.removeCancelCurrentPickup(),
-                                Colors.green,
+                                const LinearGradient(
+                                  colors: [Color(0xFF2E7D32), Color(0xFF66BB6A),],          
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
                               )
                           : null,
                       icon: const Icon(Icons.undo, color: Colors.white, semanticLabel: 'Icono reanudar'),
@@ -430,72 +441,114 @@ Future<void> _showConfirmation(
   String title,
   String content,
   VoidCallback onConfirm,
-  Color confirmColor,
+  LinearGradient confirmGradient,
 ) async {
-  final resultado = await showDialog<bool>(
+  final bool? resultado = await showDialog<bool>(
     context: context,
-    builder: (context) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        titlePadding: EdgeInsets.zero,
-        title: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF063970),
-                Color(0xFF2196F3),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(12),
-              topRight: Radius.circular(12),
-            ),
+    builder: (_) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      titlePadding: EdgeInsets.zero,
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+
+
+      title: Container(
+        decoration: BoxDecoration(
+          gradient: confirmGradient,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(12),
+            topRight: Radius.circular(12),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+          ],
+        ),
+      ),
+
+      // CONTENIDO
+      content: Text(
+        content,
+        style: const TextStyle(fontSize: 16),
+      ),
+
+      // ACCIONES
+      actionsPadding: EdgeInsets.zero,
+      actions: [
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey[800],
+                  side: BorderSide(color: Colors.grey.shade400),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: confirmGradient,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ).copyWith(
+                    overlayColor:
+                        WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.hovered)) {
+                        return Colors.white.withOpacity(0.2);
+                      }
+                      return null;
+                    }),
+                  ),
+                  child: const Text(
+                    'Confirmar',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.of(context).pop(false),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-        content: Text(content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              backgroundColor: confirmColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            child: Text(
-              title.contains('Cancelar') ? 'Cancelar' : 'Confirmar',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      );
-    },
+      ],
+    ),
   );
 
   if (resultado == true) {

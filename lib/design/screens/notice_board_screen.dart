@@ -12,13 +12,6 @@ class NoticeBoardScreen extends StatefulWidget {
 class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
   final bool _isLoading = false;
   List<Map<String, dynamic>> _documents = [];
-  bool _isMenuOpen = false;
-
-  void _toggleMenu() {
-    setState(() {
-      _isMenuOpen = !_isMenuOpen;
-    });
-  }
 
   @override
   void initState() {
@@ -28,7 +21,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
 
   Future<void> _fetchDocuments() async {
     try {
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('documents').get();
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('documentos').get();
       setState(() {
         _documents = querySnapshot.docs
             .map((doc) => {"title": doc["title"], "fileUrl": doc["fileUrl"]})
@@ -42,20 +35,21 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-    backgroundColor: _isMenuOpen ? const Color.fromARGB(30, 0, 0, 0) : Colors.blue[300],
-    elevation: 0,
-    title: Row(
-      children: [
-        IconButton(
-          icon: Icon(
-            _isMenuOpen ? Icons.close : Icons.menu,
-            color: _isMenuOpen ? Colors.blue[700] : Colors.white,
-          ),
-          onPressed: _toggleMenu,
+      drawer: const Drawer( child: SidebarMenu(selectedIndex: 2),),
+    extendBodyBehindAppBar: true,
+    appBar: AppBar(
+      leading: Builder(
+        builder: (context) => IconButton(
+          icon: const Icon(Icons.menu, color: Colors.white),
+          tooltip: 'Abrir menú', 
+          onPressed: () => Scaffold.of(context).openDrawer(),
         ),
-        const SizedBox(width: 8),
-        const Text(
+      ),
+    backgroundColor: Colors.blue[300],
+    elevation: 0,
+    title: const Row(
+      children: [
+        Text(
           'Tablon de Anuncios',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
@@ -84,22 +78,6 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
             ),
           ),
           // Capa oscura si el menú está abierto
-      if (_isMenuOpen)
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: _toggleMenu,
-            child: Container(color: Colors.black.withOpacity(0.5)),
-          ),
-        ),
-
-      // Sidebar visible
-      if (_isMenuOpen)
-         const Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          child: SidebarMenu(selectedIndex: 0),
-        ),
         ],
       ),
     );

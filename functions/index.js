@@ -43,7 +43,7 @@ function renderEmailContainer(title, description) {
   <body>
     <div class="container">
       <div class="logo-wrap">
-        <img src="https://afa-jandula.web.app/assets/images/logo.png" alt="Logo AFA" class="logo" />
+        <img src="https://firebasestorage.googleapis.com/v0/b/afa-jandula.firebasestorage.app/o/logo%2Flogo.png?alt=media" alt="AFA" class="logo" />
       </div>
       <div class="header">${title}</div>
       <div class="content">
@@ -65,44 +65,104 @@ function formatDate(ts) {
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 }
 
-// 1) Push & Email notifications on route updates
 export const notificarPushEstadoRecogida = onDocumentUpdated(
-  { region:'europe-southwest1', document:'ruta/{rutaId}' },
+  { region: 'europe-southwest1', document: 'ruta/{rutaId}' },
   async event => {
-    const before = event.data.before.data(), after = event.data.after.data(), rutaId = event.data.after.id;
-    const fcmToken = after.fcmToken, email = after.mail;
-    if (!fcmToken && !email) return console.warn('No FCM token or email for ruta', rutaId);
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    const rutaId = event.data.after.id;
+    const fcmToken = after.fcmToken;
+    const email = after.mail;
 
-    const nombre = `${after.name} ${after.surnames}`, direccion = after.address;
-    const pushMessages = [], emailMessages = [];
+    if (!fcmToken && !email) {
+      console.warn('No FCM token or email for ruta', rutaId);
+      return;
+    }
+
+    const nombre = `${after.name} ${after.surnames}`;
+    const direccion = after.address;
+    const pushMessages = [];
+    const emailMessages = [];
 
     // helpers to queue
     function queue(title, body) {
-      if (fcmToken) pushMessages.push({ token:fcmToken, webpush:{notification:{title,body}}, data:{rutaId,type:title} });
+      if (fcmToken) {
+        pushMessages.push({
+          token: fcmToken,
+          webpush: { notification: { title, body } },
+          data: { rutaId, type: title }
+        });
+      }
       if (email) {
         let description = `<p>${body}</p>`;
         // añadir enlace en notificaciones de recogida
-        if (title.includes('Recogida') || title.includes('Ruta') || title.includes('Conductor')) {
+        if (title.includes('Recogida') || title.includes('Ruta') || title.includes('Conductor') || title.includes('Alerta')) {
           description += `<p>Recuerda que puedes ver el estado de tu recogida en la app.</p>`;
           description += `<p><a href="https://afa-jandula.web.app/home" class="button">Ver detalles</a></p>`;
         }
         const html = renderEmailContainer(title, description);
-        emailMessages.push({ to:email, subject:title, html });
+        emailMessages.push({ to: email, subject: title, html });
       }
     }
 
-    // events
-    if((!before.createdAt||!isToday(before.createdAt)) && after.createdAt && isToday(after.createdAt))
-      queue('[AFA] 🚗 Ruta iniciada', `Ruta del ${formatDate(after.createdAt)} ha comenzado.`);
-    if(!before.isBeingPicking && after.isBeingPicking)
-      queue('[AFA] 🚗 Recogida iniciada', `Hola ${nombre}, el conductor ha iniciado tu recogida en: ${direccion}.`);
-    if(before.isBeingPicking && !after.isBeingPicking)
-      queue('[AFA] ❌ Recogida cancelada', `Hola ${nombre}, el conductor canceló tu recogida en: ${direccion}.`);
-    if(!before.isNear && after.isNear)
-      queue('[AFA] 📍 Conductor cerca', `Hola ${nombre}, conductor cerca de: ${direccion}.`);
+    // existing events
+    if ((!before.createdAt || !isToday(before.createdAt)) && after.createdAt && isToday(after.createdAt)) {
+      queue(
+        '[AFA] 🚗 Ruta iniciada',
+        `Ruta del ${formatDate(after.createdAt)} ha comenzado.`
+      );
+    }
+    if (!before.isBeingPicking && after.isBeingPicking) {
+      queue(
+        '[AFA] 🚗 Recogida iniciada',
+        `Hola ${nombre}, el conductor ha iniciado tu recogida en: ${direccion}.`
+      );
+    }
+    if (before.isBeingPicking && !after.isBeingPicking) {
+      queue(
+        '[AFA] ❌ Recogida cancelada',
+        `Hola ${nombre}, el conductor canceló tu recogida en: ${direccion}.`
+      );
+    }
+    if (!before.isNear && after.isNear) {
+      queue(
+        '[AFA] 📍 Conductor cerca',
+        `Hola ${nombre}, conductor cerca de: ${direccion}.`
+      );
+    }
 
-    if(pushMessages.length) await Promise.all(pushMessages.map(m=>messaging.send(m)));
-    if(emailMessages.length) await Promise.all(emailMessages.map(m=>transporter.sendMail({ from:process.env.SMTP_USER, ...m })));
+    const conductorSnap = await admin.firestore()
+      .collection('ruta_conductor')
+      .where('numRoute', '==', after.numRoute)
+      .get();
+
+    if (!conductorSnap.empty) {
+      if ((!before.hasProblem) && after.hasProblem) {
+        queue(
+          '[AFA] 🚨 Alerta en ruta',
+          `Hola ${nombre}, tu ruta ${after.numRoute} ha sido parada por el conductor por problemas técnicos en.`
+        );
+      }
+      // problema solucionado
+      if (before.hasProblem && !after.hasProblem) {
+        queue(
+          '[AFA] ✅ Problema solucionado',
+          `Hola ${nombre}, el problema técnico en tu ruta ha sido solucionado. ¡Gracias por tu paciencia!`
+        );
+      }
+    }
+
+    // send all queued messages
+    if (pushMessages.length) {
+      await Promise.all(pushMessages.map(m => messaging.send(m)));
+    }
+    if (emailMessages.length) {
+      await Promise.all(
+        emailMessages.map(m =>
+          transporter.sendMail({ from: process.env.SMTP_USER, ...m })
+        )
+      );
+    }
   }
 );
 

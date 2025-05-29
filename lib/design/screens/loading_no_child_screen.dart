@@ -64,10 +64,13 @@ class _LoadingNoChildScreenState extends State<LoadingNoChildScreen>
   }
 
   @override
-  void dispose() {
-    _gifController.animationController.dispose();
-    super.dispose();
-  }
+@override
+void dispose() {
+  final busProvider = Provider.of<BusProvider>(context, listen: false);
+  busProvider.stopAnimation(); 
+  _gifController.animationController.dispose();
+  super.dispose();
+}
 
   @override
   Widget build(BuildContext context) {

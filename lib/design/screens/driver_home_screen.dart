@@ -27,13 +27,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
 {
   late DateTime _focusedDay;
   late DateTime _selectedDay;
-  bool _isMenuOpen = false;
-  void _toggleMenu() {
-    setState(() 
-    {
-      _isMenuOpen = !_isMenuOpen;
-    });
-  }
 
   @override
   void initState() 
@@ -78,74 +71,126 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with TickerProvider
   }
 
 Future<void> _confirmarDetenerRuta(DriverRouteProvider routeProvider) async {
-  const Color actionColor = Colors.red;
-
-  final bool? resultado = await showDialog<bool>(
+  showDialog<bool>(
     context: context,
-    builder: (context) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        titlePadding: EdgeInsets.zero,
-        title: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF063970),
-                Color(0xFF2196F3),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(12),
-              topRight: Radius.circular(12),
-            ),
+    builder: (_) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      titlePadding: EdgeInsets.zero,
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+
+      // TITULAR CON DEGRADADO ROJO
+      title: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFB71C1C), Color(0xFFE53935)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  "Detener Ruta",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(12),
+            topRight: Radius.circular(12),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Detener Ruta',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => Navigator.pop(context, false),
+            ),
+          ],
+        ),
+      ),
+
+      // CONTENIDO
+      content: const Text(
+        '¿Seguro que quieres detener la ruta? \n'
+        'Esta acción no se puede deshacer y se perderán los datos de la ruta actual.',
+        style: TextStyle(fontSize: 16),
+      ),
+
+      // ACCIONES
+      actions: [
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context, false),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey[800],
+                  side: BorderSide(color: Colors.grey.shade400),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFB71C1C), Color(0xFFE53935)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context, true);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ).copyWith(
+                    overlayColor: MaterialStateProperty.resolveWith((states) {
+                      if (states.contains(MaterialState.hovered)) {
+                        return Colors.white.withOpacity(0.2);
+                      }
+                      return null;
+                    }),
+                  ),
+                  child: const Text(
+                    'Detener',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.pop(context, false),
-              ),
-            ],
-          ),
-        ),
-        content: const Text("¿Seguro que quieres detener la ruta?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancelar"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              backgroundColor: actionColor,
-              foregroundColor: Colors.white,
             ),
-            child: const Text('Confirmar'),
-          ),
-        ],
-      );
-    },
-  );
-
-  if (resultado == true) {
-    await routeProvider.stopRoute();
-  }
+          ],
+        ),
+      ],
+    ),
+  ).then((resultado) {
+    if (resultado == true) {
+      routeProvider.stopRoute();
+    }
+  });
 }
+
 
 
 
@@ -398,16 +443,20 @@ Future<void> _showSlidingNotification(
   {
     final theme = Theme.of(context);
     return Scaffold(
+      drawer: const Drawer( child: SidebarMenu(selectedIndex: 0),),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
+      leading: Builder(
+        builder: (context) => IconButton(
+          icon: const Icon(Icons.menu, color: Colors.white), 
+          tooltip: 'Abrir menú',
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
+      ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Row(
           children: [
-            IconButton(
-              icon: Icon(_isMenuOpen ? Icons.close : Icons.menu, color: _isMenuOpen ? Colors.blue : Colors.white),
-              onPressed: _toggleMenu,
-            ),
             const Spacer(),
             Consumer<NotificationProvider>(
               builder: (_, notificationProvider, __) {
@@ -544,22 +593,6 @@ Future<void> _showSlidingNotification(
               ),
             ),
           ),
-          if (_isMenuOpen)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: _toggleMenu,
-                child: Container(color: Colors.black54),
-              ),
-            ),
-          if (_isMenuOpen)
-            const Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: SidebarMenu(
-                selectedIndex: 0,
-              ),
-            ),
         ],
       ),
     );
@@ -843,93 +876,174 @@ Widget _buildCalendar(DriverRouteProvider routeProvider) {
 }
 
 Future<void> _showRouteSelectionDialog(DriverRouteProvider routeProvider) async {
-  final String? username = Provider.of<AuthUserProvider>(context, listen: false).userFireStore?.username;
+  final String? username = Provider.of<AuthUserProvider>(context, listen: false)
+      .userFireStore
+      ?.username;
   if (username == null) return;
 
   final routes = await NumberRouteService().getDistinctRouteNumbers();
   int? selectedRoute = routes.isNotEmpty ? routes.first : null;
 
-  bool? confirmed = await showDialog<bool>(
+  showDialog<bool>(
     context: context,
-    builder: (context) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        titlePadding: EdgeInsets.zero,
-        title: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF063970),
-                Color(0xFF2196F3),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(12),
-              topRight: Radius.circular(12),
-            ),
+    builder: (_) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      titlePadding: EdgeInsets.zero,
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+
+      // TITULAR
+      title: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF2E7D32), Color(0xFF66BB6A),],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Selecciona número de ruta',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(12),
+            topRight: Radius.circular(12),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Selecciona número de ruta',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              tooltip: 'Cerrar',
+              onPressed: () => Navigator.pop(context, false),
+            ),
+          ],
+        ),
+      ),
+
+      // CONTENIDO
+      content: StatefulBuilder(
+        builder: (context, setState) {
+          return SingleChildScrollView(
+            child: Container(
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  isExpanded: true,
+                  hint: const Text('Selecciona una ruta'),
+                  value: selectedRoute,
+                  items: routes
+                      .map((n) => DropdownMenuItem(
+                            value: n,
+                            child: Row(
+                              children: [
+                                const Icon(Icons.alt_route, color: Colors.indigo),
+                                const SizedBox(width: 8),
+                                Text('Ruta $n'),
+                              ],
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (n) => setState(() => selectedRoute = n),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+
+      // ACCIONES
+      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+      actions: [
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context, false),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.grey.shade400),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF2E7D32), Color(0xFF66BB6A),],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (selectedRoute == null) return;
+                    Navigator.pop(context, true);
+                    routeProvider.startRoute(username, selectedRoute!);
+                    setState(() {}); 
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ).copyWith(
+                    overlayColor:
+                        WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.hovered)) {
+                        return Colors.white.withOpacity(0.2);
+                      }
+                      return null;
+                    }),
+                  ),
+                  child: const Text(
+                    'Iniciar',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.pop(context, false),
-              ),
-            ],
-          ),
-        ),
-        content: StatefulBuilder(
-          builder: (context, setState) {
-            return DropdownButtonFormField<int>(
-              value: selectedRoute,
-              decoration: const InputDecoration(
-                labelText: "Ruta",
-                border: OutlineInputBorder(),
-              ),
-              items: routes
-                  .map((n) => DropdownMenuItem(value: n, child: Text('Ruta $n')))
-                  .toList(),
-              onChanged: (n) => setState(() => selectedRoute = n),
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
             ),
-            child: const Text('Iniciar'),
-          ),
-        ],
-      );
-    },
-  );
-
-  if (confirmed == true && selectedRoute != null) {
-    await routeProvider.startRoute(username, selectedRoute!);
-    setState(() {}); 
-  }
+          ],
+        ),
+      ],
+    ),
+  ).then((confirmed) {
+    if (confirmed == true && selectedRoute != null) {
+      // el startRoute ya se llamó en el onPressed, pero si prefieres hacerlo aquí:
+      // routeProvider.startRoute(username, selectedRoute!);
+      setState(() {});
+    }
+  });
 }
+
 
 
 }
