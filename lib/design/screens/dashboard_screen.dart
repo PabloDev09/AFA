@@ -20,10 +20,12 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen>
     with SingleTickerProviderStateMixin {
   bool _showActiveUsers = false;
-  late ScrollController _scrollController;
   bool _scrolledDown = false;
+
+  late ScrollController _scrollController;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  
   final DocumentService _documentService = DocumentService();
   final RouteService _routeService = RouteService();
 
@@ -575,26 +577,8 @@ void _showDeleteRouteDialog() async {
 }
 
 
-  Future<void> _uploadDocument() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles();
-
-      if (result != null && result.files.isNotEmpty) {
-
-        var file = result.files.first;
-        String fileName = file.name;
-
-        Reference storageRef =
-        FirebaseStorage.instance.ref().child('documentos/$fileName');
-        UploadTask uploadTask = storageRef.putData(file.bytes!);
-
-        TaskSnapshot snapshot = await uploadTask.whenComplete(() => {});
-        String downloadUrl = await snapshot.ref.getDownloadURL();
-
-        await FirebaseFirestore.instance.collection('documentos').add({
-          'title': fileName,
-          'fileUrl': downloadUrl,
-        });
+Future<void> _uploadDocument() async {
+    final success = await _documentService.uploadDocument();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -604,9 +588,9 @@ void _showDeleteRouteDialog() async {
         backgroundColor: success ? Colors.green : Colors.red,
       ),
     );
-  }
-
-  Widget buildActionButton({
+}
+  
+Widget buildActionButton({
   required BuildContext context,
   required IconData icon,
   required String label,

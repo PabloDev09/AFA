@@ -55,23 +55,21 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      drawer: const SidebarMenu(selectedIndex: 2),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: _isMenuOpen
-            ? const Color.fromARGB(30, 0, 0, 0)
-            : Colors.transparent,
+      leading: Builder(
+        builder: (context) => IconButton(
+          icon: const Icon(Icons.menu, color: Colors.white), 
+          tooltip: 'Abrir menú', 
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
+      ),
+        backgroundColor:Colors.transparent,
         elevation: 0,
-        title: Row(
+        title: const Row(
           children: [
-            IconButton(
-              icon: Icon(
-                _isMenuOpen ? Icons.close : Icons.menu,
-                color: _isMenuOpen ? Colors.blue[700] : Colors.white,
-              ),
-              onPressed: _toggleMenu,
-            ),
-            const SizedBox(width: 8),
-            const Text(
+            Text(
               'Tablón de Anuncios',
               style: TextStyle(
                 color: Colors.white,
@@ -138,23 +136,6 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
               ],
             ),
           ),
-
-          // Menu Overlay
-          if (_isMenuOpen)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: _toggleMenu,
-                child: Container(color: Colors.black.withOpacity(0.4)),
-              ),
-            ),
-
-          if (_isMenuOpen)
-            const Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: SidebarMenu(selectedIndex: 1),
-            ),
         ],
       ),
     );
