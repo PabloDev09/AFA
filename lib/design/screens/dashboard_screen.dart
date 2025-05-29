@@ -5,12 +5,10 @@ import 'package:afa/logic/providers/active_user_provider.dart';
 import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/providers/pending_user_provider.dart';
 import 'package:afa/design/components/side_bar_menu.dart';
+import 'package:afa/logic/services/documents_service.dart';
 import 'package:afa/logic/services/route_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -26,24 +24,25 @@ class _DashboardScreenState extends State<DashboardScreen>
   bool _scrolledDown = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  final DocumentService _documentService = DocumentService();
   final RouteService _routeService = RouteService();
-  
-    @override
+
+  @override
   void initState() {
     super.initState();
 
-      _scrollController = ScrollController();
-      _scrollController.addListener(() {
-    if (_scrollController.offset > 20 && !_scrolledDown) {
-      setState(() {
-        _scrolledDown = true;
-      });
-    } else if (_scrollController.offset <= 20 && _scrolledDown) {
-      setState(() {
-        _scrolledDown = false;
-      });
-    }
-  });
+    _scrollController = ScrollController();
+    _scrollController.addListener(() {
+      if (_scrollController.offset > 20 && !_scrolledDown) {
+        setState(() {
+          _scrolledDown = true;
+        });
+      } else if (_scrollController.offset <= 20 && _scrolledDown) {
+        setState(() {
+          _scrolledDown = false;
+        });
+      }
+    });
 
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1500),
@@ -53,11 +52,9 @@ class _DashboardScreenState extends State<DashboardScreen>
         CurvedAnimation(parent: _animationController, curve: Curves.easeIn);
     _animationController.forward();
 
-
-  WidgetsBinding.instance.addPostFrameCallback((_) async 
-  {
-    await Provider.of<AuthUserProvider>(context, listen: false).loadUser();
-  });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Provider.of<AuthUserProvider>(context, listen: false).loadUser();
+    });
   }
 
 @override
@@ -67,11 +64,11 @@ void dispose() {
   super.dispose();
 }
 
-
-Future<void> _showAssignRouteDialog() async {
-  final activeProvider = Provider.of<ActiveUserProvider>(context, listen: false);
-  User? selectedUser;
-  List<int> rutas = await _routeService.getAllRouteNumbers();
+  Future<void> _showAssignRouteDialog() async {
+    final activeProvider =
+        Provider.of<ActiveUserProvider>(context, listen: false);
+    User? selectedUser;
+    List<int> rutas = await _routeService.getAllRouteNumbers();
 
   // Añadir opción para desasignar al principio
   rutas.insert(0, 0);
@@ -599,16 +596,14 @@ void _showDeleteRouteDialog() async {
           'fileUrl': downloadUrl,
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Documento subido con éxito"), backgroundColor: Colors.green),
-        );
-      }
-    } catch (e) {
-      print("❌ Error al subir documento: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al subir el documento"), backgroundColor: Colors.red),
-      );
-    } 
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success
+            ? "Documento subido con éxito"
+            : "Error al subir el documento"),
+        backgroundColor: success ? Colors.green : Colors.red,
+      ),
+    );
   }
 
   Widget buildActionButton({
@@ -666,7 +661,7 @@ void _showDeleteRouteDialog() async {
     child: content,
   );
 
-  Widget scaledButton = button;
+    Widget scaledButton = button;
 
   if (!showText) {
     scaledButton = FittedBox(
@@ -691,8 +686,8 @@ void _showDeleteRouteDialog() async {
 
 
 
-    @override
-    Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -825,8 +820,12 @@ void _showDeleteRouteDialog() async {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  theme.brightness == Brightness.dark ? const Color(0xFF1E1E1E) : const Color(0xFF063970),
-                  theme.brightness == Brightness.dark ? const Color(0xFF121212) : const Color(0xFF66B3FF),
+                  theme.brightness == Brightness.dark
+                      ? const Color(0xFF1E1E1E)
+                      : const Color(0xFF063970),
+                  theme.brightness == Brightness.dark
+                      ? const Color(0xFF121212)
+                      : const Color(0xFF66B3FF),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -838,7 +837,8 @@ void _showDeleteRouteDialog() async {
                 Expanded(
                   child: SingleChildScrollView(
                     controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 50),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 50),
                     child: FadeTransition(
                       opacity: _fadeAnimation,
                       child: _showActiveUsers

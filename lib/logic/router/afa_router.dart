@@ -5,6 +5,7 @@ import 'package:afa/design/screens/login_screen.dart';
 import 'package:afa/design/screens/map_screen.dart';
 import 'package:afa/design/screens/not_found_screen.dart';
 import 'package:afa/design/screens/notice_board_screen.dart';
+import 'package:afa/design/screens/notice_board_screen.dart';
 import 'package:afa/design/screens/register_screen.dart';
 import 'package:afa/design/screens/settings_screen.dart';
 import 'package:afa/design/screens/user_home_screen.dart';
