@@ -55,7 +55,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      drawer: const SidebarMenu(selectedIndex: 2),
+      drawer: const Drawer( child: SidebarMenu(selectedIndex: 2),),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
       leading: Builder(

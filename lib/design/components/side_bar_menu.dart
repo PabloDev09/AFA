@@ -1,5 +1,6 @@
 import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/router/path/path_url_afa.dart';
+import 'package:afa/utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -80,7 +81,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
               const SizedBox(width: 10),
               Flexible(
                 child: Text(
-                  '${Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.name} ${Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.surnames}',
+                  '${Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.name} ${Utils().getSurnameInitials(Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.surnames)}',
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18), // smaller font
                 ),
