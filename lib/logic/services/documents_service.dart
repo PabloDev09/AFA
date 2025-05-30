@@ -15,6 +15,7 @@ class DocumentService {
         return {
           "title": data["title"] ?? "Sin título",
           "fileUrl": data["fileUrl"] ?? "",
+          "uploadDate": data["uploadDate"] ?? "",
         };
       }).toList();
     } catch (e) {
@@ -37,9 +38,12 @@ class DocumentService {
         final TaskSnapshot snapshot = await uploadTask.whenComplete(() => {});
         final String downloadUrl = await snapshot.ref.getDownloadURL();
 
+        final DateTime uploadDate = DateTime.now();
+
         await _firestore.collection('documentos').add({
           'title': fileName,
           'fileUrl': downloadUrl,
+          'uploadDate': uploadDate,
         });
 
         return true;
@@ -49,6 +53,23 @@ class DocumentService {
     } catch (e) {
       print("❌ Error al subir documento: $e");
       return false;
+    }
+  }
+
+  Future<void> deleteDocument(String title, String fileUrl) async {
+    try {
+      // Eliminar el archivo de Firebase Storage
+      final Reference storageRef = _storage.refFromURL(fileUrl);
+      await storageRef.delete();
+
+      // Eliminar el documento de Firestore
+      final query = await _collection.where('title', isEqualTo: title).where('fileUrl', isEqualTo: fileUrl).get();
+      for (var doc in query.docs) {
+        await doc.reference.delete();
+      }
+    } catch (e) {
+      print("❌ Error al borrar documento: $e");
+      rethrow;
     }
   }
 }

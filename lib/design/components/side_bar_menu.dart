@@ -180,14 +180,10 @@ Widget build(BuildContext context) {
                   const SizedBox(height: 10),
                   _buildMenuItem(Icons.map, "Mapa", 1, PathUrlAfa().pathMap),
                   const SizedBox(height: 10),
-                  _buildMenuItem(Icons.assignment, "Tablon de anuncios", 2, PathUrlAfa().pathNoticeBoard),
-                  const SizedBox(height: 10),
-                  _buildMenuItem(Icons.settings, "Configuración", 3, PathUrlAfa().pathSettings),
+                  _buildMenuItem(Icons.settings, "Configuración", 2, PathUrlAfa().pathSettings),
                 ]
                 else...[
                   _buildMenuItem(Icons.home, "Inicio", 0, PathUrlAfa().pathHome),
-                  const SizedBox(height: 10),
-                  _buildMenuItem(Icons.assignment, "Tablon de anuncios", 1, PathUrlAfa().pathNoticeBoard),
                   const SizedBox(height: 10),
                   _buildMenuItem(Icons.settings, "Configuración", 2, PathUrlAfa().pathSettings),
                 ]

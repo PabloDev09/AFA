@@ -1,3 +1,4 @@
+import 'package:afa/design/components/notice_board_component.dart';
 import 'package:afa/design/components/pending_user_component.dart';
 import 'package:afa/design/components/active_user_component.dart';
 import 'package:afa/logic/models/user.dart';
@@ -5,7 +6,6 @@ import 'package:afa/logic/providers/active_user_provider.dart';
 import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/providers/pending_user_provider.dart';
 import 'package:afa/design/components/side_bar_menu.dart';
-import 'package:afa/logic/services/documents_service.dart';
 import 'package:afa/logic/services/route_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -26,7 +26,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   
-  final DocumentService _documentService = DocumentService();
   final RouteService _routeService = RouteService();
 
   @override
@@ -59,12 +58,29 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
   }
 
-@override
-void dispose() {
-  _scrollController.dispose();
-  _animationController.dispose();
-  super.dispose();
-}
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _animationController.dispose();
+    super.dispose();
+  }
+
+    void _openNoticeBoard() 
+  {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) {
+          return NoticeBoardComponent(scrollController: scrollController, rol: Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.rol);
+        },
+      ),
+    );
+  }
 
   Future<void> _showAssignRouteDialog() async {
     final activeProvider =
@@ -575,20 +591,6 @@ void _showDeleteRouteDialog() async {
     ),
   );
 }
-
-
-Future<void> _uploadDocument() async {
-    final success = await _documentService.uploadDocument();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(success
-            ? "Documento subido con éxito"
-            : "Error al subir el documento"),
-        backgroundColor: success ? Colors.green : Colors.red,
-      ),
-    );
-}
   
 Widget buildActionButton({
   required BuildContext context,
@@ -765,8 +767,15 @@ Widget buildActionButton({
                   ),
                 ),
               ),
+              const Spacer(),
+              IconButton(
+              icon: const Icon(Icons.feed, color: Colors.white),
+              tooltip: 'Tablón',
+              onPressed: _openNoticeBoard,
+              ),
             ],
           ),
+          
           actions: [
             if (_showActiveUsers)
               buildActionButton(
@@ -789,12 +798,6 @@ Widget buildActionButton({
                 label: 'Asignar Ruta',
                 onTap: _showAssignRouteDialog,
               ),
-            buildActionButton(
-              context: context,
-              icon: Icons.upload_file,
-              label: 'Subir Documento',
-              onTap: _uploadDocument,
-            ),
           ],
       ),
       body: 

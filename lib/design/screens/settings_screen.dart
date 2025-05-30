@@ -61,7 +61,7 @@ Widget build(BuildContext context) {
       }
 
       return Scaffold(
-        drawer: const Drawer(child: SidebarMenu(selectedIndex: 3)),
+        drawer: const Drawer(child: SidebarMenu(selectedIndex: 2)),
         extendBodyBehindAppBar: true,
         appBar: AppBar(
           leading: Builder(

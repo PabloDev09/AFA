@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:afa/design/components/driver_status_component.dart';
+import 'package:afa/design/components/notice_board_component.dart';
 import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/providers/notification_provider.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -226,6 +227,22 @@ Future<void> _confirmarAccion(bool cancelar, UserRouteProvider userProvider) asy
       ),
     );
   }
+  void _openNoticeBoard() 
+  {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.3,
+      maxChildSize: 0.9,
+      builder: (context, scrollController) {
+        return NoticeBoardComponent(scrollController: scrollController, rol: Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.rol);
+      },
+    ),
+  );
+}
 
 Future<void> _showSlidingNotification(
   BuildContext context,
@@ -489,6 +506,11 @@ Future<void> _showSlidingNotification(
         title: Row(
           children: [
             const Spacer(),
+            IconButton(
+              icon: const Icon(Icons.feed, color: Colors.white),
+              tooltip: 'Tablón',
+              onPressed: _openNoticeBoard,
+            ),
             Consumer<NotificationProvider>(
               builder: (_, notificationProvider, __) {
                 final count = notificationProvider.notifications.where((n) => !n.isRead).length;
