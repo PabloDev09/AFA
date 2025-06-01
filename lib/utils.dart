@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Utils 
 {
   final routeUserNull = RouteUser(fcmToken: '', username: '', name: '', surnames: '', phoneNumber: '', address: '', mail: '', isCancelled: false, isCollected: false, isBeingPicking: false, isNear: false, distanceInKm: 0.0, distanceInMinutes: 0, numRoute: 0, numPick: 0, hourPick: '', createdAt: Timestamp.now());
-  final routeDriverNull = RouteDriver(fcmToken: "", username: "", name: "", surnames: "", phoneNumber: "", numRoute: 0, numPick: 0, hasProblem: false, createdAt: Timestamp.now());
+  final routeDriverNull = RouteDriver(fcmToken: "", username: "", name: "", surnames: "", phoneNumber: "", numRoute: 0, numPick: 0, hasProblem: false, location: const GeoPoint(0, 0), createdAt: Timestamp.now());
 
   /// Devuelve las iniciales de los apellidos en formato "R. J."
   String getSurnameInitials(String apellidos) {
@@ -16,19 +16,26 @@ class Utils
         .join(' ');
   }
 
-String formatAddress(String rawAddress) {
-  final parts = rawAddress.split(',').map((e) => e.trim()).toList();
+  String formatAddress(String rawAddress) {
+    final parts = rawAddress.split(',').map((e) => e.trim()).toList();
 
-  if (parts.length < 5) return rawAddress; // No hay suficientes partes para reformatear
+    if (parts.length < 5) return rawAddress; // No hay suficientes partes para reformatear
 
-  String calle = parts[0];
-  String numero = parts[1];
-  String ciudad = parts[3];
+    String calle = parts[0];
+    String numero = parts[1];
+    String ciudad = parts[3];
 
-  // Limpia prefijos comunes como "Calle", "Avda.", etc.
-  calle = calle.replaceFirst(RegExp(r'^(Calle|Avenida|Avda\.?|C\.)\s+', caseSensitive: false), '');
+    // Limpia prefijos comunes como "Calle", "Avda.", etc.
+    calle = calle.replaceFirst(RegExp(r'^(Calle|Avenida|Avda\.?|C\.)\s+', caseSensitive: false), '');
 
-  return '$calle, $numero, $ciudad';
-}
+    return '$calle, $numero, $ciudad';
+  }
+
+  String formatAddressForSearch(String address) {
+    String cleaned = address.replaceAll(',', '').trim();
+    String formatted = cleaned.replaceAll(RegExp(r'\s+'), '+');
+    return formatted;
+  }
+
 
 }

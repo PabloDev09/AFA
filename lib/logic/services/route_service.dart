@@ -28,14 +28,12 @@ class RouteService {
     String username,
     int numRoute,
   ) async {
-    if (await _driverRouteService.driverHasRoute(username)) return false;
-    if (await _driverRouteService.countDriversOnRoute(numRoute) >= 1) return false;
+    if (await _driverRouteService.driverHasRoute(username, numRoute)) return false;
+    if (await _driverRouteService.countOtherDriversOnRoute(username, numRoute) >= 1) return false;
     
-    // Asigna el conductor a la ruta
-    await _driverRouteService.assignDriverToRoute(username, numRoute);
-
-    // Borra usuarios de esta ruta previa y crea los nuevos
+    await _driverRouteService.deleteDriver(username);
     await deleteRoute(numRoute);
+    await _driverRouteService.assignDriverToRoute(username, driverLocation, numRoute);
     await _getUsers(driverLocation, numRoute);
     return true;
   }
@@ -221,7 +219,7 @@ Future<List<RouteUser>> getUsersByStatus({
 
       try {
         String addr =
-            _formatAddressForSearch(data['address'] as String);
+            Utils().formatAddressForSearch(data['address'] as String);
         http.Response res = await http
             .get(Uri.parse(
                 'https://nominatim.openstreetmap.org/search?q=$addr&format=json'))
@@ -237,7 +235,7 @@ Future<List<RouteUser>> getUsersByStatus({
               await _getRouteMatrix(driverLocation, dest);
           minutes = matrix['duration'] as int;
           distance = matrix['distance'] as double;
-          near = minutes <= 5 && (data['isBeingPicking'] as bool);
+          near = distance != 0 && minutes != 0 && minutes <= 5 && (data['isBeingPicking'] as bool);
         }
       } on TimeoutException {
         // silenciar timeout
@@ -252,73 +250,86 @@ Future<List<RouteUser>> getUsersByStatus({
     await _clearRouteIfCompleted(numRoute);
   }
 
-  Future<Map<String, dynamic>> _getRouteMatrix(
-      LatLng origin, LatLng destination) async {
-    const String baseUrl =
-        'https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix';
-    Map<String, dynamic> bodyMap = <String, dynamic>{
-      'origins': [
-        {
-          'waypoint': {
-            'location': {
-              'latLng': {
-                'latitude': origin.latitude,
-                'longitude': origin.longitude,
-              }
-            }
-          }
-        }
-      ],
-      'destinations': [
-        {
-          'waypoint': {
-            'location': {
-              'latLng': {
-                'latitude': destination.latitude,
-                'longitude': destination.longitude,
-              }
-            }
-          }
-        }
-      ],
-      'travelMode': 'DRIVE',
-      'routingPreference': 'TRAFFIC_AWARE',
-    };
-    String body = jsonEncode(bodyMap);
+Future<Map<String, dynamic>> _getRouteMatrix(
+    LatLng origin, LatLng destination) async {
+  const String baseUrl =
+      'https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix';
 
+  Map<String, dynamic> bodyMap = {
+    'origins': [
+      {
+        'waypoint': {
+          'location': {
+            'latLng': {
+              'latitude': origin.latitude,
+              'longitude': origin.longitude,
+            }
+          }
+        }
+      }
+    ],
+    'destinations': [
+      {
+        'waypoint': {
+          'location': {
+            'latLng': {
+              'latitude': destination.latitude,
+              'longitude': destination.longitude,
+            }
+          }
+        }
+      }
+    ],
+    'travelMode': 'DRIVE',
+    'routingPreference': 'TRAFFIC_AWARE',
+  };
+
+  String body = jsonEncode(bodyMap);
+
+  try {
     http.Response resp = await http.post(
       Uri.parse(baseUrl),
-      headers: <String, String>{
+      headers: {
         'Content-Type': 'application/json',
-        'X-Goog-Api-Key':
-            'AIzaSyDdjTRtb1Zp-lz8pY650DIGo137bQh9rig',
+        'X-Goog-Api-Key': 'AIzaSyDdjTRtb1Zp-lz8pY650DIGo137bQh9rig',
         'X-Goog-FieldMask':
             'originIndex,destinationIndex,duration,distanceMeters',
       },
       body: body,
     );
 
-    dynamic decoded = jsonDecode(resp.body);
+    final dynamic decoded = jsonDecode(resp.body);
+
     if (decoded is Map<String, dynamic> && decoded.containsKey('error')) {
-      throw Exception('API error: ${decoded['error']['message']}');
-    }
-    if (decoded is! List<dynamic> || decoded.isEmpty) {
-      throw Exception('Respuesta inválida o vacía de la API');
+      return {'distance': 0, 'duration': 0};
     }
 
-    double km = (decoded[0]['distanceMeters'] as num) / 1000;
-    double secs = double.parse(
-        (decoded[0]['duration'] as String).replaceAll('s', ''));
-    int mins = (secs / 60).round();
+    if (decoded is! List || decoded.isEmpty) {
+      return {'distance': 0, 'duration': 0};
+    }
 
-    return <String, dynamic>{'distance': km, 'duration': mins};
-  }
+    final Map<String, dynamic> result = decoded[0];
 
-  String _formatAddressForSearch(String address) {
-    String cleaned = address.replaceAll(',', '').trim();
-    String formatted = cleaned.replaceAll(RegExp(r'\s+'), '+');
-    return formatted;
+    final num? distanceMeters = result['distanceMeters'] as num?;
+    final String? durationStr = result['duration'] as String?;
+
+    if (distanceMeters == null || durationStr == null) {
+      return {'distance': 0, 'duration': 0};
+    }
+
+    final double km = distanceMeters / 1000;
+    final double secs = double.tryParse(durationStr.replaceAll('s', '')) ?? 0;
+    final int mins = (secs / 60).round();
+
+    return {
+      'distance': km,
+      'duration': mins,
+    };
+  } catch (e) {
+    return {'distance': 0, 'duration': 0};
   }
+}
+
 
   Future<void> _getUsers(
       LatLng driverLocation, int numRoute) async {
@@ -342,7 +353,7 @@ Future<List<RouteUser>> getUsersByStatus({
       if (!isCancelledToday) {
         try {
           String addr =
-              _formatAddressForSearch(user.address);
+              Utils().formatAddressForSearch(user.address);
           http.Response res = await http
               .get(Uri.parse(
                   'https://nominatim.openstreetmap.org/search?q=$addr&format=json'))
@@ -412,44 +423,4 @@ Future<List<RouteUser>> getUsersByStatus({
       await deleteRoute(numRoute);
     }
   }
-
-  Future<int> getMaxRouteNumber() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('ruta_numero')
-        .orderBy('numRoute', descending: true)
-        .limit(1)
-        .get();
-    if (snapshot.docs.isEmpty) return 0;
-    return snapshot.docs.first.get('numRoute') as int;
-  }
-
-  Future<List<int>> getAllRouteNumbers() async 
-  {
-  final snapshot = await FirebaseFirestore.instance
-      .collection('ruta_numero')
-      .orderBy('numRoute')
-      .get();
-
-  return snapshot.docs
-      .map((doc) => doc.get('numRoute') as int)
-      .where((num) => num != 0) // <-- filtra el 0
-      .toList();
-  }
-
-  Future<void> createRouteNumber(int numRoute) async {
-    await FirebaseFirestore.instance
-        .collection('ruta_numero')
-        .add({'numRoute': numRoute});
-  }
-
-  Future<void> deleteRouteNumber(int numRoute) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('ruta_numero')
-        .where('numRoute', isEqualTo: numRoute)
-        .get();
-    for (var doc in snapshot.docs) {
-      await doc.reference.delete();
-    }
-  }
-
 }

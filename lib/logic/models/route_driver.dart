@@ -10,6 +10,7 @@ class RouteDriver
   final int numRoute;
   final int numPick;
   bool hasProblem;
+  GeoPoint location;
   final Timestamp createdAt;
 
   RouteDriver(
@@ -21,7 +22,8 @@ class RouteDriver
     required this.phoneNumber,
     required this.numRoute,
     required this.numPick,
-    this.hasProblem = false,
+    required this.hasProblem,
+    required this.location,
     required this.createdAt
   });
 
@@ -37,6 +39,7 @@ class RouteDriver
       numRoute: map['numRoute'] ?? 0,
       numPick: map['numPick'] ?? 0,
       hasProblem: map['hasProblem'] ?? false,
+      location: map['location'] ?? const GeoPoint(0, 0),
       createdAt: map['createdAt'] ?? Timestamp.now(),
     );
   }
@@ -52,6 +55,7 @@ class RouteDriver
       'numRoute': numRoute,
       'numPick': numPick,
       'hasProblem': hasProblem,
+      'location': location,
       'createdAt': createdAt,
     };
   }

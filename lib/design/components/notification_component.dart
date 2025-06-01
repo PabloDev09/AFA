@@ -144,9 +144,13 @@ class NotificationComponent extends StatelessWidget {
                           children: [
                             Icon(
                               isAlert
-                                  ? Icons.warning_amber_rounded
+                                  ? isRead
+                                      ? Icons.warning_amber_outlined
+                                      : Icons.warning_amber 
                                   : isImportant
-                                      ? Icons.check_circle
+                                      ? isRead
+                                          ? Icons.check_circle_outline
+                                          : Icons.check_circle
                                       : isRead
                                           ? Icons.notifications_none
                                           : Icons.notifications_active,
@@ -160,7 +164,7 @@ class NotificationComponent extends StatelessWidget {
                                   Text(
                                     item.message,
                                     style: theme.textTheme.bodyLarge?.copyWith(
-                                      fontWeight: (isRead && !isAlert && !isImportant)
+                                      fontWeight: (isRead)
                                           ? FontWeight.normal
                                           : FontWeight.bold,
                                       color: textColor,

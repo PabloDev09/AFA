@@ -1,12 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:afa/logic/models/route_driver.dart';
 import 'package:afa/logic/models/route_user.dart';
 import 'package:afa/logic/providers/notification_provider.dart';
 import 'package:afa/logic/services/driver_route_service.dart';
 import 'package:afa/utils.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:afa/logic/services/route_service.dart';
 import 'package:afa/logic/services/cancel_route_service.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 class UserRouteProvider extends ChangeNotifier {
@@ -195,6 +199,63 @@ class UserRouteProvider extends ChangeNotifier {
     await _routeService.removeCancelCurrentPickup(routeUser.username, routeUser.numRoute);
     await _getUserAndDriver(routeUser.username);
     _notificationProvider.addNotification("La recogida de hoy ha sido reanudada.", false, false);
+  }
+
+  Future<Set<Marker>> get markers async {
+  try {
+    final markerSet = <Marker>{};
+    if (routeDriver.location != const GeoPoint(0, 0)) {
+      markerSet.add(
+        Marker(
+          markerId: const MarkerId('driver'),
+          position: LatLng(routeDriver.location.latitude, routeDriver.location.longitude),
+          infoWindow: const InfoWindow(title: 'Posicion del conductor'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        ),
+      );
+    }
+
+    LatLng userLocation = await _getUserLocation(routeUser.address);
+    if(userLocation.latitude == 0 && userLocation.longitude == 0) {
+      throw Exception('No se pudo obtener la ubicación del usuario');
+    }
+
+    markerSet.add(
+      Marker(
+        markerId: MarkerId('user_${routeUser.username}'),
+        position: userLocation,
+        infoWindow: const InfoWindow(title: 'Parada de recogida'),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+      ),
+    );
+    return markerSet;
+  } catch (_) {
+    return <Marker>{};
+  }
+}
+
+  Future<LatLng> _getUserLocation(String address) async {
+    try {
+      String formattedAddress = Utils().formatAddressForSearch(address);
+      final response = await http.get(
+        Uri.parse(
+          'https://nominatim.openstreetmap.org/search?q=$formattedAddress&format=json',
+        ),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        if (data.isNotEmpty) {
+          return LatLng(
+            double.parse(data[0]['lat'] as String),
+            double.parse(data[0]['lon'] as String),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error al obtener la ubicación del usuario: $e");
+    }
+    return const LatLng(0, 0); 
   }
 
   Future<void> _getUserAndDriver(String username) async {

@@ -5,29 +5,31 @@ class NumberRouteService {
 
   NumberRouteService();
 
-  Future<void> createRoute(int numRoute) async 
-  {
-    if(await existsRoute(numRoute)) return;
-
-    await _collectionReferenceRoute.add
-    ({
-      'numRoute': numRoute
-    });
-
+  Future<int> getMaxRouteNumber() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('ruta_numero')
+        .orderBy('numRoute', descending: true)
+        .limit(1)
+        .get();
+    if (snapshot.docs.isEmpty) return 0;
+    return snapshot.docs.first.get('numRoute') as int;
   }
 
-  Future<void> deleteRoute(int numRoute) async 
-  {
-    QuerySnapshot snap = await _collectionReferenceRoute
-        .where('numRoute', isEqualTo: numRoute).limit(1)
+  Future<void> createRouteNumber(int numRoute) async {
+    await FirebaseFirestore.instance
+        .collection('ruta_numero')
+        .add({'numRoute': numRoute});
+  }
+
+  Future<void> deleteRouteNumber(int numRoute) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('ruta_numero')
+        .where('numRoute', isEqualTo: numRoute)
         .get();
-
-    if(snap.docs.isNotEmpty)
-    {
-          await snap.docs.first.reference.delete();
+    for (var doc in snapshot.docs) {
+      await doc.reference.delete();
     }
-
-  } 
+  }
 
   Future<bool> existsRoute(int numRoute) async 
   {
@@ -38,7 +40,6 @@ class NumberRouteService {
     return snap.docs.isNotEmpty;    
   } 
 
-  
   // Devuelve todos los numRoute distintos mayores que 0, de forma eficiente
   Future<List<int>> getDistinctRouteNumbers() async {
     QuerySnapshot snapshot = await _collectionReferenceRoute

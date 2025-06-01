@@ -1,3 +1,5 @@
+// main.dart
+
 import 'package:afa/firebase_options.dart';
 import 'package:afa/logic/providers/active_user_provider.dart';
 import 'package:afa/logic/providers/auth_user_provider.dart';
@@ -12,11 +14,13 @@ import 'package:afa/design/themes/afa_theme.dart';
 import 'package:afa/logic/router/afa_router.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -72,7 +76,6 @@ class MyApp extends StatelessWidget {
             UserRouteProvider(NotificationProvider()),
           )..loadUser(),
           update: (ctx, notif, drvRoute, usrRoute, auth) {
-            // Reemplazamos las referencias de dependencia y recargamos usuario
             auth!
               ..updateDependencies(
                 notificationProvider: notif,
@@ -91,6 +94,29 @@ class MyApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             theme: AfaTheme.theme(themeProv.isDarkMode, 1),
             routerConfig: afaRouter,
+
+            // ---- Aquí aplicamos la "limitación a mínimo 350 px" ----
+            builder: (context, child) {
+              if (child == null) return const SizedBox();
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  // Si la pantalla mide menos de 350 px, forzamos ancho=350 y habilitamos scroll horizontal:
+                  if (constraints.maxWidth < 300) {
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: 300,
+                        child: child,
+                      ),
+                    );
+                  } else {
+                    // Ancho >= 350: devolvemos directamente el contenido sin scroll.
+                    return child;
+                  }
+                },
+              );
+            },
+            // ---------------------------------------------------------
           );
         },
       ),

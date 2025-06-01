@@ -438,165 +438,351 @@ Future<void> _showSlidingNotification(
 }
 
 
-  @override
-  Widget build(BuildContext context) 
-  {
-    final theme = Theme.of(context);
-    return Scaffold(
-      drawer: const Drawer( child: SidebarMenu(selectedIndex: 0),),
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-      leading: Builder(
-        builder: (context) => IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white), 
-          tooltip: 'Abrir menú',
-          onPressed: () => Scaffold.of(context).openDrawer(),
-        ),
-      ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Row(
-          children: [
-            const Spacer(),
-            Consumer<NotificationProvider>(
-              builder: (_, notificationProvider, __) {
-                final count = notificationProvider.notifications.where((n) => !n.isRead).length;
-                if (notificationProvider.hasNewNotification) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    final n = notificationProvider.latestNotification;
-                    _showSlidingNotification(context, n);
-                    notificationProvider.markLatestAsShown();
+@override
+Widget build(BuildContext context) {
+  final theme = Theme.of(context);
 
-                  });
-                }
-                return Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications, color: Colors.white),
-                      onPressed: _openNotifications,
-                    ),
-                    if (count > 0)
-                      Positioned(
-                        right: 6,
-                        top: 6,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                          child: Text(
-                            '$count',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
+  return Scaffold(
+    drawer: const Drawer(child: SidebarMenu(selectedIndex: 0)),
+    extendBodyBehindAppBar: true,
+    backgroundColor: Colors.transparent, // Para quitar fondo blanco alrededor
+    body: Stack(
+      children: [
+        // Fondo degradado global, ocupa toda la pantalla
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                theme.brightness == Brightness.dark ? Colors.black87 : Colors.blue[900]!,
+                theme.brightness == Brightness.dark ? Colors.black54 : Colors.blue[300]!,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        // Contenido con scroll
+        SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: kToolbarHeight),
+                Consumer<DriverRouteProvider>(
+                  builder: (context, routeProvider, child) => _buildCalendar(routeProvider),
+                ),
+                const SizedBox(height: 20),
+               Consumer<DriverRouteProvider>(
+                  builder: (context, routeProvider, child) {
+                    if (routeProvider.isRouteActive) {
+                      return const Padding(
+                        padding: EdgeInsets.only(left: 40.0, right: 40.0),
+                        child: RouteUserComponent(),
+                      );
+                    } else {
+                      return SizedBox(
+                        height: 500, 
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Stack(
+                                alignment: Alignment.topRight,
+                                children: [
+                                  const Icon(
+                                    Icons.directions_bus,
+                                    size: 80,
+                                    color: Colors.white,
+                                  ),
+                                  Positioned(
+                                    top: 0,
+                                    right: 0,
+                                    child: Container(
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      padding: const EdgeInsets.all(4),
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'No hay ninguna ruta iniciada',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                  ],
-                );
-              },
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 40), // Espacio extra abajo para scroll
+              ],
             ),
-          ],
+          ),
         ),
-      ),
-      body: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  theme.brightness == Brightness.dark ? Colors.black87 : Colors.blue[900]!,
-                  theme.brightness == Brightness.dark ? Colors.black54 : Colors.blue[300]!,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+        // AppBar custom integrado con el mismo fondo degradado
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: PreferredSize(
+            preferredSize: const Size.fromHeight(kToolbarHeight),
+            child: AppBar(
+              backgroundColor: const Color.fromARGB(47, 0, 0, 0),
+              elevation: 0,
+              leading: Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(Icons.menu, color: Colors.white),
+                  tooltip: 'Menú',
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
               ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.only(top: kToolbarHeight + MediaQuery.of(context).padding.top),
-              child: Column(
-                children: [
-                  Consumer<DriverRouteProvider>(
-                    builder: (context, routeProvider, child) => 
-                      _buildCalendar(routeProvider),
-                                      ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Consumer<DriverRouteProvider>(
-                        builder: (context, routeProvider, child) {
-                        if (routeProvider.isRouteActive) {
-                            return const SingleChildScrollView(
-                              child: Padding(
-                                padding: EdgeInsets.only(top: 20, bottom: 20),
-                                child: RouteUserComponent(),
+              centerTitle: true,
+              title: LayoutBuilder(
+                builder: (context, constraints) {
+                  // Ajusta tamaño máximo según espacio en título
+                  final maxWidth = constraints.maxWidth;
+
+                  // Define tamaño base y escala según el espacio (puedes ajustar los números)
+                  final iconSize = maxWidth < 300 ? 22.0 : 28.0;
+                  final spacing = maxWidth < 300 ? 6.0 : 12.0;
+
+                  return Consumer<DriverRouteProvider>(
+                    builder: (context, driverRouteProvider, _) {
+                      final isActive = driverRouteProvider.isRouteActive;
+
+                      if (!isActive) return const SizedBox();
+
+                      return Wrap(
+                        spacing: spacing,
+                        runSpacing: spacing / 2,
+                        alignment: WrapAlignment.start,
+                        children: [
+                          _buildStatusCard(
+                            tooltip: 'Usuarios por recoger',
+                            count: driverRouteProvider.pendingUsers.length,
+                            counterColor: Colors.blueAccent,
+                            icon: Icons.person_search,
+                            iconSize: iconSize,
+                          ),
+                          _buildStatusCard(
+                            tooltip: 'Usuarios recogidos',
+                            count: driverRouteProvider.collectedUsers.length,
+                            counterColor: Colors.green,
+                            icon: Icons.person,
+                            iconSize: iconSize,
+                          ),
+                          _buildStatusCard(
+                            tooltip: 'Usuarios cancelados',
+                            count: driverRouteProvider.cancelledUsers.length,
+                            counterColor: Colors.redAccent,
+                            icon: Icons.person_off,
+                            iconSize: iconSize,
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
+              actions: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final maxWidth = constraints.maxWidth;
+                    // Ajusta tamaño icono notificaciones y alertas aquí también
+                    final iconSize = maxWidth < 30 ? 18.0 : 28.0;
+
+                    return Consumer2<DriverRouteProvider, NotificationProvider>(
+                      builder: (context, driverRouteProvider, notificationProvider, _) {
+                        final isActive = driverRouteProvider.isRouteActive;
+                        final hasProblem = driverRouteProvider.routeDriver.hasProblem;
+                        final notifCount = notificationProvider.notifications.where((n) => !n.isRead).length;
+
+                        if (notificationProvider.hasNewNotification) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            final n = notificationProvider.latestNotification;
+                            _showSlidingNotification(context, n);
+                            notificationProvider.markLatestAsShown();
+                          });
+                        }
+
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isActive)
+                              _buildAlertCard(
+                                hasProblem,
+                                driverRouteProvider,
+                                iconSize,
                               ),
-                            );
-                          } 
-                          else 
-                          {
-                          return Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Stack(
-                                  alignment: Alignment.topRight,
-                                  children: [
-                                    const Icon(
-                                      Icons.directions_bus,
-                                      size: 80,
-                                      color: Colors.white,
-                                    ),
+                            Tooltip(
+                              message: 'Notificaciones',
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  IconButton(
+                                    iconSize: iconSize,
+                                    icon: const Icon(Icons.notifications, color: Colors.white),
+                                    onPressed: _openNotifications,
+                                  ),
+                                  if (notifCount > 0)
                                     Positioned(
-                                      top: 0,
-                                      right: 0,
+                                      right: iconSize / 3,
+                                      top: iconSize / 3,
                                       child: Container(
+                                        padding: const EdgeInsets.all(2),
                                         decoration: const BoxDecoration(
                                           color: Colors.red,
                                           shape: BoxShape.circle,
                                         ),
-                                        padding: const EdgeInsets.all(4),
-                                        child: const Icon(
-                                          Icons.close,
-                                          size: 16,
-                                          color: Colors.white,
+                                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                        child: Text(
+                                          '$notifCount',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
                                       ),
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                const Text(
-                                  'No hay ninguna ruta iniciada',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          );
+                            const SizedBox(width: 5),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        )
+      ],
+    ),
+  );
+}
 
-                        }
-                        },
-                      ),
-                    ),
+Widget _buildAlertCard(
+  bool hasProblem,
+  DriverRouteProvider driverRouteProvider, 
+  double iconSize
+) {
+  return Padding(
+    padding: const EdgeInsets.only(right: 8),
+    child: Tooltip(
+      message: hasProblem
+          ? 'Marcar incidencia como resuelta'
+          : 'Reportar incidencia',
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          IconButton(
+            iconSize: iconSize,
+            icon: Icon(
+              hasProblem ? Icons.check_circle : Icons.warning_amber_rounded,
+              color: hasProblem ? Colors.green : Colors.red,
+              size: iconSize,
+            ),
+            onPressed: () {
+              if (hasProblem) {
+                driverRouteProvider.clearRouteHasProblem();
+              } else {
+                driverRouteProvider.markRouteHasProblem();
+              }
+            },
+          ),
+          if (hasProblem)
+            Positioned(
+              right: iconSize / 4,
+              top: iconSize / 4,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                child: Text(
+                  '!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: iconSize * 0.36,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildStatusCard({
+  required String tooltip,
+  required IconData icon,
+  required int count,
+  required Color counterColor,
+  required double iconSize
+}) {
+  // Ajuste dinámico del tamaño del círculo según el número de dígitos
+  final bool isDoubleDigit = count > 9;
+  final double circleSize = isDoubleDigit ? iconSize * 0.7 : iconSize * 0.5;
+  final double fontSize = circleSize * 0.6;
+
+  return Tooltip(
+    message: tooltip,
+    child: Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(icon, color: Colors.white, size: iconSize),
+          Positioned(
+            right: -circleSize * 0.25,
+            top: -circleSize * 0.25,
+            child: Container(
+              height: circleSize,
+              width: circleSize,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: counterColor,
+                shape: BoxShape.circle,
+              ),
+              constraints: BoxConstraints(minWidth: circleSize, minHeight: circleSize),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
+
+
 
 Widget _buildCalendar(DriverRouteProvider routeProvider) {
   final bool esHoy = isSameDay(_selectedDay, DateTime.now());
@@ -746,127 +932,156 @@ Widget _buildCalendar(DriverRouteProvider routeProvider) {
                 opacity: anim,
                 child: ScaleTransition(scale: anim, child: child),
               ),
-              child: esHoy
-                  ? (routeProvider.isRouteActive
-                      ? Row(
-                          children: [
-                            // Botón actualizar
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: routeProvider.isUpdating
-                                    ? null
-                                    : () async {
-                                        setState(() =>
-                                            routeProvider.isUpdating = true);
-                                        await routeProvider.updateRoute();
-                                        setState(() =>
-                                            routeProvider.isUpdating = false);
-                                      },
-                                icon: routeProvider.isUpdating
-                                    ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                  Colors.white),
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Icon(Icons.update,
-                                        color: Colors.white),
-                                      label: Text(
-                                        routeProvider.isUpdating
-                                            ? 'Actualizando ruta'
-                                            : 'Actualizar Ruta',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                          fontSize: routeProvider.isUpdating ? 11 : 14,
-                                        ),
-                                      ),
-
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blueAccent,
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(12)),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            // Botón detener
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: routeProvider.isLoading
-                                    ? null
-                                    : () => _confirmarDetenerRuta(routeProvider),
-                                icon: const Icon(Icons.stop,
-                                    color: Colors.white),
-                                label: const Text(
-                                  'Detener Ruta',
-                                  style: TextStyle(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+                child: esHoy
+                    ? (routeProvider.isRouteActive
+                        ? Row(
+                            children: [
+                              // Botón actualizar
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: routeProvider.isUpdating
+                                      ? null
+                                      : () async {
+                                          setState(() =>
+                                              routeProvider.isUpdating = true);
+                                          await routeProvider.updateRoute();
+                                          setState(() =>
+                                              routeProvider.isUpdating = false);
+                                        },
+                                  icon: routeProvider.isUpdating
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                    Colors.white),
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.update,
+                                          color: Colors.white),
+                                  label: Text(
+                                    routeProvider.isUpdating
+                                        ? 'Actualizando ruta'
+                                        : 'Actualizar Ruta',
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.white),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.redAccent,
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(12)),
+                                      color: Colors.white,
+                                      fontSize:
+                                          routeProvider.isUpdating ? 11 : 14,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blueAccent,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        )
-                      : SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: routeProvider.isLoading
-                              ? null
-                              : () => _showRouteSelectionDialog(routeProvider),
-                            icon: routeProvider.isLoading
-                              ? const SizedBox(
-                                  width: 24, height: 24,
-                                  child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white), strokeWidth: 2),
-                                )
-                              : const Icon(Icons.play_arrow, color: Colors.white),
-                            label: Text(
-                              routeProvider.isLoading ? 'Iniciando ruta' : 'Iniciar Ruta',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
+                              const SizedBox(width: 12),
+                              // Botón detener
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: routeProvider.isLoading
+                                      ? null
+                                      : () =>
+                                          _confirmarDetenerRuta(routeProvider),
+                                  icon: const Icon(Icons.stop,
+                                      color: Colors.white),
+                                  label: const Text(
+                                    'Detener Ruta',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.redAccent,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                  ),
+                                ),
+                              ),
+                            ],
                           )
-                        ))
-                  : SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: null,
-                        icon: const Icon(Icons.play_arrow,
-                            color: Colors.grey),
-                        label: const Text(
-                          'Iniciar Ruta',
-                          style: TextStyle(
+                        : SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: routeProvider.isLoading
+                                  ? null
+                                  : () => _showRouteSelectionDialog(
+                                      routeProvider),
+                              icon: routeProvider.isLoading
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                Colors.white),
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.play_arrow,
+                                      color: Colors.white),
+                              label: Text(
+                                routeProvider.isLoading
+                                    ? 'Iniciando ruta'
+                                    : 'Iniciar Ruta',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ))
+                    : SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: null,
+                          icon:
+                              const Icon(Icons.play_arrow, color: Colors.grey),
+                          label: const Text(
+                            'Iniciar Ruta',
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Colors.grey),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade300,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                              color: Colors.grey,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey.shade300,
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
                         ),
                       ),
-                    ),
+              ),
+            );
+          },
+        ),
+
             ),
           ],
         ),
@@ -983,7 +1198,7 @@ Future<void> _showRouteSelectionDialog(DriverRouteProvider routeProvider) async 
                 ),
                 child: const Text(
                   'Cancelar',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54),
                 ),
               ),
             ),

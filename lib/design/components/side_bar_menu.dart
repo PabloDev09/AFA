@@ -29,27 +29,34 @@ class _SidebarMenuState extends State<SidebarMenu> {
       onEnter: (_) => setState(() => hoveredIndex = index),
       onExit: (_) => setState(() => hoveredIndex = -1),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 50), // reduced height
+        constraints: const BoxConstraints(minHeight: 50),
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            foregroundColor: isSelected ? Colors.white : Colors.black87, backgroundColor: isSelected
+            foregroundColor: isSelected ? Colors.white : Colors.black87,
+            backgroundColor: isSelected
                 ? Colors.blue[700]
                 : isHovered
                     ? Colors.blue[100]
                     : Colors.transparent,
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16), // smaller padding
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
             alignment: Alignment.centerLeft,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), // slightly smaller radius
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             elevation: 0,
           ),
           onPressed: () {
-            context.go(route);
+            // Navegamos y cerramos drawer
+            Navigator.of(context).pop();
+            Future.microtask(() {
+              if (mounted) {
+                context.go(route);
+              }
+            });
           },
           child: Row(
             mainAxisSize: MainAxisSize.max,
             children: [
-              Icon(icon, color: isSelected ? Colors.white : Colors.black54, size: 24), // smaller icon
-              const SizedBox(width: 16), // smaller spacing
+              Icon(icon, color: isSelected ? Colors.white : Colors.black54, size: 24),
+              const SizedBox(width: 16),
               Flexible(
                 child: Text(
                   title,
@@ -57,7 +64,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
                   style: TextStyle(
                     color: isSelected ? Colors.white : Colors.black87,
                     fontWeight: FontWeight.w600,
-                    fontSize: 16, // smaller font
+                    fontSize: 16,
                   ),
                 ),
               ),
@@ -70,35 +77,36 @@ class _SidebarMenuState extends State<SidebarMenu> {
 
   Widget _buildUserProfile() {
     return Padding(
-      padding: const EdgeInsets.all(16.0), // smaller padding
+      padding: const EdgeInsets.all(16.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.person, color: Colors.black54, size: 30), // smaller icon
+              const Icon(Icons.person, color: Colors.blue, size: 30),
               const SizedBox(width: 10),
               Flexible(
                 child: Text(
                   '${Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.name} ${Utils().getSurnameInitials(Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.surnames)}',
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18), // smaller font
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16), // smaller spacing
+          const SizedBox(height: 16),
           MouseRegion(
             cursor: SystemMouseCursors.click,
             onEnter: (_) => setState(() => hoveredIndex = 100),
             onExit: (_) => setState(() => hoveredIndex = -1),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 50), // smaller button height
+              constraints: const BoxConstraints(minHeight: 50),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white, backgroundColor: hoveredIndex == 100 ? Colors.red[700] : Colors.red[600],
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16), // smaller padding
+                  foregroundColor: Colors.white,
+                  backgroundColor: hoveredIndex == 100 ? Colors.red[700] : Colors.red[600],
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                   alignment: Alignment.center,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   elevation: hoveredIndex == 100 ? 4 : 0,
@@ -106,19 +114,28 @@ class _SidebarMenuState extends State<SidebarMenu> {
                 onPressed: () async {
                   await FirebaseAuth.instance.signOut();
                   Provider.of<AuthUserProvider>(context, listen: false).logout();
-                  context.go(PathUrlAfa().pathLogin);
+                  
+                  // Primero cerramos el drawer
+                  Navigator.of(context).pop();
+
+                  // Después navegamos en la siguiente frame para evitar usar contexto desactivado
+                  Future.microtask(() {
+                    if (mounted) {
+                      context.go(PathUrlAfa().pathLogin);
+                    }
+                  });
                 },
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.logout, color: Colors.white, size: 24), // smaller icon
+                    Icon(Icons.logout, color: Colors.white, size: 24),
                     SizedBox(width: 10),
                     Flexible(
                       child: Text(
                         'Cerrar sesión',
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16), // smaller font
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                     ),
                   ],
@@ -132,76 +149,60 @@ class _SidebarMenuState extends State<SidebarMenu> {
   }
 
   @override
-Widget build(BuildContext context) {
-  return Container(
-    width: 240,
-    decoration: const BoxDecoration(
-      color: Colors.white,
-      boxShadow: [
-        BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(2, 0)),
-      ],
-    ),
-    child: Column(
-      children: [
-        // X de cerrar (izquierda)
-        Container(
-          alignment: Alignment.topLeft,
-          padding: const EdgeInsets.only(top: 12, left: 12),
-          child: IconButton(
-            icon: const Icon(Icons.close),
-            iconSize: 28,
-            color: Colors.blue[800],
-            tooltip: 'Cerrar',
-            onPressed: () {
-              Navigator.of(context).pop(); // Cierra el drawer animadamente
-            },
-          ),
-        ),
-
-        // Logo
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Center(
-            child: Image.asset("assets/images/logo.png", height: 160, fit: BoxFit.contain),
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // Menú
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Column(
-              children: [
-                
-                if (Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.rol != 'Administrador') ...[
-                  _buildMenuItem(Icons.home, "Inicio", 0, PathUrlAfa().pathHome),
-                  const SizedBox(height: 10),
-                  _buildMenuItem(Icons.map, "Mapa", 1, PathUrlAfa().pathMap),
-                  const SizedBox(height: 10),
-                  _buildMenuItem(Icons.assignment, "Tablon de anuncios", 2, PathUrlAfa().pathNoticeBoard),
-                  const SizedBox(height: 10),
-                  _buildMenuItem(Icons.settings, "Configuración", 3, PathUrlAfa().pathSettings),
-                ]
-                else...[
-                  _buildMenuItem(Icons.home, "Inicio", 0, PathUrlAfa().pathHome),
-                  const SizedBox(height: 10),
-                  _buildMenuItem(Icons.assignment, "Tablon de anuncios", 1, PathUrlAfa().pathNoticeBoard),
-                  const SizedBox(height: 10),
-                  _buildMenuItem(Icons.settings, "Configuración", 2, PathUrlAfa().pathSettings),
-                ]
-                ,
-              ],
+  Widget build(BuildContext context) {
+    return Container(
+      width: 240,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(2, 0)),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Botón cerrar drawer
+          Container(
+            alignment: Alignment.topLeft,
+            padding: const EdgeInsets.only(top: 12, left: 12),
+            child: IconButton(
+              icon: const Icon(Icons.close),
+              iconSize: 28,
+              color: Colors.blue[800],
+              tooltip: 'Cerrar',
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
             ),
           ),
-        ),
 
-        // Perfil y botón cerrar sesión
-        _buildUserProfile(),
-      ],
-    ),
-  );
-}
+          // Logo
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Center(
+              child: Image.asset("assets/images/logo.png", height: 160, fit: BoxFit.contain),
+            ),
+          ),
 
+          const SizedBox(height: 16),
+
+          // Menú
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Column(
+                children: [
+                  _buildMenuItem(Icons.home, "Inicio", 0, PathUrlAfa().pathHome),
+                  const SizedBox(height: 10),
+                  _buildMenuItem(Icons.settings, "Configuración", 1, PathUrlAfa().pathSettings),
+                ],
+              ),
+            ),
+          ),
+
+          // Perfil y botón cerrar sesión
+          _buildUserProfile(),
+        ],
+      ),
+    );
+  }
 }

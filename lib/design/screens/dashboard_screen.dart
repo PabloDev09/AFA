@@ -6,7 +6,7 @@ import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/providers/pending_user_provider.dart';
 import 'package:afa/design/components/side_bar_menu.dart';
 import 'package:afa/logic/services/documents_service.dart';
-import 'package:afa/logic/services/route_service.dart';
+import 'package:afa/logic/services/number_route_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -27,7 +27,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   late Animation<double> _fadeAnimation;
   
   final DocumentService _documentService = DocumentService();
-  final RouteService _routeService = RouteService();
+  final NumberRouteService _numberRouteService = NumberRouteService();
 
   @override
   void initState() {
@@ -70,7 +70,7 @@ void dispose() {
     final activeProvider =
         Provider.of<ActiveUserProvider>(context, listen: false);
     User? selectedUser;
-    List<int> rutas = await _routeService.getAllRouteNumbers();
+    List<int> rutas = await _numberRouteService.getDistinctRouteNumbers();
 
   // Añadir opción para desasignar al principio
   rutas.insert(0, 0);
@@ -291,9 +291,20 @@ void dispose() {
                 ),
                 child: ElevatedButton(
                   onPressed:() {
-                          if(selectedUser == null || pickOrder == 0) return;
-                          Navigator.pop(context);
-                          activeProvider.assignRoute(selectedUser!, selectedRoute, pickOrder);
+                    if(selectedUser == null || pickOrder == 0)
+                    {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Debes seleccionar una ruta y parada válida'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+                     
+                    Navigator.pop(context);
+                    activeProvider.assignRoute(selectedUser!, selectedRoute, pickOrder);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
@@ -321,11 +332,6 @@ void dispose() {
     ),
   );
 }
-
-
-
-
-
 
 void _showCreateRouteDialog() {
   showDialog(
@@ -398,8 +404,8 @@ void _showCreateRouteDialog() {
                 child: ElevatedButton(
                   onPressed: () async {
                     Navigator.pop(context);
-                    int last = await _routeService.getMaxRouteNumber();
-                    await _routeService.createRouteNumber(last + 1);
+                    int last = await _numberRouteService.getMaxRouteNumber();
+                    await _numberRouteService.createRouteNumber(last + 1);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Nueva ruta creada con éxito'),
@@ -434,7 +440,7 @@ void _showCreateRouteDialog() {
 }
 
 void _showDeleteRouteDialog() async {
-  List<int> rutas = await _routeService.getAllRouteNumbers();
+  List<int> rutas = await _numberRouteService.getDistinctRouteNumbers();
   int? selectedRoute = rutas.isNotEmpty ? rutas.first : null;
 
   showDialog(
@@ -541,7 +547,7 @@ void _showDeleteRouteDialog() async {
                   onPressed: selectedRoute != null
                       ? () async {
                           Navigator.pop(context);
-                          await _routeService.deleteRouteNumber(selectedRoute!);
+                          await _numberRouteService.deleteRouteNumber(selectedRoute!);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Ruta $selectedRoute eliminada con éxito'),
@@ -575,7 +581,6 @@ void _showDeleteRouteDialog() async {
     ),
   );
 }
-
 
 Future<void> _uploadDocument() async {
     final success = await _documentService.uploadDocument();
@@ -675,13 +680,13 @@ Widget buildActionButton({
     final theme = Theme.of(context);
 
     return Scaffold(
-      drawer: const Drawer( child: SidebarMenu(selectedIndex: 0),),
+      drawer: const Drawer( child: SidebarMenu(selectedIndex: 0,),),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
       leading: Builder(
         builder: (context) => IconButton(
           icon: const Icon(Icons.menu, color: Colors.white),
-          tooltip: 'Abrir menú', 
+          tooltip: 'Menú', 
           onPressed: () => Scaffold.of(context).openDrawer(),
         ),
       ),
@@ -815,23 +820,28 @@ Widget buildActionButton({
                 end: Alignment.bottomRight,
               ),
             ),
-            child: Column(
-              children: [
-                const SizedBox(height: 5),
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 50),
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: _showActiveUsers
-                          ? const ActiveUserComponent()
-                          : const PendingUserComponent(),
+            child: SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 5),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 50),
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: _showActiveUsers
+                            ? const ActiveUserComponent()
+                            : const PendingUserComponent(),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
 

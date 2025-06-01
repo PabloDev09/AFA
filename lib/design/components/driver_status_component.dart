@@ -1,61 +1,105 @@
+import 'dart:async';
+import 'package:afa/design/components/map_component.dart';
 import 'package:afa/logic/providers/user_route_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Muestra el estado del conductor con un GIF de autobús animado sobre la barra de progreso,
-/// la distancia y tiempo restante, ETA rango +5 min, y opciones para cancelar o reanudar.
+/// Muestra el estado del conductor con:
+/// - Mensaje de estado general (cancelado, recogido, incidencia, ocupado, en camino).
+/// - Si está en camino hacia el usuario, muestra el MapComponent con el GIF y barra de progreso.
+/// - Si no está en camino, muestra solo la información sin mapa.
 class DriverStatusComponent extends StatelessWidget {
   const DriverStatusComponent({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final isCompact = width <= 500;
-    return Consumer<UserRouteProvider>(
-      builder: (context, routeProvider, _) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: double.infinity,
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 500),
-                switchInCurve: Curves.easeOut,
-                switchOutCurve: Curves.easeIn,
-                transitionBuilder: (child, animation) {
-                  final offsetAnimation = Tween<Offset>(
-                    begin: const Offset(0, 0.2),
-                    end: Offset.zero,
-                  ).animate(animation);
-                  return SlideTransition(
-                    position: offsetAnimation,
-                    child: FadeTransition(
-                      opacity: animation,
-                      child: child,
+@override
+Widget build(BuildContext context) {
+  final width = MediaQuery.of(context).size.width;
+  final isCompact = width <= 500;
+
+  return Consumer<UserRouteProvider>(
+    builder: (context, routeProvider, _) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (routeProvider.hasProblem)
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isCompact ? 12 : 16,
+                vertical: isCompact ? 8 : 12,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Colors.redAccent,
+                    width: 2,
+                  ),
+                  color: const Color.fromARGB(54, 255, 0, 25),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: EdgeInsets.all(isCompact ? 12 : 16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.redAccent,
+                      size: isCompact ? 28 : 36,
                     ),
-                  );
-                },
-                child: routeProvider.isRouteActive
-                    ? _buildUserStatusCard(context, routeProvider, isCompact)
-                    : const SizedBox.shrink(key: ValueKey('empty')),
+                    SizedBox(width: isCompact ? 8 : 12),
+                    Expanded(
+                      child: Text(
+                        'Se ha reportado una incidencia en la ruta. Hasta que no se indique como resuelta no se podrá continuar la ruta.',
+                        style: TextStyle(
+                          fontSize: isCompact ? 14 : 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
-        );
-      },
-    );
-  }
+
+          SizedBox(
+            width: double.infinity,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              switchInCurve: Curves.easeOut,
+              switchOutCurve: Curves.easeIn,
+              transitionBuilder: (child, animation) {
+                final offsetAnimation = Tween<Offset>(
+                  begin: const Offset(0, 0.2),
+                  end: Offset.zero,
+                ).animate(animation);
+                return SlideTransition(
+                  position: offsetAnimation,
+                  child: FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  ),
+                );
+              },
+              child: routeProvider.isRouteActive
+                  ? _buildStatusCard(context, routeProvider, isCompact)
+                  : const SizedBox.shrink(key: ValueKey('empty')),
+            ),
+          ),
+        ],
+      );
+    },
+  );
 }
 
-Widget _buildUserStatusCard(
+
+Widget _buildStatusCard(
   BuildContext context,
   UserRouteProvider userRouteProvider,
   bool isCompact,
 ) {
   final user = userRouteProvider.routeUser;
   final driver = userRouteProvider.routeDriver;
-  final hasProblem = userRouteProvider.hasProblem;
   final isOtherBeingPicked = userRouteProvider.isOtherBeingPicked;
 
   // Cálculo de paradas restantes antes de tu recogida
@@ -98,6 +142,7 @@ Widget _buildUserStatusCard(
   final spacing = isCompact ? 8.0 : 16.0;
   final busWidth = isCompact ? 30.0 : 50.0;
 
+  // Valores por defecto para estado "ocupado"
   Color borderColor = Colors.orangeAccent;
   String title = 'Conductor ocupado';
   String message = 'Está recogiendo a otro usuario.';
@@ -118,22 +163,18 @@ Widget _buildUserStatusCard(
     icon = Icons.check_circle;
     progress = 1.0;
     fillColor = Colors.green;
-  } else if (hasProblem) {
-    borderColor = Colors.red;
-    title = 'Incidencia en la ruta';
-    message = 'El conductor ha reportado un problema. Por favor espera indicaciones.';
-    icon = Icons.warning_amber_rounded;
-    fillColor = Colors.redAccent;
-  } else if (user.isBeingPicking) {
+  }else if (user.isBeingPicking) {
     borderColor = Colors.blueAccent;
     title = 'Conductor en camino';
     message = 'El conductor va hacia ti.';
     icon = Icons.directions_bus;
+    fillColor = Colors.blueAccent;
   } else if (isOtherBeingPicked) {
     borderColor = Colors.orangeAccent;
     title = 'Conductor ocupado';
     message = 'Está recogiendo a otro usuario.';
     icon = Icons.access_time_filled;
+    fillColor = Colors.orangeAccent;
   }
 
   return AnimatedSwitcher(
@@ -153,34 +194,7 @@ Widget _buildUserStatusCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1) Banner de incidencia
-            if (hasProblem && !user.isCollected) ...[
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: spacing / 2, horizontal: spacing),
-                decoration: BoxDecoration(
-                  color: Colors.redAccent.withOpacity(0.1),
-                  border: Border.all(color: Colors.redAccent, width: 1.5),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.warning_amber_rounded,
-                        color: Colors.redAccent, semanticLabel: 'Alerta de incidencia'),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Incidencia reportada en la ruta',
-                        style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: spacing),
-            ],
-
-            // 2) Información del conductor + botón llamar
+            // Información del conductor + botón llamar
             if (!user.isCollected) ...[
               Row(
                 children: [
@@ -222,7 +236,7 @@ Widget _buildUserStatusCard(
               SizedBox(height: spacing),
             ],
 
-            // 3) Icono + título
+            // Ícono + título + mensaje
             Row(
               children: [
                 CircleAvatar(
@@ -250,8 +264,8 @@ Widget _buildUserStatusCard(
                     fontSize: isCompact ? 12 : 14,
                   ),
             ),
-            
-            // 4) Mensaje de posición de parada
+
+            // Mensaje de posición en la cola (si aplica)
             if (pickOrderMessage.isNotEmpty) ...[
               SizedBox(height: spacing / 2),
               Text(
@@ -265,8 +279,8 @@ Widget _buildUserStatusCard(
               SizedBox(height: spacing),
             ],
 
-            // 5) Distancia y tiempo
-            if (!user.isCancelled && !user.isCollected && !hasProblem) ...[
+            // Distancia y tiempo (si corresponde)
+            if (!user.isCancelled && !user.isCollected) ...[
               Row(
                 children: [
                   Icon(Icons.social_distance,
@@ -303,8 +317,8 @@ Widget _buildUserStatusCard(
               SizedBox(height: spacing),
             ],
 
-            // 6) Barra de progreso + GIF
-            if (!user.isCollected) ...[
+            // Si el usuario está siendo recogido, mostramos el mapa + barra de progreso + GIF
+            if (user.isBeingPicking && !user.isCollected && !user.isCancelled) ...[
               SizedBox(
                 height: busWidth + (isCompact ? 4 : 8),
                 child: LayoutBuilder(builder: (context, constraints) {
@@ -351,18 +365,13 @@ Widget _buildUserStatusCard(
                 }),
               ),
               SizedBox(height: spacing),
-            ],
-
-            // 7) Hora de llegada
-            if (!user.isCancelled && !user.isCollected && !hasProblem) ...[
               Align(
                 alignment: Alignment.centerRight,
                 child: Text(
                   'Llegada: '
-                  '${etaStart.hour.toString().padLeft(2, '0')}:'
-                  '${etaStart.minute.toString().padLeft(2, '0')}'' – '
-                  '${etaEnd.hour.toString().padLeft(2, '0')}:'
-                  '${etaEnd.minute.toString().padLeft(2, '0')}',
+                  '${etaStart.hour.toString().padLeft(2, '0')}:' '${etaStart.minute.toString().padLeft(2, '0')}'
+                  ' – '
+                  '${etaEnd.hour.toString().padLeft(2, '0')}:' '${etaEnd.minute.toString().padLeft(2, '0')}',
                   style: TextStyle(
                     fontSize: isCompact ? 12 : 14,
                     fontStyle: FontStyle.italic,
@@ -371,9 +380,22 @@ Widget _buildUserStatusCard(
                 ),
               ),
               SizedBox(height: spacing),
+
+              // Aquí insertamos el MapComponent solo cuando el conductor va en camino
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: MapComponent(
+                    isDriver: true,
+                    routeColor: fillColor,
+                  ),
+                ),
+              ),
+              SizedBox(height: spacing),
             ],
 
-            // 8) Botones de cancelar/reanudar
+            // Botones de cancelar / reanudar
             if (!user.isCollected) ...[
               Row(
                 children: [
@@ -381,22 +403,24 @@ Widget _buildUserStatusCard(
                     child: ElevatedButton.icon(
                       onPressed: user.isCancelled
                           ? null
-                            : () => _showConfirmation(
-                          context,
-                          'Cancelar Recogida',
-                          '¿Seguro que quieres cancelar la recogida de hoy?',
-                          () => userRouteProvider.cancelCurrentPickup(),
-                          const LinearGradient(
-                            colors: [
-                              Color(0xFFB71C1C),
-                              Color(0xFFE53935),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                      icon: const Icon(Icons.cancel, color: Colors.white, semanticLabel: 'Icono cancelar'),
-                      label: const Text('Cancelar Recogida', style: TextStyle(color: Colors.white)),
+                          : () => _showConfirmation(
+                                context,
+                                'Cancelar Recogida',
+                                '¿Seguro que quieres cancelar la recogida de hoy?',
+                                () => userRouteProvider.cancelCurrentPickup(),
+                                const LinearGradient(
+                                  colors: [
+                                    Color(0xFFB71C1C),
+                                    Color(0xFFE53935),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                      icon: const Icon(Icons.cancel,
+                          color: Colors.white, semanticLabel: 'Icono cancelar'),
+                      label: const Text('Cancelar Recogida',
+                          style: TextStyle(color: Colors.white)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.redAccent,
                         textStyle: TextStyle(fontSize: isCompact ? 12 : 14),
@@ -413,16 +437,22 @@ Widget _buildUserStatusCard(
                                 '¿Quieres reanudar la recogida de hoy?',
                                 () => userRouteProvider.removeCancelCurrentPickup(),
                                 const LinearGradient(
-                                  colors: [Color(0xFF2E7D32), Color(0xFF66BB6A),],          
+                                  colors: [
+                                    Color(0xFF2E7D32),
+                                    Color(0xFF66BB6A),
+                                  ],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
                               )
                           : null,
-                      icon: const Icon(Icons.undo, color: Colors.white, semanticLabel: 'Icono reanudar'),
-                      label: const Text('Reanudar Recogida', style: TextStyle(color: Colors.white)),
+                      icon: const Icon(Icons.undo,
+                          color: Colors.white, semanticLabel: 'Icono reanudar'),
+                      label: const Text('Reanudar Recogida',
+                          style: TextStyle(color: Colors.white)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green, textStyle: TextStyle(fontSize: isCompact ? 12 : 14),
+                        backgroundColor: Colors.green,
+                        textStyle: TextStyle(fontSize: isCompact ? 12 : 14),
                       ),
                     ),
                   ),
@@ -449,8 +479,6 @@ Future<void> _showConfirmation(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       titlePadding: EdgeInsets.zero,
       contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-
-
       title: Container(
         decoration: BoxDecoration(
           gradient: confirmGradient,
@@ -479,14 +507,10 @@ Future<void> _showConfirmation(
           ],
         ),
       ),
-
-      // CONTENIDO
       content: Text(
         content,
         style: const TextStyle(fontSize: 16),
       ),
-
-      // ACCIONES
       actionsPadding: EdgeInsets.zero,
       actions: [
         Row(
@@ -527,9 +551,8 @@ Future<void> _showConfirmation(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ).copyWith(
-                    overlayColor:
-                        WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.hovered)) {
+                    overlayColor: MaterialStateProperty.resolveWith((states) {
+                      if (states.contains(MaterialState.hovered)) {
                         return Colors.white.withOpacity(0.2);
                       }
                       return null;
@@ -551,7 +574,8 @@ Future<void> _showConfirmation(
     ),
   );
 
-  if (resultado == true) {
-    onConfirm();
+    if (resultado == true) {
+      onConfirm();
+    }
   }
 }

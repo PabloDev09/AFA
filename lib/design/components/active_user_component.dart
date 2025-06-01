@@ -1,5 +1,6 @@
 import 'package:afa/logic/models/user.dart';
 import 'package:afa/logic/providers/active_user_provider.dart';
+import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -15,7 +16,7 @@ class ActiveUserComponent extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Título fijo para usuarios activos
+              const SizedBox(height: 10),
               const FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Row(
@@ -40,7 +41,6 @@ class ActiveUserComponent extends StatelessWidget {
               _buildNoUsersDirectly(context)
             else
               _buildActiveUsersCards(context, activeUserProvider.activeUsers),
-            const SizedBox(height: 20),
           ],
         );
       },
@@ -124,19 +124,19 @@ class ActiveUserComponent extends StatelessWidget {
         fontSize = (fontSize + decimalPart * 6).clamp(22, 25);
 
         const double spacing = 16;
-        final double totalSpacing = spacing * (columns - 1);
-        final double itemWidth = (constraints.maxWidth - totalSpacing) / columns;
 
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,
-          children: activeUsers.map((user) {
-            return SizedBox(
-              width: itemWidth,
-              height: 330,
-              child: _buildUserContainer(context, user, fontSize),
-            );
-          }).toList(),
+          children: activeUsers
+              .where((user) => user.mail != Provider.of<AuthUserProvider>(context, listen: false).userFireStore?.mail && user.username != Provider.of<AuthUserProvider>(context, listen: false).userFireStore?.username) 
+              .map((user) {
+                return SizedBox(
+                  width: 350,
+                  height: 330,
+                  child: _buildUserContainer(context, user, fontSize),
+                );
+              }).toList(),
         );
       },
     ),
@@ -218,61 +218,62 @@ Widget _buildUserContent(BuildContext context, User user, double fontSize) {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            // Ruta y parada
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                Tooltip(
-                  message: 'Ruta',
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.alt_route,
-                        size: fontSize * 0.8,
-                        color: Colors.indigo.shade700,
+            if(user.rol == 'Usuario')...[
+              const SizedBox(width: 8),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [ 
+                    Tooltip(
+                      message: 'Ruta',
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.alt_route,
+                            size: fontSize * 0.8,
+                            color: Colors.indigo.shade700,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            user.numRoute == 0 ? 'Sin asignar' : '${user.numRoute}',
+                            style: TextStyle(
+                              fontSize: user.numRoute == 0 ? fontSize * 0.65: fontSize * 0.8,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.indigo.shade700,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${user.numRoute}',
-                        style: TextStyle(
-                          fontSize: fontSize * 0.8,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.indigo.shade700,
-                        ),
+                    ),
+                    const SizedBox(height: 4),
+                    Tooltip(
+                      message: 'Parada',
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            size: fontSize * 0.8,
+                            color: Colors.cyan.shade800,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            user.numPick == 0 ? 'Sin asignar' : '${user.numPick}',
+                            style: TextStyle(
+                              fontSize: user.numPick == 0 ? fontSize * 0.65 : fontSize * 0.8,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.cyan.shade800,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Tooltip(
-                  message: 'Parada',
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.location_on,
-                        size: fontSize * 0.8,
-                        color: Colors.cyan.shade800,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${user.numPick}',
-                        style: TextStyle(
-                          fontSize: fontSize * 0.8,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.cyan.shade800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                ],
               ),
-            ),
+            ]
           ],
         ),
       ),
@@ -285,10 +286,10 @@ Widget _buildUserContent(BuildContext context, User user, double fontSize) {
           padding: const EdgeInsets.symmetric(horizontal: 5.0),
           child: Column(
             children: [
-              _buildUserInfoRow(Icons.person, user.username, fontSize, iconColors),
-              _buildUserInfoRow(Icons.email, user.mail, fontSize, iconColors),
-              _buildUserInfoRow(Icons.phone, user.phoneNumber, fontSize, iconColors),
-              _buildUserInfoRow(Icons.location_on, Utils().formatAddress(user.address), fontSize, iconColors),
+              _buildUserInfoRow(Icons.person,'Usuario', user.username, fontSize, iconColors),
+              _buildUserInfoRow(Icons.email,'Correo', user.mail, fontSize, iconColors),
+              _buildUserInfoRow(Icons.phone,'Teléfono', user.phoneNumber, fontSize, iconColors),
+              _buildUserInfoRow(Icons.location_on,'Dirección', Utils().formatAddress(user.address), fontSize, iconColors),
             ],
           ),
         ),
@@ -301,9 +302,10 @@ Widget _buildUserContent(BuildContext context, User user, double fontSize) {
 
 
 
-/// Fila de información para cada dato (usuario, email, etc.).
+/// Fila de información para cada dato (usuario, email, etc.) con Tooltip.
 Widget _buildUserInfoRow(
   IconData icon,
+  String label,
   String value,
   double fontSize,
   Map<IconData, Color> iconColors,
@@ -316,13 +318,15 @@ Widget _buildUserInfoRow(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            size: fontSize * 1.2, // Tamaño fijo para todos los íconos
-            color: iconColors[icon],
+          Tooltip(
+            message: label,
+            child: Icon(
+              icon,
+              size: fontSize * 1.2, 
+              color: iconColors[icon],
+            ),
           ),
           const SizedBox(width: 8),
-          // Solo el texto se escala
           Flexible(
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -341,6 +345,7 @@ Widget _buildUserInfoRow(
     ),
   );
 }
+
 
   /// Botones de acción: Dar de baja, Editar y Eliminar.
   Widget _buildActionButtons(BuildContext context, User user) {

@@ -61,15 +61,37 @@ Widget build(BuildContext context) {
       }
 
       return Scaffold(
-        drawer: const Drawer(child: SidebarMenu(selectedIndex: 3)),
+        drawer: const Drawer(child: SidebarMenu(selectedIndex: 1)),
         extendBodyBehindAppBar: true,
         appBar: AppBar(
+          centerTitle: true,
           leading: Builder(
             builder: (context) => IconButton(
               icon: const Icon(Icons.menu, color: Colors.white),
+              tooltip: 'Menú',
               onPressed: () => Scaffold.of(context).openDrawer(),
             ),
           ),
+          title:                const FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                    Icon(Icons.settings, color: Colors.white, size: 30),
+                    SizedBox(width: 6),
+                    Text(
+                      'Configuración',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           backgroundColor: Colors.transparent,
           elevation: 0,
         ),
@@ -90,11 +112,15 @@ Widget build(BuildContext context) {
               end: Alignment.bottomRight,
             ),
           ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: _buildUserCard(context, user),
-            ),
+          child: Column(
+            children: [
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: _buildUserCard(context, user),
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -200,12 +226,13 @@ Widget _buildUserContent(BuildContext context, User user, double fontSize) {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            if(user.rol == 'Usuario')...[
+              const SizedBox(width: 8),
             FittedBox(
               fit: BoxFit.scaleDown,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
+                children: [ 
                   Tooltip(
                     message: 'Ruta',
                     child: Row(
@@ -218,9 +245,9 @@ Widget _buildUserContent(BuildContext context, User user, double fontSize) {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${user.numRoute}',
+                          user.numRoute == 0 ? 'Sin asignar' : '${user.numRoute}',
                           style: TextStyle(
-                            fontSize: fontSize * 0.8,
+                            fontSize: user.numRoute == 0 ? fontSize * 0.65: fontSize * 0.8,
                             fontWeight: FontWeight.w600,
                             color: Colors.indigo.shade700,
                           ),
@@ -241,9 +268,9 @@ Widget _buildUserContent(BuildContext context, User user, double fontSize) {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${user.numPick}',
+                          user.numPick == 0 ? 'Sin asignar' : '${user.numPick}',
                           style: TextStyle(
-                            fontSize: fontSize * 0.8,
+                            fontSize: user.numPick == 0 ? fontSize * 0.65 : fontSize * 0.8,
                             fontWeight: FontWeight.w600,
                             color: Colors.cyan.shade800,
                           ),
@@ -254,6 +281,7 @@ Widget _buildUserContent(BuildContext context, User user, double fontSize) {
                 ],
               ),
             ),
+            ]
           ],
         ),
       ),
@@ -262,10 +290,10 @@ Widget _buildUserContent(BuildContext context, User user, double fontSize) {
         padding: const EdgeInsets.symmetric(horizontal: 5.0),
         child: Column(
           children: [
-            _buildUserInfoRow(Icons.person, user.username, fontSize, iconColors),
-            _buildUserInfoRow(Icons.email, user.mail, fontSize, iconColors),
-            _buildUserInfoRow(Icons.phone, user.phoneNumber, fontSize, iconColors),
-            _buildUserInfoRow(Icons.location_on, Utils().formatAddress(user.address), fontSize, iconColors),
+            _buildUserInfoRow(Icons.person,'Usuario', user.username, fontSize, iconColors),
+            _buildUserInfoRow(Icons.email,'Correo', user.mail, fontSize, iconColors),
+            _buildUserInfoRow(Icons.phone,'Teléfono', user.phoneNumber, fontSize, iconColors),
+            _buildUserInfoRow(Icons.location_on,'Dirección', Utils().formatAddress(user.address), fontSize, iconColors),
           ],
         ),
       ),
@@ -276,44 +304,49 @@ Widget _buildUserContent(BuildContext context, User user, double fontSize) {
   );
 }
 
-Widget _buildUserInfoRow(
-  IconData icon,
-  String value,
-  double fontSize,
-  Map<IconData, Color> iconColors,
-) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Align(
-      alignment: Alignment.centerLeft,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: fontSize * 1.2,
-            color: iconColors[icon],
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: fontSize * 0.8,
-                ),
-                overflow: TextOverflow.ellipsis,
+  /// Fila de información para cada dato (usuario, email, etc.).
+  Widget _buildUserInfoRow(
+    IconData icon,
+    String label,
+    String value,
+    double fontSize,
+    Map<IconData, Color> iconColors,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Tooltip(
+              message: label,
+              child: Icon(
+                icon,
+                size: fontSize * 1.2, 
+                color: iconColors[icon],
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: fontSize * 0.8,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
 Widget _buildActionButtons(BuildContext context, User user) {
   return LayoutBuilder(

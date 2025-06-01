@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:afa/logic/models/route_driver.dart';
 import 'package:afa/logic/services/driver_route_service.dart';
 import 'package:afa/logic/services/route_service.dart';
@@ -8,6 +9,7 @@ import 'package:afa/logic/models/route_user.dart';
 import 'package:afa/logic/providers/notification_provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart' as http;
 
 class DriverRouteProvider extends ChangeNotifier {
   final RouteService _routeService = RouteService();
@@ -53,14 +55,17 @@ class DriverRouteProvider extends ChangeNotifier {
     _locationTimer = Timer.periodic(const Duration(minutes: 1), (_) async {
       isUpdating = true;
       notifyListeners();
-
       await setDriverLocation();
       if (driverLocation != null) {
-        await _updateRouteDriver(routeDriver.username);
+        await _driverRouteService.updateLocation(
+          routeDriver.username,
+          driverLocation!,
+        );
         await _routeService.updateAllDistances(
           driverLocation!,
           routeDriver.numRoute,
         );
+        await _updateRouteDriver(routeDriver.username);
         await _getAllUsers(routeDriver.numRoute);
       }
 
@@ -144,7 +149,6 @@ class DriverRouteProvider extends ChangeNotifier {
     try {
       final driver = await _driverRouteService.getDriverByUsername(username);
       routeDriver = driver!;
-      debugPrint("${routeDriver.numRoute} OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO");
       return await _routeService.canContinueRoute(routeDriver.numRoute);
     } 
     finally 
@@ -217,11 +221,15 @@ class DriverRouteProvider extends ChangeNotifier {
     notifyListeners();
     try {
       if (driverLocation != null) {
-        await _updateRouteDriver(routeDriver.username);
+        await _driverRouteService.updateLocation(
+          routeDriver.username,
+          driverLocation!,
+        );
         await _routeService.updateAllDistances(
           driverLocation!,
           routeDriver.numRoute,
         );
+        await _updateRouteDriver(routeDriver.username);
         await _getAllUsers(routeDriver.numRoute);
         _notificationProvider.addNotification("Ruta actualizada.", false, false);
       } else {
@@ -235,6 +243,68 @@ class DriverRouteProvider extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<Set<Marker>> get markers async {
+  try {
+    final markerSet = <Marker>{};
+    if (driverLocation != null) {
+      markerSet.add(
+        Marker(
+          markerId: const MarkerId('driver'),
+          position: driverLocation!,
+          infoWindow: const InfoWindow(title: 'Posicion actual'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        ),
+      );
+    }
+    // User being picked marker
+    final pickingUser = pendingUsers.firstWhere(
+      (u) => u.isBeingPicking,
+      orElse: () => throw StateError('No hay usuario siendo recogido'),
+    );
+
+    LatLng userLocation = await _getUserLocation(pickingUser.address);
+    if(userLocation.latitude == 0 && userLocation.longitude == 0) {
+      throw Exception('No se pudo obtener la ubicación del usuario');
+    }
+
+    markerSet.add(
+      Marker(
+        markerId: MarkerId('user_${pickingUser.username}'),
+        position: userLocation,
+        infoWindow: InfoWindow(title: 'Parada de ${pickingUser.name}'),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+      ),
+    );
+    return markerSet;
+  } catch (_) {
+    return <Marker>{};
+  }
+}
+
+  Future<LatLng> _getUserLocation(String address) async {
+    try {
+      String formattedAddress = Utils().formatAddressForSearch(address);
+      final response = await http.get(
+        Uri.parse(
+          'https://nominatim.openstreetmap.org/search?q=$formattedAddress&format=json',
+        ),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        if (data.isNotEmpty) {
+          return LatLng(
+            double.parse(data[0]['lat'] as String),
+            double.parse(data[0]['lon'] as String),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error al obtener la ubicación del usuario: $e");
+    }
+    return const LatLng(0, 0); 
   }
 
   Future<void> _getAllUsers(int numRoute) async {

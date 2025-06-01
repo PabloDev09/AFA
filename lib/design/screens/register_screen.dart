@@ -365,7 +365,7 @@ Widget build(BuildContext context) {
             padding: const EdgeInsets.all(24),
             alignment: Alignment.center,
             child: const Text(
-              'Registro',
+              'Registrarse',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 28,

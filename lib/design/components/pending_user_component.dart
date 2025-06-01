@@ -16,6 +16,7 @@ Widget build(BuildContext context) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          const SizedBox(height: 10),
           const FittedBox(
             fit: BoxFit.scaleDown,
             child: Row(
@@ -39,7 +40,6 @@ Widget build(BuildContext context) {
             _buildNoUsersDirectly(context)
           else
             _buildPendingUsersCards(context, pendingUserProvider.pendingUsers),
-          const SizedBox(height: 20),
         ],
       );
     },
@@ -54,6 +54,7 @@ Widget build(BuildContext context) {
       child: FittedBox(
         fit: BoxFit.scaleDown,
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
@@ -118,17 +119,14 @@ Widget build(BuildContext context) {
         columns = columnFactor.floor().clamp(1, pendingUsers.length);
         double decimalPart = columnFactor - columns;
         fontSize = (fontSize + decimalPart * 6).clamp(22, 25);
-
         const double spacing = 16;
-        final double totalSpacing = spacing * (columns - 1);
-        final double itemWidth = (constraints.maxWidth - totalSpacing) / columns;
 
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,
           children: pendingUsers.map((user) {
             return SizedBox(
-              width: itemWidth,
+              width: 330,
               height: 330,
               child: _buildUserContainer(context, user, fontSize),
             );
@@ -189,10 +187,10 @@ Widget build(BuildContext context) {
             padding: const EdgeInsets.symmetric(horizontal: 5.0),
             child: Column(
               children: [
-                _buildUserInfoRow(Icons.person, user.username, fontSize, iconColors),
-                _buildUserInfoRow(Icons.email, user.mail, fontSize, iconColors),
-                _buildUserInfoRow(Icons.phone, user.phoneNumber, fontSize, iconColors),
-                _buildUserInfoRow(Icons.location_on, Utils().formatAddress(user.address), fontSize, iconColors),
+              _buildUserInfoRow(Icons.person,'Usuario', user.username, fontSize, iconColors),
+              _buildUserInfoRow(Icons.email,'Correo', user.mail, fontSize, iconColors),
+              _buildUserInfoRow(Icons.phone,'Teléfono', user.phoneNumber, fontSize, iconColors),
+              _buildUserInfoRow(Icons.location_on,'Dirección', Utils().formatAddress(user.address), fontSize, iconColors),
               ],
             ),
           ),
@@ -203,45 +201,48 @@ Widget build(BuildContext context) {
   }
 
   /// Fila de información para cada dato (usuario, email, etc.).
-Widget _buildUserInfoRow(
-  IconData icon,
-  String value,
-  double fontSize,
-  Map<IconData, Color> iconColors,
-) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Align(
-      alignment: Alignment.centerLeft,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: fontSize * 1.2, // Tamaño fijo para todos los íconos
-            color: iconColors[icon],
-          ),
-          const SizedBox(width: 8),
-          // Solo el texto se escala
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: fontSize * 1,
-                ),
-                overflow: TextOverflow.ellipsis,
+  Widget _buildUserInfoRow(
+    IconData icon,
+    String label,
+    String value,
+    double fontSize,
+    Map<IconData, Color> iconColors,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Tooltip(
+              message: label,
+              child: Icon(
+                icon,
+                size: fontSize * 1.2, 
+                color: iconColors[icon],
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: fontSize * 0.8,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   /// Botones de acción que llaman a los métodos de aceptar, editar y eliminar usuario.
   Widget _buildActionButtons(BuildContext context, User user) {
@@ -254,7 +255,7 @@ Widget _buildUserInfoRow(
           alignment: Alignment.bottomCenter,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF063970), Color(0xFF66B3FF)],
+              colors: [Color(0xFF063970), Color(0xFF2196F3)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -267,7 +268,6 @@ Widget _buildUserInfoRow(
               _buildIconButton(Icons.call, 'Llamar', iconSize, () {
                 _callUser(context, user);
               }),
-              // Botón para aceptar usuario: muestra un diálogo para asignar rol
               _buildIconButton(Icons.check, 'Aprobar', iconSize, () {
                 _approveUser(context, user);
               }),

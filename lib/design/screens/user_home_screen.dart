@@ -172,8 +172,8 @@ Future<void> _confirmarAccion(bool cancelar, UserRouteProvider userProvider) asy
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ).copyWith(
-                    overlayColor: MaterialStateProperty.resolveWith((states) {
-                      if (states.contains(MaterialState.hovered)) {
+                    overlayColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.hovered)) {
                         return Colors.white.withOpacity(0.2);
                       }
                       return null;
@@ -409,6 +409,49 @@ Future<void> _showSlidingNotification(
 }
 
 
+  // Helper widget for each info item
+Widget _buildInfoItem({
+  required IconData icon,
+  required Color iconBgColor,
+  required Color iconShadowColor,
+  required String label,
+}) {
+  return Row(
+    children: [
+      Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: iconBgColor,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: iconShadowColor.withOpacity(0.8),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Icon(icon, size: 22, color: Colors.white),
+      ),
+      const SizedBox(width: 10),
+      Text(
+        label,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+          shadows: [
+            Shadow(
+              color: Colors.black38,
+              offset: Offset(0, 1),
+              blurRadius: 2,
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
 
  
   Widget _dayBuilder(BuildContext context, DateTime day, DateTime focusedDay) 
@@ -470,170 +513,236 @@ Future<void> _showSlidingNotification(
 }
 
 @override
-  Widget build(BuildContext context) 
-  {
-    final theme = Theme.of(context);
-    return Scaffold(
-      drawer: const Drawer( child: SidebarMenu(selectedIndex: 0),),
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white),
-            tooltip: 'Abrir menú', 
-            onPressed: () => Scaffold.of(context).openDrawer(),
+Widget build(BuildContext context) {
+  final theme = Theme.of(context);
+
+  return Scaffold(
+    drawer: const Drawer(child: SidebarMenu(selectedIndex: 0)),
+    extendBodyBehindAppBar: true,
+    backgroundColor: Colors.transparent,
+    body: Stack(
+      children: [
+        // Fondo con degradado global
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                theme.brightness == Brightness.dark ? Colors.black87 : Colors.blue[900]!,
+                theme.brightness == Brightness.dark ? Colors.black54 : Colors.blue[300]!,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Row(
-          children: [
-            const Spacer(),
-            Consumer<NotificationProvider>(
-              builder: (_, notificationProvider, __) {
-                final count = notificationProvider.notifications.where((n) => !n.isRead).length;
-                if (notificationProvider.hasNewNotification) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    final n = notificationProvider.latestNotification;
-                    _showSlidingNotification(context, n);
-                    notificationProvider.markLatestAsShown();
+        // Contenido scrollable
+        SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: kToolbarHeight),
+                  Consumer<UserRouteProvider>(
+                    builder: (context, routeProvider, child) => _buildCalendar(routeProvider),
+                  ),
+                  const SizedBox(height: 20),
 
-                  });
-                }
-                return Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications, color: Colors.white),
-                      onPressed: _openNotifications,
-                    ),
-                    if (count > 0)
-                      Positioned(
-                        right: 6,
-                        top: 6,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                          child: Text(
-                            '$count',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Información de ruta',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 21,
+                            letterSpacing: 1.1,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black45,
+                                offset: Offset(0, 2),
+                                blurRadius: 3,
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-      body: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  theme.brightness == Brightness.dark ? Colors.black87 : Colors.blue[900]!,
-                  theme.brightness == Brightness.dark ? Colors.black54 : Colors.blue[300]!,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.only(top: kToolbarHeight + MediaQuery.of(context).padding.top),
-              child: Column(
-                children: [
-                  Consumer<UserRouteProvider>(
-                    builder: (context, routeProvider, child) => 
-                      _buildCalendar(routeProvider),
-                                      ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Consumer<UserRouteProvider>(
-                        builder: (context, routeProvider, child) {
-                          if (routeProvider.isRouteActive) {
-                            return const SingleChildScrollView(
-                              child: Padding(
-                                padding: EdgeInsets.only(top: 20, bottom: 20),
-                                child: DriverStatusComponent(),
-                              ),
-                            );
-                          } else if (routeProvider.isLoading) {
-                            // Mostrar CircularProgress si está cargando
-                            return const Center(
-                              child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            );
-                          } else {
-                            // Mostrar mensaje de "no hay ruta activa"
-                            return Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
+                        const SizedBox(height: 15),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildInfoItem(
+                              icon: Icons.alt_route,
+                              iconBgColor: Colors.indigo.shade600,
+                              iconShadowColor: Colors.indigo.shade800,
+                              label: Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.numRoute == 0
+                                  ? 'Ruta sin asignar'
+                                  : 'Ruta ${Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.numRoute}',
+                            ),
+                            _buildInfoItem(
+                              icon: Icons.location_on,
+                              iconBgColor: Colors.cyan.shade600,
+                              iconShadowColor: Colors.cyan.shade800,
+                              label: Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.numPick == 0
+                                  ? 'Parada sin asignar'
+                                  : 'Parada ${Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.numPick}',
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 20),
+                Consumer<UserRouteProvider>(
+                  builder: (context, routeProvider, child) {
+                    if (routeProvider.isRouteActive) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 40.0),
+                        child: DriverStatusComponent(),
+                      );
+                    } else if (routeProvider.isLoading) {
+                      return const Padding(
+                        padding: EdgeInsets.only(top: 100),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                      );
+                    } else {
+                      return SizedBox(
+                        height: 300,
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Stack(
+                                alignment: Alignment.topRight,
                                 children: [
-                                  Stack(
-                                    alignment: Alignment.topRight,
-                                    children: [
-                                      const Icon(
-                                        Icons.directions_bus,
-                                        size: 80,
+                                  const Icon(
+                                    Icons.directions_bus,
+                                    size: 80,
+                                    color: Colors.white,
+                                  ),
+                                  Positioned(
+                                    top: 0,
+                                    right: 0,
+                                    child: Container(
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      padding: const EdgeInsets.all(4),
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 16,
                                         color: Colors.white,
                                       ),
-                                      Positioned(
-                                        top: 0,
-                                        right: 0,
-                                        child: Container(
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          padding: const EdgeInsets.all(4),
-                                          child: const Icon(
-                                            Icons.close,
-                                            size: 16,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    'No hay ninguna ruta iniciada',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ],
                               ),
-                            );
-                          }
-                        },
-                      ),
-                    ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'No hay ninguna ruta iniciada',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ),
+        // AppBar fijo con degradado transparente
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: PreferredSize(
+            preferredSize: const Size.fromHeight(kToolbarHeight),
+            child: AppBar(
+              backgroundColor: const Color.fromARGB(47, 0, 0, 0),
+              elevation: 0,
+              leading: Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(Icons.menu, color: Colors.white),
+                  tooltip: 'Menú',
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              ),
+              title: Row(
+                children: [
+                  const Spacer(),
+                  Consumer<NotificationProvider>(
+                    builder: (_, notificationProvider, __) {
+                      final count = notificationProvider.notifications.where((n) => !n.isRead).length;
+
+                      if (notificationProvider.hasNewNotification) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          final n = notificationProvider.latestNotification;
+                          _showSlidingNotification(context, n);
+                          notificationProvider.markLatestAsShown();
+                        });
+                      }
+
+                      return Tooltip(
+                        message: 'Notificaciones',
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.notifications, color: Colors.white),
+                              onPressed: _openNotifications,
+                            ),
+                            if (count > 0)
+                              Positioned(
+                                right: 6,
+                                top: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                  child: Text(
+                                    '$count',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
- 
+        ),
+      ],
+    ),
+  );
+}
+
 Widget _buildCalendar(UserRouteProvider userRouteProvider) {
   return ClipRRect(
     child: BackdropFilter(
@@ -653,58 +762,59 @@ Widget _buildCalendar(UserRouteProvider userRouteProvider) {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-          // — Botón “Volver a hoy” con AnimatedSwitcher —
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            layoutBuilder: (current, previous) => Stack(
-              alignment: Alignment.centerRight,
-              children: [
-                ...previous,
-                if (current != null) current,
-              ],
-            ),
-            transitionBuilder: (child, anim) {
-              return FadeTransition(
-                opacity: anim,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0.5, 0),
-                    end: Offset.zero,
-                  ).animate(anim),
-                  child: child,
-                ),
-              );
-            },
-            child: isSameDay(_selectedDay, DateTime.now())
-                ? const SizedBox.shrink(key: ValueKey('todayEmpty'))
-                : Align(
-                    key: const ValueKey('todayBtn'),
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _selectedDay = DateTime.now();
-                          _focusedDay = DateTime.now();
-                        });
-                      },
-                      icon: const Icon(Icons.today, color: Colors.white),
-                      label: const Text(
-                        'Volver a hoy',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+            // — Botón “Volver a hoy” con AnimatedSwitcher —
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              layoutBuilder: (current, previous) => Stack(
+                alignment: Alignment.centerRight,
+                children: [
+                  ...previous,
+                  if (current != null) current,
+                ],
+              ),
+              transitionBuilder: (child, anim) {
+                return FadeTransition(
+                  opacity: anim,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.5, 0),
+                      end: Offset.zero,
+                    ).animate(anim),
+                    child: child,
+                  ),
+                );
+              },
+              child: isSameDay(_selectedDay, DateTime.now())
+                  ? const SizedBox.shrink(key: ValueKey('todayEmpty'))
+                  : Align(
+                      key: const ValueKey('todayBtn'),
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _selectedDay = DateTime.now();
+                            _focusedDay = DateTime.now();
+                          });
+                        },
+                        icon: const Icon(Icons.today, color: Colors.white),
+                        label: const Text(
+                          'Volver a hoy',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         ),
                       ),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
                     ),
-                  ),
-          ),
+            ),
 
             const SizedBox(height: 12),
+
             // — Calendario semanal —
             TableCalendar(
               locale: 'es_ES',
@@ -778,70 +888,73 @@ Widget _buildCalendar(UserRouteProvider userRouteProvider) {
                 disabledTextStyle: TextStyle(color: Colors.white30),
               ),
             ),
-          const SizedBox(height: 20),
-          // — Ocultar botones si hay ruta activa hoy —
-          // Botón Cancelar / Reanudar
-          if (!(userRouteProvider.isRouteActive &&
-                isSameDay(_selectedDay, DateTime.now())))
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              switchInCurve: Curves.easeOutBack,
-              switchOutCurve: Curves.easeInBack,
-              layoutBuilder: (current, previous) => Stack(
-                alignment: Alignment.center,
-                children: [
-                  ...previous,
-                  if (current != null) current,
-                ],
-              ),
-              transitionBuilder: (child, anim) {
-                return FadeTransition(
-                  opacity: anim,
-                  child: ScaleTransition(
-                    scale: anim,
-                    child: child,
-                  ),
-                );
-              },
-              child: Builder(
-                key: ValueKey(_selectedDay),
-                builder: (context) {
-                  final isWeekend = _selectedDay.weekday == DateTime.saturday ||
-                      _selectedDay.weekday == DateTime.sunday;
-                  if (isWeekend) return const SizedBox(height: 42);
 
-                  final isCancelled = userRouteProvider.cancelDates.any((d) =>
-                      d.year == _selectedDay.year &&
-                      d.month == _selectedDay.month &&
-                      d.day == _selectedDay.day);
+            const SizedBox(height: 20),
 
-                  return SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () =>
-                          _confirmarAccion(!isCancelled, userRouteProvider),
-                      icon: Icon(
-                        isCancelled ? Icons.refresh : Icons.cancel,
-                        color: Colors.white,
-                      ),
-                      label: Text(
-                        isCancelled ? 'Reanudar recogida' : 'Cancelar recogida',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            isCancelled ? Colors.green : Colors.redAccent,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
+            // — Ocultar botones si hay ruta activa hoy —
+
+            // Botón Cancelar / Reanudar
+            if (!(userRouteProvider.isRouteActive &&
+                  isSameDay(_selectedDay, DateTime.now())))
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeOutBack,
+                switchOutCurve: Curves.easeInBack,
+                layoutBuilder: (current, previous) => Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    ...previous,
+                    if (current != null) current,
+                  ],
+                ),
+                transitionBuilder: (child, anim) {
+                  return FadeTransition(
+                    opacity: anim,
+                    child: ScaleTransition(
+                      scale: anim,
+                      child: child,
                     ),
                   );
                 },
+                child: Builder(
+                  key: ValueKey(_selectedDay),
+                  builder: (context) {
+                    final isWeekend = _selectedDay.weekday == DateTime.saturday ||
+                        _selectedDay.weekday == DateTime.sunday;
+                    if (isWeekend) return const SizedBox(height: 42);
+
+                    final isCancelled = userRouteProvider.cancelDates.any((d) =>
+                        d.year == _selectedDay.year &&
+                        d.month == _selectedDay.month &&
+                        d.day == _selectedDay.day);
+
+                    return SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () =>
+                            _confirmarAccion(!isCancelled, userRouteProvider),
+                        icon: Icon(
+                          isCancelled ? Icons.refresh : Icons.cancel,
+                          color: Colors.white,
+                        ),
+                        label: Text(
+                          isCancelled ? 'Reanudar recogida' : 'Cancelar recogida',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              isCancelled ? Colors.green : Colors.redAccent,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
 
             // — Botón “Actualizar Ruta” (solo si hay ruta activa) —
             if (userRouteProvider.isRouteActive && isSameDay(_selectedDay, DateTime.now())) ...[
@@ -912,12 +1025,12 @@ Widget _buildCalendar(UserRouteProvider userRouteProvider) {
                 ),
               ),
             ],
-
           ],
         ),
       ),
     ),
   );
 }
+
 
 }
