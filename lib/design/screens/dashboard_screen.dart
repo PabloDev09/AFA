@@ -6,7 +6,6 @@ import 'package:afa/logic/providers/active_user_provider.dart';
 import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/providers/pending_user_provider.dart';
 import 'package:afa/design/components/side_bar_menu.dart';
-import 'package:afa/logic/services/documents_service.dart';
 import 'package:afa/logic/services/number_route_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -27,7 +26,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   
-  final DocumentService _documentService = DocumentService();
   final NumberRouteService _numberRouteService = NumberRouteService();
 
   @override
@@ -600,18 +598,6 @@ void _showDeleteRouteDialog() async {
   );
 }
 
-Future<void> _uploadDocument() async {
-    final success = await _documentService.uploadDocument();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(success
-            ? "Documento subido con éxito"
-            : "Error al subir el documento"),
-        backgroundColor: success ? Colors.green : Colors.red,
-      ),
-    );
-}
   
 Widget buildActionButton({
   required BuildContext context,
@@ -789,11 +775,6 @@ Widget buildActionButton({
                 ),
               ),
               const Spacer(),
-              IconButton(
-              icon: const Icon(Icons.feed, color: Colors.white),
-              tooltip: 'Tablón',
-              onPressed: _openNoticeBoard,
-              ),
             ],
           ),
           
@@ -818,6 +799,11 @@ Widget buildActionButton({
                 icon: Icons.alt_route,
                 label: 'Asignar Ruta',
                 onTap: _showAssignRouteDialog,
+              ),
+            IconButton(
+              icon: const Icon(Icons.feed, color: Colors.white),
+              tooltip: 'Tablón',
+              onPressed: _openNoticeBoard,
               ),
           ],
       ),

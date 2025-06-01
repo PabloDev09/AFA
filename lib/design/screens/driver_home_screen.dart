@@ -680,6 +680,11 @@ Widget build(BuildContext context) {
                                 ],
                               ),
                             ),
+                              IconButton(
+                                icon: const Icon(Icons.feed, color: Colors.white),
+                                tooltip: 'Tablón',
+                                onPressed: _openNoticeBoard,
+                              ),
                             const SizedBox(width: 5),
                           ],
                         );

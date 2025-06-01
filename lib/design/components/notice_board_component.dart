@@ -1,5 +1,7 @@
 import 'package:afa/logic/services/documents_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class NoticeBoardComponent extends StatefulWidget {
@@ -38,14 +40,109 @@ class _NoticeBoardComponentState extends State<NoticeBoardComponent> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("¿Eliminar documento?"),
-        content: const Text("Esta acción no se puede deshacer."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancelar")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Eliminar", style: TextStyle(color: Colors.red))),
-        ],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      titlePadding: EdgeInsets.zero,
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+      title: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFB71C1C), Color(0xFFE53935)], // Rojo degradado
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(12),
+            topRight: Radius.circular(12),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text(
+                '¿Eliminar documento?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => Navigator.pop(context, false),
+            ),
+          ],
+        ),
       ),
+      content: const Text(
+        'Esta acción no se puede deshacer.',
+        style: TextStyle(color: Color(0xFF2D3748)),
+      ),
+      actions: [
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context, false),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey[800],
+                  side: BorderSide(color: Colors.grey.shade400),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFB71C1C), Color(0xFFE53935)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ).copyWith(
+                    overlayColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.hovered)) {
+                        return Colors.white.withOpacity(0.2);
+                      }
+                      return null;
+                    }),
+                  ),
+                  child: const Text(
+                    'Eliminar',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    )
     );
+
 
     if (confirmed == true) {
       try {
@@ -125,7 +222,7 @@ class _NoticeBoardComponentState extends State<NoticeBoardComponent> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               children: [
-                const Icon(Icons.announcement, color: Colors.white),
+                const Icon(Icons.feed, color: Colors.white),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -173,7 +270,7 @@ class _NoticeBoardComponentState extends State<NoticeBoardComponent> {
                         itemBuilder: (context, index) {
                           final doc = _documents[index];
                           return _buildDocumentItem(
-                              doc["title"], doc["fileUrl"], isAdmin);
+                              doc["title"], doc["fileUrl"], doc["uploadDate"], isAdmin);
                         },
                       ),
           ),
@@ -182,46 +279,61 @@ class _NoticeBoardComponentState extends State<NoticeBoardComponent> {
     );
   }
 
-  Widget _buildDocumentItem(String title, String fileUrl, bool isAdmin) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1A000000),
-            blurRadius: 6,
-            offset: Offset(0, 3),
+  Widget _buildDocumentItem(String title, String fileUrl, Timestamp date, bool isAdmin) {
+  final formattedDate = DateFormat('dd/MM/yyyy HH:mm').format(date.toDate());
+
+  return Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x1A000000),
+          blurRadius: 6,
+          offset: Offset(0, 3),
+        ),
+      ],
+    ),
+    child: ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      leading: const Icon(Icons.insert_drive_file, color: Color(0xFF3182CE)),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2D3748),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            formattedDate,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF718096),
+            ),
           ),
         ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        leading: const Icon(Icons.insert_drive_file, color: Color(0xFF3182CE)),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF2D3748),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.download_rounded, color: Color(0xFF3182CE)),
+            onPressed: () => _launchFile(fileUrl),
           ),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+          if (isAdmin)
             IconButton(
-              icon: const Icon(Icons.download_rounded, color: Color(0xFF3182CE)),
-              onPressed: () => _launchFile(fileUrl),
+              icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+              tooltip: "Eliminar",
+              onPressed: () => _confirmDelete(title, fileUrl),
             ),
-            if (isAdmin)
-              IconButton(
-                icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
-                tooltip: "Eliminar",
-                onPressed: () => _confirmDelete(title, fileUrl),
-              ),
-          ],
-        ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

@@ -50,6 +50,8 @@ class NotificationComponent extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   children: [
+                    const Icon(Icons.notifications, color: Colors.white),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Notificaciones',

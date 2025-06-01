@@ -208,7 +208,22 @@ Future<void> _confirmarAccion(bool cancelar, UserRouteProvider userProvider) asy
 }
 
 
-
+  void _openNoticeBoard() 
+  {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) {
+          return NoticeBoardComponent(scrollController: scrollController, rol: Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.rol);
+        },
+      ),
+    );
+  }
 
  
   void _openNotifications() 
@@ -677,7 +692,8 @@ Widget build(BuildContext context) {
               backgroundColor: const Color.fromARGB(47, 0, 0, 0),
               elevation: 0,
               leading: Builder(
-                builder: (context) => IconButton(
+                builder: (context) => 
+                IconButton(
                   icon: const Icon(Icons.menu, color: Colors.white),
                   tooltip: 'Menú',
                   onPressed: () => Scaffold.of(context).openDrawer(),
@@ -688,8 +704,6 @@ Widget build(BuildContext context) {
                   const Spacer(),
                   Consumer<NotificationProvider>(
                     builder: (_, notificationProvider, __) {
-                      final count = notificationProvider.notifications.where((n) => !n.isRead).length;
-
                       if (notificationProvider.hasNewNotification) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           final n = notificationProvider.latestNotification;
@@ -697,45 +711,58 @@ Widget build(BuildContext context) {
                           notificationProvider.markLatestAsShown();
                         });
                       }
-
-                      return Tooltip(
-                        message: 'Notificaciones',
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.notifications, color: Colors.white),
-                              onPressed: _openNotifications,
-                            ),
-                            if (count > 0)
-                              Positioned(
-                                right: 6,
-                                top: 6,
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                                  child: Text(
-                                    '$count',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
+                      return const SizedBox.shrink();
                     },
+                    
                   ),
                 ],
               ),
+              actions: [
+                 Consumer<NotificationProvider>(
+                    builder: (_, notificationProvider, __) {
+                    final count = notificationProvider.notifications.where((n) => !n.isRead).length;
+
+                    return Tooltip(
+                      message: 'Notificaciones',
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.notifications, color: Colors.white),
+                            onPressed: _openNotifications,
+                          ),
+                          if (count > 0)
+                            Positioned(
+                              right: 6,
+                              top: 6,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                child: Text(
+                                  '$count',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                  );
+                }),
+                IconButton(
+                  icon: const Icon(Icons.feed, color: Colors.white),
+                  tooltip: 'Tablón',
+                  onPressed: _openNoticeBoard,
+                ),
+              ],
             ),
           ),
         ),
