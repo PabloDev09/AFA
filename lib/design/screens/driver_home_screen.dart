@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:afa/design/components/notice_board_component.dart';
 import 'package:afa/design/components/notification_component.dart';
 import 'package:afa/design/components/route_user_component.dart';
 import 'package:afa/logic/providers/auth_user_provider.dart';
@@ -251,6 +252,22 @@ Future<void> _confirmarDetenerRuta(DriverRouteProvider routeProvider) async {
         maxChildSize: 0.9,
         builder: (context, scrollController) {
           return const NotificationComponent();
+        },
+      ),
+    );
+  }
+  void _openNoticeBoard() 
+  {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) {
+          return NoticeBoardComponent(scrollController: scrollController, rol: Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.rol);
         },
       ),
     );

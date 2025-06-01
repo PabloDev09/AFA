@@ -4,14 +4,15 @@ import 'package:afa/design/screens/register_screen.dart';
 import 'package:afa/design/screens/welcome_screen.dart';
 import 'package:afa/logic/router/services/auth_loader_service.dart';
 import 'package:afa/logic/router/services/delayed_service.dart';
-import 'package:afa/logic/router/services/navigator_service.dart';
 import 'package:afa/logic/router/services/role_based_home_service.dart';
 import 'package:afa/logic/router/services/role_based_settings_service.dart';
 import 'package:afa/logic/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 
-Future<String?> getUserRole() async {
+
+Future<String?> getUserRole() async 
+{
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return null;
 
@@ -19,13 +20,13 @@ Future<String?> getUserRole() async {
   return await userService.getUserRoleByEmail(user.email!);
 }
 
-bool isAuthenticated() {
+bool isAuthenticated() 
+{
   return FirebaseAuth.instance.currentUser != null;
 }
 
 
 final GoRouter afaRouter = GoRouter(
-  navigatorKey: NavigatorService.navigatorKey,
   initialLocation: '/',
   redirect: (context, state) {
     final isLoggedIn = isAuthenticated();

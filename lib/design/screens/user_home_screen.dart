@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:afa/design/components/driver_status_component.dart';
+import 'package:afa/design/components/notice_board_component.dart';
 import 'package:afa/logic/providers/auth_user_provider.dart';
 import 'package:afa/logic/providers/notification_provider.dart';
 import 'package:audioplayers/audioplayers.dart';
