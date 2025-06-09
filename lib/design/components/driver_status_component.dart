@@ -117,8 +117,8 @@ Widget _buildStatusCard(
   if (!user.isCancelled && !user.isCollected && !user.isBeingPicking) {
     if (stopsRemaining == 1) {
       pickOrderMessage = 'Eres el primero en ser recogido';
-    } else if (stopsRemaining == 2) {
-      pickOrderMessage = 'Eres el siguiente';
+    } else if (stopsRemaining == 2 || stopsRemaining == 0) {
+      pickOrderMessage = 'Eres el siguiente en ser recogido';
     } else if (stopsRemaining > 2) {
       pickOrderMessage = 'Quedan $stopsRemaining paradas antes de ti';
     }
@@ -126,21 +126,40 @@ Widget _buildStatusCard(
 
   final mins = user.distanceInMinutes;
   final hours = mins ~/ 60;
-  final remMins = mins % 60;
-  final formattedTime = [
-    if (hours > 0) '${hours}h',
-    '${remMins}min',
-  ].join(' ');
 
-  final distanceKm = user.distanceInKm.toStringAsFixed(1);
   final now = DateTime.now();
   final etaStart = now.add(Duration(minutes: mins));
   final etaEnd = etaStart.add(const Duration(minutes: 5));
-  double progress = ((15 - mins) / 15).clamp(0.0, 1.0);
 
-  // Adaptative spacing
-  final spacing = isCompact ? 8.0 : 16.0;
-  final busWidth = isCompact ? 30.0 : 50.0;
+  // TextStyle para etiquetas
+  final TextStyle labelStyle = TextStyle(
+    fontSize: isCompact ? 14 : 16,
+    fontWeight: FontWeight.bold,
+    color: Colors.black87,
+  );
+
+  // Variables de estilo adaptativo
+  final double horizontalPadding = isCompact ? 12 : 20;
+  final double verticalPadding = isCompact ? 10 : 16;
+  final double spacing = isCompact ? 8 : 12;
+  final double avatarRadius = isCompact ? 16 : 20;
+
+  // TextStyles para mantener coherencia con otros cards
+  final TextStyle nameStyle = TextStyle(
+    fontSize: isCompact ? 14 : 18,
+    fontWeight: FontWeight.w600,
+    color: Colors.black87,
+  );
+  final TextStyle titleStyle = TextStyle(
+    fontSize: isCompact ? 14 : 16,
+    fontWeight: FontWeight.bold,
+    color: Colors.black87,
+  );
+  final TextStyle bodyStyle = TextStyle(
+    fontSize: isCompact ? 12 : 14,
+    fontWeight: FontWeight.w400,
+    color: Colors.black87,
+  );
 
   // Valores por defecto para estado "ocupado"
   Color borderColor = Colors.orangeAccent;
@@ -154,21 +173,23 @@ Widget _buildStatusCard(
     title = 'Recogida cancelada';
     message = 'Has cancelado tu recogida.';
     icon = Icons.cancel;
-    progress = 1.0;
-    fillColor = Colors.red;
+    fillColor = Colors.redAccent;
   } else if (user.isCollected) {
     borderColor = Colors.green;
     title = 'Recogida completada';
     message = 'Has sido recogido.';
     icon = Icons.check_circle;
-    progress = 1.0;
     fillColor = Colors.green;
-  }else if (user.isBeingPicking) {
+  } else if (user.isBeingPicking) {
     borderColor = Colors.blueAccent;
     title = 'Conductor en camino';
     message = 'El conductor va hacia ti.';
     icon = Icons.directions_bus;
-    fillColor = Colors.blueAccent;
+    fillColor = user.distanceInMinutes <= 5
+        ? Colors.green.shade700
+        : user.distanceInMinutes <= 10
+            ? Colors.orange.shade700
+            : Colors.red.shade700;
   } else if (isOtherBeingPicked) {
     borderColor = Colors.orangeAccent;
     title = 'Conductor ocupado';
@@ -177,294 +198,361 @@ Widget _buildStatusCard(
     fillColor = Colors.orangeAccent;
   }
 
-  return AnimatedSwitcher(
-    key: ValueKey(user),
-    duration: const Duration(milliseconds: 300),
-    child: Card(
-      key: ValueKey(user),
-      margin: EdgeInsets.symmetric(horizontal: spacing, vertical: spacing / 2),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: borderColor.withOpacity(0.6), width: 2),
+  return _AnimatedUserCard(
+    child: Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: spacing,
+        vertical: spacing / 2,
       ),
-      elevation: 6,
-      shadowColor: borderColor.withOpacity(0.3),
-      child: Padding(
-        padding: EdgeInsets.all(spacing),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Información del conductor + botón llamar
-            if (!user.isCollected) ...[
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.blueGrey.withOpacity(0.1),
-                    radius: isCompact ? 16 : 20,
-                    child: const Icon(Icons.person,
-                        color: Colors.blueGrey, semanticLabel: 'Icono conductor'),
-                  ),
-                  SizedBox(width: spacing / 2),
-                  Expanded(
-                    child: Text(
-                      '${driver.name} ${driver.surnames}',
-                      style: TextStyle(
-                        fontSize: isCompact ? 14 : 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  Tooltip(
-                    message: 'Llamar al conductor',
-                    child: IconButton(
-                      icon: Icon(Icons.call, size: isCompact ? 20 : 24),
-                      color: Colors.green,
-                      onPressed: () async {
-                        final uri = Uri(scheme: 'tel', path: driver.phoneNumber);
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('No se pudo iniciar la llamada')),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: spacing),
-            ],
-
-            // Ícono + título + mensaje
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: verticalPadding,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor.withOpacity(0.6), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: borderColor.withOpacity(0.3),
+            blurRadius: 6,
+            spreadRadius: 2,
+            offset: const Offset(2, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Información del conductor + botón llamar (si aún no se ha completado)
+          if (!user.isCollected) ...[
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: borderColor.withOpacity(0.2),
-                  radius: isCompact ? 20 : 28,
-                  child: Icon(icon, color: borderColor, size: isCompact ? 20 : 30),
+                  backgroundColor: Colors.blue.withOpacity(0.1),
+                  radius: avatarRadius,
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.blue,
+                    semanticLabel: 'Icono conductor',
+                  ),
                 ),
-                SizedBox(width: spacing),
+                SizedBox(width: spacing / 2),
                 Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isCompact ? 14 : 16,
-                          color: borderColor,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${driver.name} ${driver.surnames}',
+                          style: nameStyle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.security,
+                              size: nameStyle.fontSize != null
+                                  ? nameStyle.fontSize! * 0.7
+                                  : 12,
+                              color: Colors.green.shade300,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Conductor verificado',
+                              style: TextStyle(
+                                fontSize: nameStyle.fontSize != null
+                                    ? nameStyle.fontSize! * 0.7
+                                    : 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.green.shade300,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Tooltip(
+                  message: 'Llamar al conductor',
+                  child: IconButton(
+                    icon: Icon(Icons.call, size: isCompact ? 20 : 24),
+                    color: Colors.green,
+                    onPressed: () async {
+                      final uri = Uri(scheme: 'tel', path: driver.phoneNumber);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('No se pudo iniciar la llamada'),
+                          ),
+                        );
+                      }
+                    },
                   ),
                 ),
               ],
             ),
-            SizedBox(height: spacing / 2),
-            Text(
-              message,
-              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                    fontSize: isCompact ? 12 : 14,
-                  ),
-            ),
+            SizedBox(height: isCompact ? 12 : 16),
+            Divider(color: Colors.grey.shade300, thickness: 1),
+          ],
 
-            // Mensaje de posición en la cola (si aplica)
-            if (pickOrderMessage.isNotEmpty) ...[
-              SizedBox(height: spacing / 2),
-              Text(
-                pickOrderMessage,
-                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                      fontSize: isCompact ? 12 : 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+          // Nuevo contenedor para pickOrderMessage
+          if (pickOrderMessage.isNotEmpty) ...[
+            SizedBox(height: isCompact ? 8 : 12),
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: isCompact ? 10 : 14,
+                vertical: isCompact ? 6 : 8,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.shade300),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.flag,
+                    size: isCompact ? 16 : 20,
+                    color: Colors.amber.shade700,
+                  ),
+                  SizedBox(width: spacing / 2),
+                  Expanded(
+                    child: Text(
+                      pickOrderMessage,
+                      style: TextStyle(
+                        fontSize: isCompact ? 12 : 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.amber.shade800,
+                      ),
                     ),
-              ),
-              SizedBox(height: spacing),
-            ],
-
-            // Distancia y tiempo (si corresponde)
-            if (!user.isCancelled && !user.isCollected) ...[
-              Row(
-                children: [
-                  Icon(Icons.social_distance,
-                      size: isCompact ? 16 : 20, color: Colors.black87),
-                  SizedBox(width: spacing / 2),
-                  Text('Distancia estimada:',
-                      style: TextStyle(
-                          fontSize: isCompact ? 12 : 14,
-                          fontWeight: FontWeight.w500)),
-                  SizedBox(width: spacing / 4),
-                  Text(
-                    distanceKm == '0.0' ? 'No disponible' : '$distanceKm km',
-                    style: TextStyle(fontSize: isCompact ? 12 : 14),
                   ),
                 ],
               ),
-              SizedBox(height: spacing / 2),
-              Row(
+            ),
+          ],
+
+
+          SizedBox(height: isCompact ? 12 : 16),
+
+          // Banner de estado (sin modificar color ni tipografía)
+          Center(
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: isCompact ? 12 : 16,
+                vertical: isCompact ? 6 : 10,
+              ),
+              decoration: BoxDecoration(
+                color: borderColor, // mantenemos el color dinámico
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Icon(Icons.access_time,
-                      size: isCompact ? 16 : 20, color: Colors.black87),
-                  SizedBox(width: spacing / 2),
-                  Text('Tiempo estimado:',
-                      style: TextStyle(
-                          fontSize: isCompact ? 12 : 14,
-                          fontWeight: FontWeight.w500)),
-                  SizedBox(width: spacing / 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: isCompact ? 20 : 30, color: Colors.white),
+                      SizedBox(width: spacing),
+                      Text(
+                        title,
+                        style: titleStyle.copyWith(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isCompact ? 4 : 8),
                   Text(
-                    formattedTime.isEmpty ? 'No disponible' : formattedTime,
-                    style: TextStyle(fontSize: isCompact ? 11 : 13),
+                    message,
+                    style: bodyStyle.copyWith(color: Colors.white),
                   ),
                 ],
               ),
-              SizedBox(height: spacing),
-            ],
+            ),
+          ),
 
-            // Si el usuario está siendo recogido, mostramos el mapa + barra de progreso + GIF
-            if (user.isBeingPicking && !user.isCollected && !user.isCancelled) ...[
-              SizedBox(
-                height: busWidth + (isCompact ? 4 : 8),
-                child: LayoutBuilder(builder: (context, constraints) {
-                  final barWidth = constraints.maxWidth;
-                  final left = progress * (barWidth - busWidth);
-                  return Stack(
+          SizedBox(height: isCompact ? 16 : 20),
+
+          // Sección de tiempo, distancia, barra de progreso y llegada (solo si se está recogiendo)
+          if (user.isBeingPicking && user.distanceInKm != 0.0) ...[
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 450;
+                final content = [
+                  Row(
+                    children: [
+                      Icon(Icons.access_time,
+                          size: isCompact ? 18 : 22, color: Colors.blue),
+                      SizedBox(width: isCompact ? 6 : 8),
+                      Text('Tiempo estimado:', style: labelStyle),
+                      SizedBox(width: isCompact ? 6 : 10),
+                      Text(
+                        (hours > 0) ? '${hours}h ${mins}m' : '${mins}m',
+                        style: TextStyle(
+                          fontSize: isCompact ? 14 : 16,
+                          fontWeight: FontWeight.bold,
+                          color: fillColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Icon(Icons.map,
+                          size: isCompact ? 18 : 22, color: Colors.blue),
+                      SizedBox(width: isCompact ? 6 : 8),
+                      Text('Distancia:', style: labelStyle),
+                      SizedBox(width: isCompact ? 6 : 10),
+                      Text(
+                        '${user.distanceInKm.toStringAsFixed(1)} km',
+                        style: TextStyle(
+                          fontSize: isCompact ? 14 : 16,
+                          fontWeight: FontWeight.bold,
+                          color: fillColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ];
+                return isNarrow
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          content[0],
+                          SizedBox(
+                              height: isCompact ? 16 : 20), // espacio entre filas
+                          content[1],
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          ...content[0].children,
+                          const Spacer(),
+                          ...content[1].children,
+                        ],
+                      );
+              },
+            ),
+            SizedBox(height: isCompact ? 12 : 16),
+
+            // Barra de progreso con ícono de bus
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final barWidth = constraints.maxWidth;
+                final progress = ((15 - user.distanceInMinutes) / 15)
+                    .clamp(0.0, 1.0);
+                final busSize = isCompact ? 28.0 : 48.0;
+                final left = progress * (barWidth - busSize);
+
+                return SizedBox(
+                  height: busSize + (isCompact ? 4 : 8),
+                  child: Stack(
                     alignment: Alignment.centerLeft,
                     children: [
                       Positioned(
                         left: 0,
                         right: 0,
-                        top: busWidth / 2 - (isCompact ? 3 : 5),
+                        top: busSize / 2 - (isCompact ? 3 : 5),
                         child: Container(
                           height: isCompact ? 6 : 10,
                           decoration: BoxDecoration(
-                            color: Colors.grey.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(4),
+                            color: Colors.grey.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(5),
                           ),
                         ),
                       ),
                       Positioned(
                         left: 0,
                         width: progress * barWidth,
-                        top: busWidth / 2 - (isCompact ? 3 : 5),
+                        top: busSize / 2 - (isCompact ? 3 : 5),
                         child: Container(
                           height: isCompact ? 6 : 10,
                           decoration: BoxDecoration(
-                            color: fillColor,
-                            borderRadius: BorderRadius.circular(4),
+                            color: fillColor.withOpacity(0.85),
+                            borderRadius: BorderRadius.circular(5),
                           ),
                         ),
                       ),
                       Positioned(
                         left: left,
                         top: 0,
-                        child: Image.asset(
-                          'assets/images/autobus-unscreen.gif',
-                          width: busWidth,
-                          height: busWidth * 0.6,
+                        child: Icon(
+                          Icons.directions_bus,
+                          size: busSize * 0.6,
+                          color: fillColor,
                         ),
                       ),
                     ],
-                  );
-                }),
-              ),
-              SizedBox(height: spacing),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'Llegada: '
-                  '${etaStart.hour.toString().padLeft(2, '0')}:' '${etaStart.minute.toString().padLeft(2, '0')}'
-                  ' – '
-                  '${etaEnd.hour.toString().padLeft(2, '0')}:' '${etaEnd.minute.toString().padLeft(2, '0')}',
-                  style: TextStyle(
-                    fontSize: isCompact ? 12 : 14,
-                    fontStyle: FontStyle.italic,
-                    color: Colors.black54,
                   ),
-                ),
-              ),
-              SizedBox(height: spacing),
+                );
+              },
+            ),
+            SizedBox(height: isCompact ? 12 : 16),
 
-              // Aquí insertamos el MapComponent solo cuando el conductor va en camino
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: MapComponent(
-                    isDriver: true,
-                    routeColor: fillColor,
-                  ),
-                ),
-              ),
-              SizedBox(height: spacing),
-            ],
-
-            // Botones de cancelar / reanudar
-            if (!user.isCollected) ...[
-              Row(
+            // Hora estimada de llegada
+            Align(
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: user.isCancelled
-                          ? null
-                          : () => _showConfirmation(
-                                context,
-                                'Cancelar Recogida',
-                                '¿Seguro que quieres cancelar la recogida de hoy?',
-                                () => userRouteProvider.cancelCurrentPickup(),
-                                const LinearGradient(
-                                  colors: [
-                                    Color(0xFFB71C1C),
-                                    Color(0xFFE53935),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                              ),
-                      icon: const Icon(Icons.cancel,
-                          color: Colors.white, semanticLabel: 'Icono cancelar'),
-                      label: const Text('Cancelar Recogida',
-                          style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        textStyle: TextStyle(fontSize: isCompact ? 12 : 14),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: spacing),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: user.isCancelled
-                          ? () => _showConfirmation(
-                                context,
-                                'Reanudar Recogida',
-                                '¿Quieres reanudar la recogida de hoy?',
-                                () => userRouteProvider.removeCancelCurrentPickup(),
-                                const LinearGradient(
-                                  colors: [
-                                    Color(0xFF2E7D32),
-                                    Color(0xFF66BB6A),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                              )
-                          : null,
-                      icon: const Icon(Icons.undo,
-                          color: Colors.white, semanticLabel: 'Icono reanudar'),
-                      label: const Text('Reanudar Recogida',
-                          style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        textStyle: TextStyle(fontSize: isCompact ? 12 : 14),
-                      ),
+                  Icon(Icons.schedule,
+                      size: isCompact ? 16 : 18, color: Colors.black54),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Llegada: '
+                    '${etaStart.hour.toString().padLeft(2, '0')}:'
+                    '${etaStart.minute.toString().padLeft(2, '0')}'
+                    ' – '
+                    '${etaEnd.hour.toString().padLeft(2, '0')}:'
+                    '${etaEnd.minute.toString().padLeft(2, '0')}',
+                    style: TextStyle(
+                      fontSize: isCompact ? 12 : 14,
+                      fontStyle: FontStyle.italic,
+                      color: Colors.black54,
                     ),
                   ),
                 ],
               ),
-            ],
+            ),
+            SizedBox(height: isCompact ? 16 : 20),
           ],
-        ),
+
+          if (user.isBeingPicking) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: double.infinity,
+                height: isCompact ? 120 : 180,
+                child: MapComponent(
+                  isDriver: false,
+                  routeColor: fillColor,
+                ),
+              ),
+            ),
+            const SizedBox(height: 30),
+          ],
+
+          if (!user.isCollected) ...[
+            _buildActionButtons(
+              context,
+              userRouteProvider,
+              isCompact,
+              fillColor,
+            ),
+          ],
+        ],
       ),
     ),
   );
 }
+
 
 Future<void> _showConfirmation(
   BuildContext context,
@@ -476,9 +564,10 @@ Future<void> _showConfirmation(
   final bool? resultado = await showDialog<bool>(
     context: context,
     builder: (_) => AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       titlePadding: EdgeInsets.zero,
-      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
       title: Container(
         decoration: BoxDecoration(
           gradient: confirmGradient,
@@ -507,11 +596,17 @@ Future<void> _showConfirmation(
           ],
         ),
       ),
-      content: Text(
-        content,
-        style: const TextStyle(fontSize: 16),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            content,
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 20),
+        ],
       ),
-      actionsPadding: EdgeInsets.zero,
+      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       actions: [
         Row(
           children: [
@@ -574,8 +669,156 @@ Future<void> _showConfirmation(
     ),
   );
 
-    if (resultado == true) {
-      onConfirm();
-    }
+  if (resultado == true) {
+    onConfirm();
+  }
+}
+
+ Widget _buildActionButtons(BuildContext context, UserRouteProvider userRouteProvider, bool isCompact, Color fillColor) {
+    final iconSize = isCompact ? 16.0 : 24.0;
+    final fontSize = isCompact ? 12.0 : 16.0;
+    final verticalPadding = isCompact ? 8.0 : 16.0;
+    final spacerWidth = isCompact ? 4.0 : 8.0;
+
+      return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min, // Ocupa solo el ancho necesario
+        children: [
+          // Botón “Cancelar Recogida”
+          SizedBox(
+            width: MediaQuery.of(context).size.width / 2 - spacerWidth,
+            child: ElevatedButton.icon(
+              onPressed: userRouteProvider.routeUser.isCancelled
+                  ? null
+                  : () {
+                      _showConfirmation(
+                        context,
+                        'Cancelar Recogida',
+                        '¿Seguro que quieres cancelar la recogida de hoy?',
+                        () => userRouteProvider.cancelCurrentPickup(),
+                        const LinearGradient(
+                          colors: [
+                            Color(0xFFB71C1C),
+                            Color(0xFFE53935),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      );
+                    },
+              icon: Icon(
+                Icons.cancel,
+                color: Colors.white,
+                size: iconSize,
+                semanticLabel: 'Icono cancelar',
+              ),
+              label: Text(
+                'Cancelar Recogida',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                padding: EdgeInsets.symmetric(vertical: verticalPadding),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+
+          SizedBox(width: spacerWidth),
+
+          // Botón “Reanudar Recogida”
+          SizedBox(
+            width: MediaQuery.of(context).size.width / 2 - spacerWidth,
+            child: ElevatedButton.icon(
+              onPressed: userRouteProvider.routeUser.isCancelled
+                  ? () {
+                      _showConfirmation(
+                        context,
+                        'Reanudar Recogida',
+                        '¿Quieres reanudar la recogida de hoy?',
+                        () => userRouteProvider.removeCancelCurrentPickup(),
+                        const LinearGradient(
+                          colors: [
+                            Color(0xFF2E7D32),
+                            Color(0xFF66BB6A),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      );
+                    }
+                  : null,
+              icon: Icon(
+                Icons.undo,
+                color: Colors.white,
+                size: iconSize,
+                semanticLabel: 'Icono reanudar',
+              ),
+              label: Text(
+                'Reanudar Recogida',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                padding: EdgeInsets.symmetric(vertical: verticalPadding),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+}
+
+class _AnimatedUserCard extends StatefulWidget {
+  final Widget child;
+
+  const _AnimatedUserCard({required this.child});
+
+  @override
+  State<_AnimatedUserCard> createState() => _AnimatedUserCardState();
+}
+
+class _AnimatedUserCardState extends State<_AnimatedUserCard> {
+  bool _visible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() {
+        _visible = true;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      opacity: _visible ? 1.0 : 0.0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOut,
+      child: AnimatedSlide(
+        offset: _visible ? Offset.zero : const Offset(0, 0.2),
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOut,
+        child: widget.child,
+      ),
+    );
   }
 }

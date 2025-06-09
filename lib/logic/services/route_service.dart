@@ -421,6 +421,7 @@ Future<Map<String, dynamic>> _getRouteMatrix(
 
     if (pendingSnap.docs.isEmpty) {
       await deleteRoute(numRoute);
+      await _driverRouteService.removeDriverFromRoute(numRoute);
     }
   }
 }

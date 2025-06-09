@@ -1,16 +1,14 @@
 // IMPORTS
 import 'dart:async';
-import 'dart:typed_data';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
-import 'package:image/image.dart' as img;
 
 import 'package:afa/logic/providers/user_route_provider.dart';
 import 'package:afa/logic/providers/driver_route_provider.dart';
@@ -34,49 +32,67 @@ class _MapComponentState extends State<MapComponent> {
   Set<Polyline> _polylines = {};
   bool _isLoading = true;
   bool _hasError = false;
+  bool _markersReady = false;
+  bool _mapReady = false;
   GoogleMapController? _mapController;
+  LatLngBounds? _routeBounds;
+  MarkerId? _driverMarkerId;
+  BitmapDescriptor? _driverIcon;
+  BitmapDescriptor? _userIcon;
 
   final String _googleApiKey = dotenv.env['GOOGLE_MAPS_API_KEY']!;
-  final List<BitmapDescriptor> _driverFrames = [];
-  int _currentDriverFrameIndex = 0;
-  Timer? _animationTimer;
-  MarkerId? _driverMarkerId;
 
   @override
   void initState() {
     super.initState();
-    _retryLoadMap();
+    _loadIcons().then((_) => _retryLoadMap());
+  }
+
+  Future<void> _loadIcons() async {
+    _driverIcon = BitmapDescriptor.fromBytes(
+      await _createBitmapFromIcon(Icons.directions_bus, Colors.blue),
+    );
+    _userIcon = BitmapDescriptor.fromBytes(
+      await _createBitmapFromIcon(Icons.person_pin_circle, Colors.cyan),
+    );
   }
 
   void _retryLoadMap() {
     setState(() {
       _isLoading = true;
       _hasError = false;
+      _markersReady = false;
+      _mapReady = false;
+      markers.clear();
+      _polylines.clear();
+      _driverMarkerId = null;
+      _routeBounds = null;
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
-        await _loadDriverFramesFromGif();
-
+        // 1) Obtener marcadores desde el provider (driver o user)
         final rawMarkers = widget.isDriver
             ? await Provider.of<DriverRouteProvider>(context, listen: false).markers
             : await Provider.of<UserRouteProvider>(context, listen: false).markers;
 
-        final styledMarkers = await _styleMarkers(rawMarkers);
+        // 2) Estilizar marcadores con iconos personalizados
+        final styled = _styleMarkers(rawMarkers);
 
         if (!mounted) return;
-
         setState(() {
-          markers = styledMarkers;
+          markers = styled;
+          _markersReady = true;
         });
 
-        await Future.delayed(const Duration(milliseconds: 600));
-        await _fitMarkersInView();
+        // 3) Calcular ruta y bounds
         await _drawRouteBetweenMarkers();
 
-        if (mounted) {
-          setState(() => _isLoading = false);
+        if (_mapReady) {
+          await _centerMap();
         }
+
+        if (mounted) setState(() => _isLoading = false);
       } catch (e) {
         debugPrint('Error loading map: $e');
         if (mounted) {
@@ -84,12 +100,10 @@ class _MapComponentState extends State<MapComponent> {
             _hasError = true;
             _isLoading = false;
           });
-
-          // Mostrar SnackBar
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('No se pudo cargar el mapa. Inténtalo de nuevo.'),
-              backgroundColor: Colors.redAccent,
+              backgroundColor: Colors.blue,
               duration: Duration(seconds: 4),
             ),
           );
@@ -98,40 +112,59 @@ class _MapComponentState extends State<MapComponent> {
     });
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-    _animationTimer?.cancel();
-  }
-
-  Future<void> _loadDriverFramesFromGif() async {
-    final byteData = await rootBundle.load('assets/images/autobus-unscreen.gif');
-    final gifBytes = byteData.buffer.asUint8List();
-    final gif = img.GifDecoder().decode(gifBytes);
-    if (gif == null) throw Exception('GIF decoding failed');
-
-    for (final frame in gif.frames) {
-      final pngBytes = img.PngEncoder().encode(frame);
-      final descriptor = BitmapDescriptor.fromBytes(Uint8List.fromList(pngBytes));
-      _driverFrames.add(descriptor);
+  Set<Marker> _styleMarkers(Set<Marker> input) {
+    final styled = <Marker>{};
+    for (var m in input) {
+      final title = m.markerId.value;
+      if (title.contains("driver") && _driverIcon != null) {
+        _driverMarkerId = m.markerId;
+        styled.add(
+          m.copyWith(
+            iconParam: _driverIcon,
+            anchorParam: const Offset(0.5, 1.0),
+          ),
+        );
+      } else if (_userIcon != null) {
+        styled.add(
+          m.copyWith(
+            iconParam: _userIcon,
+            anchorParam: const Offset(0.5, 1.0),
+          ),
+        );
+      }
     }
+    return styled;
   }
 
   Future<void> _drawRouteBetweenMarkers() async {
-    if (markers.length < 2) throw Exception('Insufficient markers');
-
-    final markerList = markers.toList();
-    final start = markerList.first.position;
-    final end = markerList.last.position;
-    final routePoints = await _getPolylinePoints(start, end);
-
-    if (routePoints.isEmpty) throw Exception('Route points empty');
+    if (markers.length < 2) return;
+    final list = markers.toList();
+    final start = list.first.position;
+    final end = list.last.position;
+    final points = await _getPolylinePoints(start, end);
+    if (points.isEmpty) return;
 
     final polyline = Polyline(
       polylineId: const PolylineId("real_route"),
       color: widget.routeColor,
       width: 5,
-      points: routePoints,
+      points: points,
+    );
+
+    // Calcular bounds
+    double minLat = points.first.latitude;
+    double maxLat = points.first.latitude;
+    double minLng = points.first.longitude;
+    double maxLng = points.first.longitude;
+    for (var p in points) {
+      minLat = _min(minLat, p.latitude);
+      maxLat = _max(maxLat, p.latitude);
+      minLng = _min(minLng, p.longitude);
+      maxLng = _max(maxLng, p.longitude);
+    }
+    _routeBounds = LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
     );
 
     setState(() => _polylines = {polyline});
@@ -139,13 +172,11 @@ class _MapComponentState extends State<MapComponent> {
 
   Future<List<LatLng>> _getPolylinePoints(LatLng origin, LatLng destination) async {
     const url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
-
     final headers = {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': _googleApiKey,
       'X-Goog-FieldMask': 'routes.polyline.encodedPolyline',
     };
-
     final body = jsonEncode({
       'origin': {
         'location': {
@@ -165,150 +196,110 @@ class _MapComponentState extends State<MapComponent> {
       },
       'travelMode': 'DRIVE',
     });
-
     final response = await http.post(Uri.parse(url), headers: headers, body: body);
-
     if (response.statusCode == 200) {
       final json = jsonDecode(response.body);
-      final encodedPolyline = json['routes'][0]['polyline']['encodedPolyline'] as String;
-      final decodedPoints = PolylinePoints().decodePolyline(encodedPolyline);
-      return decodedPoints.map((p) => LatLng(p.latitude, p.longitude)).toList();
+      final encoded = json['routes'][0]['polyline']['encodedPolyline'] as String;
+      final decoded = PolylinePoints().decodePolyline(encoded);
+      return decoded.map((p) => LatLng(p.latitude, p.longitude)).toList();
     } else {
-      throw Exception('Route API error: ${response.statusCode}');
+      debugPrint('Route API error: ${response.statusCode}');
+      return [];
     }
   }
 
-  Future<void> _fitMarkersInView() async {
-    if (_mapController == null || markers.isEmpty) return;
-
-    double minLat = markers.first.position.latitude;
-    double maxLat = markers.first.position.latitude;
-    double minLng = markers.first.position.longitude;
-    double maxLng = markers.first.position.longitude;
-
-    for (var marker in markers) {
-      minLat = min(minLat, marker.position.latitude);
-      maxLat = max(maxLat, marker.position.latitude);
-      minLng = min(minLng, marker.position.longitude);
-      maxLng = max(maxLng, marker.position.longitude);
-    }
-
-    final bounds = LatLngBounds(
-      southwest: LatLng(minLat, minLng),
-      northeast: LatLng(maxLat, maxLng),
-    );
-
+  Future<void> _centerMap() async {
+    if (_mapController == null || markers.isEmpty || _routeBounds == null) return;
     try {
-      await _mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 40));
+      await _mapController!.animateCamera(
+        CameraUpdate.newLatLngBounds(_routeBounds!, 40),
+      );
     } catch (_) {
-      final centerLat = (minLat + maxLat) / 2;
-      final centerLng = (minLng + maxLng) / 2;
+      final centerLat = (_routeBounds!.southwest.latitude + _routeBounds!.northeast.latitude) / 2;
+      final centerLng = (_routeBounds!.southwest.longitude + _routeBounds!.northeast.longitude) / 2;
       await _mapController!.moveCamera(
         CameraUpdate.newLatLngZoom(LatLng(centerLat, centerLng), 14),
       );
     }
   }
 
-  Future<Set<Marker>> _styleMarkers(Set<Marker> inputMarkers) async {
-    Set<Marker> styledMarkers = {};
-
-    for (var marker in inputMarkers) {
-      final title = marker.markerId.value;
-
-      if (title.contains("driver")) {
-        _driverMarkerId = marker.markerId;
-        final firstFrame = _driverFrames.isNotEmpty
-            ? _driverFrames[0]
-            : BitmapDescriptor.defaultMarker;
-
-        styledMarkers.add(marker.copyWith(iconParam: firstFrame));
-
-        if (_animationTimer == null && _driverFrames.length > 1) {
-          _startDriverAnimation();
-        }
-      } else {
-        final iconBitmap = await _createCustomMarkerBitmap(
-          Icons.location_on,
-          title.contains("user") ? Colors.indigo.shade700 : Colors.blue.shade400,
-        );
-        styledMarkers.add(marker.copyWith(iconParam: BitmapDescriptor.fromBytes(iconBitmap)));
-      }
-    }
-
-    return styledMarkers;
-  }
-
-  void _startDriverAnimation() {
-    const int frameDurationMs = 200;
-    _animationTimer = Timer.periodic(
-      const Duration(milliseconds: frameDurationMs),
-      (timer) {
-        if (!mounted || _driverFrames.isEmpty || _driverMarkerId == null) {
-          timer.cancel();
-          return;
-        }
-
-        _currentDriverFrameIndex =
-            (_currentDriverFrameIndex + 1) % _driverFrames.length;
-        final nextFrame = _driverFrames[_currentDriverFrameIndex];
-
-        if (!markers.any((m) => m.markerId == _driverMarkerId)) {
-          timer.cancel();
-          return;
-        }
-
-        final oldMarker = markers.firstWhere((m) => m.markerId == _driverMarkerId);
-        final newMarker = oldMarker.copyWith(iconParam: nextFrame);
-
-        setState(() {
-          markers.removeWhere((m) => m.markerId == _driverMarkerId);
-          markers.add(newMarker);
-        });
-      },
+  /// Centrar en la parada del usuario
+  Future<void> _centerOnUser() async {
+    if (_mapController == null || markers.isEmpty) return;
+    final userMarker = markers.firstWhere(
+      (m) => m.markerId.value.contains("user"),
+      orElse: () => markers.first,
+    );
+    await _mapController!.animateCamera(
+      CameraUpdate.newLatLngZoom(userMarker.position, 15),
     );
   }
 
-  Future<Uint8List> _createCustomMarkerBitmap(IconData iconData, Color color) async {
-    const double size = 90;
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
+  /// Centrar en el conductor
+  Future<void> _centerOnDriver() async {
+    if (_mapController == null || _driverMarkerId == null) return;
+    final driverMarker = markers.firstWhere(
+      (m) => m.markerId == _driverMarkerId,
+      orElse: () => markers.first,
+    );
+    await _mapController!.animateCamera(
+      CameraUpdate.newLatLngZoom(driverMarker.position, 15),
+    );
+  }
 
-    final backgroundPaint = Paint()
-      ..color = color.withOpacity(0.25)
-      ..style = PaintingStyle.fill;
+Future<Uint8List> _createBitmapFromIcon(IconData icon, Color color) async {
+  const double size = 50;
+  const double borderWidth = 2.0;
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  const center = Offset(size / 2, size / 2);
+  const radius = (size / 2) - (borderWidth / 2); // Deja espacio para el borde
 
-    const center = Offset(size / 2, size / 2);
-    canvas.drawCircle(center, size / 2, backgroundPaint);
+  // Fondo circular semitransparente
+  final backgroundPaint = Paint()..color = color.withOpacity(0.2);
+  canvas.drawCircle(center, radius, backgroundPaint);
 
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: String.fromCharCode(iconData.codePoint),
-        style: TextStyle(
-          fontSize: 40,
-          fontFamily: iconData.fontFamily,
-          package: iconData.fontPackage,
-          color: color,
-        ),
+  // Borde circular dentro del canvas
+  final borderPaint = Paint()
+    ..color = color
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = borderWidth;
+  canvas.drawCircle(center, radius, borderPaint);
+
+  // Pintar el icono centrado
+  final textPainter = TextPainter(
+    text: TextSpan(
+      text: String.fromCharCode(icon.codePoint),
+      style: TextStyle(
+        fontSize: 30,
+        fontFamily: icon.fontFamily,
+        package: icon.fontPackage,
+        color: color,
       ),
-      textDirection: TextDirection.ltr,
-    );
+    ),
+    textDirection: TextDirection.ltr,
+  );
+  textPainter.layout();
+  textPainter.paint(
+    canvas,
+    Offset(
+      (size - textPainter.width) / 2,
+      (size - textPainter.height) / 2,
+    ),
+  );
 
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset((size - textPainter.width) / 2, (size - textPainter.height) / 2),
-    );
+  // Convertir a imagen
+  final imgCanvas = await recorder.endRecording().toImage(size.toInt(), size.toInt());
+  final byteData = await imgCanvas.toByteData(format: ui.ImageByteFormat.png);
+  return byteData!.buffer.asUint8List();
+}
 
-    final image = await recorder.endRecording().toImage(size.toInt(), size.toInt());
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    return byteData!.buffer.asUint8List();
-  }
+
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    final isPortrait = screenSize.height > screenSize.width;
-    final mapHeight = isPortrait ? screenSize.height * 0.3 : screenSize.height * 0.6;
+    final size = MediaQuery.of(context).size;
+    final mapHeight = (size.height > size.width) ? size.height * 0.3 : size.height * 0.6;
 
     if (_isLoading) {
       return SizedBox(
@@ -320,71 +311,39 @@ class _MapComponentState extends State<MapComponent> {
     if (_hasError || markers.isEmpty) {
       return SizedBox(
         height: mapHeight,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Stack(
-                  alignment: Alignment.topRight,
-                  children: [
-                    const Icon(
-                      Icons.map_outlined,
-                      size: 80,
-                      color: Colors.indigo,
-                    ),
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        padding: const EdgeInsets.all(4),
-                        child: const Icon(
-                          Icons.close,
-                          size: 16,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.map_outlined, size: 80, color: Colors.blue),
+              const SizedBox(height: 12),
+              const Text(
+                'Mapa no disponible',
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Mapa no disponible',
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: _retryLoadMap,
+                icon: const Icon(Icons.refresh, color: Colors.white, size: 20),
+                label: const Text(
+                  'Reintentar',
                   style: TextStyle(
-                    color: Colors.indigo,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                     fontSize: 16,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: _retryLoadMap,
-                  icon: const Icon(Icons.refresh, color: Colors.white, size: 20),
-                  label: const Text(
-                    'Reintentar',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo.shade700,
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       );
@@ -392,34 +351,99 @@ class _MapComponentState extends State<MapComponent> {
 
     return SizedBox(
       height: mapHeight,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+      child: Stack(
+        children: [
+          // GoogleMap sin controles predeterminados y con límite de cámara
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: GoogleMap(
-            initialCameraPosition: const CameraPosition(target: LatLng(0, 0), zoom: 16),
-            onMapCreated: (c) => _mapController = c,
-            markers: markers,
-            polylines: _polylines,
-            myLocationEnabled: false,
-            myLocationButtonEnabled: false,
-            compassEnabled: false,
-            mapToolbarEnabled: false,
-            tiltGesturesEnabled: false,
-            zoomControlsEnabled: false,
-            trafficEnabled: false,
-            buildingsEnabled: false,
-            indoorViewEnabled: false,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: GoogleMap(
+                initialCameraPosition: const CameraPosition(target: LatLng(0, 0), zoom: 16),
+                onMapCreated: (controller) async {
+                  _mapController = controller;
+                  _mapReady = true;
+                  if (_markersReady) {
+                    await _centerMap();
+                  }
+                },
+                markers: markers,
+                polylines: _polylines,
+                zoomControlsEnabled: false,
+                myLocationButtonEnabled: false,
+                compassEnabled: false,
+                mapToolbarEnabled: false,
+                tiltGesturesEnabled: false,
+                trafficEnabled: false,
+                buildingsEnabled: false,
+                indoorViewEnabled: false,
+                rotateGesturesEnabled: false,
+                scrollGesturesEnabled: true,
+                zoomGesturesEnabled: true,
+                cameraTargetBounds: _routeBounds != null
+                    ? CameraTargetBounds(_routeBounds!)
+                    : CameraTargetBounds(
+                        LatLngBounds(
+                          southwest: LatLng(-90, -180),
+                          northeast: LatLng(90, 180),
+                        ),
+                      ),
+              ),
+            ),
           ),
+
+          // Botones de recenter: a la derecha inferior
+          Positioned(
+            bottom: 12,
+            right: 12,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_driverMarkerId != null)
+                  _buildCircleButton(
+                    icon: Icons.directions_bus,
+                    tooltip: 'Seguir al conductor',
+                    onPressed: _centerOnDriver,
+                  ),
+                const SizedBox(height: 8),
+                _buildCircleButton(
+                  icon: Icons.person_pin_circle,
+                  tooltip: 'Ir a tu parada',
+                  onPressed: _centerOnUser,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Botón circular con fondo azul y icono negro
+  Widget _buildCircleButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    return Material(
+      shape: const CircleBorder(),
+      elevation: 4,
+      color: Colors.blue,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Icon(icon, size: 24, color: Colors.white),
         ),
       ),
     );
@@ -427,5 +451,5 @@ class _MapComponentState extends State<MapComponent> {
 }
 
 // Helpers
-T max<T extends num>(T a, T b) => a > b ? a : b;
-T min<T extends num>(T a, T b) => a < b ? a : b;
+T _max<T extends num>(T a, T b) => a > b ? a : b;
+T _min<T extends num>(T a, T b) => a < b ? a : b;

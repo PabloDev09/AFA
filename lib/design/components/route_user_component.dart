@@ -292,454 +292,638 @@ class RouteUserComponent extends StatelessWidget {
     );
   }
 
-    // -------- Widget para usuario PENDIENTE (no está siendo recogido) --------
-  Widget _buildPendingUserCard(
-    BuildContext context,
-    RouteUser user,
-    bool isCompact,
-  ) {
-    final hours = user.distanceInMinutes ~/ 60;
-    final mins = user.distanceInMinutes % 60;
-    final formatted = [
-      if (hours > 0) '${hours}h',
-      '${mins}min',
-    ].join(' ');
+Widget _buildPendingUserCard(
+  BuildContext context,
+  RouteUser user,
+  bool isCompact,
+) {
+  final hours = user.distanceInMinutes ~/ 60;
+  final mins = user.distanceInMinutes % 60;
+  [
+    if (hours > 0) '${hours}h',
+    '${mins}min',
+  ].join(' ');
 
-    return Center(
-      child: Container(
-        margin: EdgeInsets.symmetric(vertical: isCompact ? 6 : 10),
-        padding: EdgeInsets.all(isCompact ? 12 : 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 6,
-              spreadRadius: 2,
-              offset: Offset(2, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Botón Llamar (misma fila que antes, sin cambios)
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${user.name} ${user.surnames}',
-                    style: TextStyle(
-                      fontSize: isCompact ? 18 : 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                SizedBox(width: isCompact ? 8 : 16),
-                ElevatedButton.icon(
-                  onPressed: () => _callNumber(user.phoneNumber),
-                  icon: Icon(Icons.call, size: isCompact ? 16 : 24),
-                  label: Text(
-                    'Llamar',
-                    style: TextStyle(
-                      fontSize: isCompact ? 12 : 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(
-                      vertical: isCompact ? 8 : 12,
-                      horizontal: isCompact ? 8 : 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Divider(
-              color: Colors.grey,
-              height: isCompact ? 16 : 24,
-            ),
-            _buildUserInfoRow(
-              Icons.bus_alert,
-              'Parada',
-              'Nº ${user.numPick}',
-              isCompact,
-              Colors.cyan.shade800,
-            ),
-            _buildUserInfoRow(
-              Icons.location_on,
-              'Dirección',
-              Utils().formatAddress(user.address),
-              isCompact,
-              Colors.blue,
-            ),
-            _buildUserInfoRow(
-              Icons.access_time,
-              'Tiempo estimado',
-              user.distanceInMinutes == 0 ? 'No disponible' : formatted,
-              isCompact,
-              user.distanceInMinutes == 0 ? Colors.redAccent : Colors.blue,
-            ),
-            _buildUserInfoRow(
-              Icons.social_distance,
-              'Distancia estimada',
-              user.distanceInKm == 0 ? 'No disponible' : '${user.distanceInKm} km',
-              isCompact,
-              user.distanceInMinutes == 0 ? Colors.redAccent : Colors.blue,
-            ),
+  final double horizontalPadding = isCompact ? 12 : 20;
+  final double verticalPadding = isCompact ? 10 : 16;
 
-            SizedBox(height: isCompact ? 12 : 20),
+  final TextStyle nameStyle = TextStyle(
+    fontSize: isCompact ? 18 : 22,
+    fontWeight: FontWeight.w600,
+    color: Colors.black87,
+  );
+  final TextStyle labelStyle = TextStyle(
+    fontSize: isCompact ? 14 : 16,
+    fontWeight: FontWeight.bold,
+    color: Colors.black87,
+  );
+  final TextStyle valueStyle = TextStyle(
+    fontSize: isCompact ? 14 : 16,
+    fontWeight: FontWeight.w400,
+    color: Colors.black54,
+  );
+  final TextStyle badgeStyle = TextStyle(
+    fontSize: isCompact ? 14 : 18,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
+  );
 
-            // Botones de acción para usuario pendiente
-            _buildActionButtons(
-              context,
-              user,
-              false, // isBeingPicked = false
-              isCompact,
-            ),
-          ],
-        ),
+  return Center(
+    child: Container(
+      margin: EdgeInsets.symmetric(
+        vertical: isCompact ? 8 : 12,
+        horizontal: isCompact ? 16 : 24,
       ),
-    );
-  }
-
-  // -------- Widget para usuario RECOGIÉNDOSE (está siendo recogido) --------
-  Widget _buildPickedUserCard(
-    BuildContext context,
-    RouteUser user,
-    bool isCompact,
-  ) {
-    final hours = user.distanceInMinutes ~/ 60;
-    final mins = user.distanceInMinutes % 60;
-
-    // Determinamos color de progreso en función del tiempo
-    Color fillColor;
-    if (user.distanceInMinutes <= 5) {
-      fillColor = Colors.green;
-    } else if (user.distanceInMinutes <= 10) {
-      fillColor = Colors.orange;
-    } else {
-      fillColor = Colors.red;
-    }
-
-    final now = DateTime.now();
-    final eta = now.add(Duration(minutes: user.distanceInMinutes));
-    final etaEnd = eta.add(const Duration(minutes: 5));
-    String fmtH(DateTime t) =>
-        '${t.hour.toString().padLeft(2, "0")}:${t.minute.toString().padLeft(2, "0")}';
-
-    return Center(
-      child: Container(
-        margin: EdgeInsets.symmetric(vertical: isCompact ? 6 : 10),
-        padding: EdgeInsets.all(isCompact ? 12 : 16),
-        decoration: BoxDecoration(
-          color: Colors.green.shade200,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 6,
-              spreadRadius: 2,
-              offset: Offset(2, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Nombre y botón Llamar (seguirá apareciendo debajo del bloque “Ruta/Parada”)
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${user.name} ${user.surnames}',
-                    style: TextStyle(
-                      fontSize: isCompact ? 18 : 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+      padding: EdgeInsets.symmetric(
+        vertical: verticalPadding,
+        horizontal: horizontalPadding,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 6,
+            spreadRadius: 2,
+            offset: Offset(2, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // --- Encabezado: Nombre + Botón Llamar ---
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final callButton = Tooltip(
+                message: 'Llamar al usuario',
+                child: IconButton(
+                  icon: Icon(
+                    Icons.call,
+                    size: isCompact ? 20 : 24,
+                    color: Colors.green,
                   ),
+                  onPressed: () async {
+                    await _callNumber(user.phoneNumber);
+                  },
                 ),
-                SizedBox(width: isCompact ? 8 : 16),
-                ElevatedButton.icon(
-                  onPressed: () => _callNumber(user.phoneNumber),
-                  icon: Icon(Icons.call, size: isCompact ? 16 : 24),
-                  label: Text(
-                    'Llamar',
-                    style: TextStyle(
-                      fontSize: isCompact ? 12 : 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(
-                      vertical: isCompact ? 8 : 12,
-                      horizontal: isCompact ? 8 : 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: isCompact ? 12 : 16),
-            Divider(
-              color: Colors.white,
-              height: isCompact ? 16 : 24,
-            ),
-            _buildUserInfoRow(
-              Icons.bus_alert,
-              'Parada',
-              'Nº ${user.numPick}',
-              isCompact,
-              Colors.cyan.shade800,
-            ),
-            SizedBox(height: isCompact ? 8 : 12),
-            _buildUserInfoRow(
-              Icons.location_on,
-              'Dirección',
-              Utils().formatAddress(user.address),
-              isCompact,
-              Colors.blue,
-            ),
-            SizedBox(height: isCompact ? 8 : 12),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final barWidth = constraints.maxWidth;
-                final progress = ((15 - user.distanceInMinutes) / 15).clamp(0.0, 1.0);
-                final busWidth = isCompact ? 30.0 : 50.0;
-                final left = progress * (barWidth - busWidth);
+              );
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+               return Row(
                   children: [
-                    if (user.distanceInKm != 0.0) ...[
-                      FittedBox(
+                    CircleAvatar(
+                    backgroundColor: Colors.blue.withOpacity(0.1),
+                    radius: 16,
+                    child: const Icon(
+                      Icons.person,
+                      color: Colors.blue,
+                      semanticLabel: 'Icono conductor',
+                    ),
+                  ),
+                    SizedBox(width: isCompact ? 8 : 12),
+                    Expanded(
+                      child: FittedBox(
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(maxWidth: barWidth),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Tooltip(
-                                    message: 'Tiempo estimado',
-                                    child: Icon(
-                                      Icons.access_time,
-                                      color: Colors.blue,
-                                      size: isCompact ? 20 : 28,
-                                    ),
-                                  ),
-                                  SizedBox(width: isCompact ? 8 : 12),
-                                  Text.rich(
-                                    TextSpan(
-                                      children: [
-                                        if (hours > 0)
-                                          TextSpan(
-                                            text: '${hours}h ',
-                                            style: TextStyle(
-                                              fontSize: isCompact ? 14 : 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: fillColor,
-                                            ),
-                                          ),
-                                        TextSpan(
-                                          text: '${mins}min',
-                                          style: TextStyle(
-                                            fontSize: isCompact ? 14 : 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: fillColor,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: isCompact ? 4 : 6),
-                              SizedBox(
-                                height: busWidth + (isCompact ? 4 : 8),
-                                width: barWidth,
-                                child: Stack(
-                                  alignment: Alignment.centerLeft,
-                                  children: [
-                                    Positioned(
-                                      left: 0,
-                                      right: 0,
-                                      top: busWidth / 2 - (isCompact ? 3 : 5),
-                                      child: Container(
-                                        height: isCompact ? 6 : 10,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.withOpacity(0.3),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      left: 0,
-                                      width: progress * barWidth,
-                                      top: busWidth / 2 - (isCompact ? 3 : 5),
-                                      child: Container(
-                                        height: isCompact ? 6 : 10,
-                                        decoration: BoxDecoration(
-                                          color: fillColor,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      left: left,
-                                      top: 0,
-                                      child: Image.asset(
-                                        'assets/images/autobus-unscreen.gif',
-                                        width: busWidth,
-                                        height: busWidth * 0.6,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(height: isCompact ? 2 : 4),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    'Llegada: ${fmtH(eta)} – ${fmtH(etaEnd)}',
-                                    style: TextStyle(
-                                      fontSize: isCompact ? 10 : 12,
-                                      fontStyle: FontStyle.italic,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ] else ...[
-                      // Cuando no hay distancia ni tiempo disponible
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          return FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(maxWidth: constraints.maxWidth),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildUserInfoRow(
-                                    Icons.access_time,
-                                    'Tiempo estimado',
-                                    'No disponible',
-                                    isCompact,
-                                    Colors.redAccent,
-                                  ),
-                                  SizedBox(height: isCompact ? 8 : 12),
-                                  _buildUserInfoRow(
-                                    Icons.social_distance,
-                                    'Distancia estimada',
-                                    'No disponible',
-                                    isCompact,
-                                    Colors.redAccent,
-                                  ),
-                                ],
-                              ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${user.name} ${user.surnames}',
+                              style: nameStyle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          );
-                        },
-                      ),
-                    ],
-                    SizedBox(height: isCompact ? 8 : 12),
-
-                    // Mapa con color de ruta
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: MapComponent(
-                          isDriver: true,
-                          routeColor: fillColor,
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.security,
+                                  size: nameStyle.fontSize != null ? nameStyle.fontSize! * 0.7 : 12,
+                                  color: Colors.green.shade300,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Usuario verificado',
+                                  style: TextStyle(
+                                    fontSize: nameStyle.fontSize != null ? nameStyle.fontSize! * 0.7 : 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.green.shade300,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ),
-
-                    SizedBox(height: isCompact ? 12 : 20),
+                    SizedBox(width: isCompact ? 8 : 16),
+                    callButton,
                   ],
                 );
-              },
-            ),
-
-            // Botones de acción para usuario en camino
-            _buildActionButtons(
-              context,
-              user,
-              true, // isBeingPicked = true
-              isCompact,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-
-  Widget _buildUserInfoRow(
-    IconData icon,
-    String label,
-    String value,
-    bool isCompact,
-    Color iconColor
-  ) {
-    const textStyleValue = TextStyle(
-      color: Colors.black54,
-    );
-
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: isCompact ? 4 : 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Tooltip(
-            message: label,
-            child: Icon(icon, size: isCompact ? 20 : 28, color: iconColor),
+            },
           ),
-          SizedBox(width: isCompact ? 8 : 12),
-          Expanded(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Text(
-                  value,
-                  style: textStyleValue,
-                  softWrap: false,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
+
+          SizedBox(height: isCompact ? 12 : 16),
+          Divider(color: Colors.grey.shade300, thickness: 1),
+          SizedBox(height: isCompact ? 12 : 16),
+
+          // --- Badge circular “Parada” centrado ---
+          Align(
+            alignment: Alignment.center,
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: isCompact ? 12 : 16,
+                vertical: isCompact ? 6 : 10,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.cyan.shade700,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.person_pin_circle,
+                      size: isCompact ? 18 : 22,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 4),
+                    Text('Parada ${user.numPick}', style: badgeStyle),
+                  ],
                 ),
               ),
             ),
           ),
+
+          SizedBox(height: isCompact ? 14 : 20),
+
+          // --- Dirección ---
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.location_on,
+                size: isCompact ? 18 : 22,
+                color: Colors.blue.shade700,
+              ),
+              SizedBox(width: isCompact ? 6 : 8),
+              Text('Dirección:', style: labelStyle),
+              SizedBox(width: isCompact ? 6 : 10),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    Utils().formatAddress(user.address),
+                    style: valueStyle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: isCompact ? 16 : 20),
+
+          if (user.distanceInKm != 0.0) ...[
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 450;
+                final content = [
+                  Row(
+                    children: [
+                      Icon(Icons.access_time, size: isCompact ? 18 : 22, color: Colors.blue),
+                      SizedBox(width: isCompact ? 6 : 8),
+                      Text('Tiempo estimado:', style: labelStyle),
+                      SizedBox(width: isCompact ? 6 : 10),
+                      Text(
+                        (hours > 0) ? '${hours}h ${mins}m' : '${mins}m',
+                        style: valueStyle,
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Icon(Icons.map, size: isCompact ? 18 : 22, color: Colors.blue),
+                      SizedBox(width: isCompact ? 6 : 8),
+                      Text('Distancia:', style: labelStyle),
+                      SizedBox(width: isCompact ? 6 : 10),
+                      Text(
+                        '${user.distanceInKm.toStringAsFixed(1)} km',
+                        style: valueStyle,
+                      ),
+                    ],
+                  ),
+                ];
+
+                return isNarrow
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          content[0],
+                          SizedBox(height: isCompact ? 16 : 20),
+                          content[1],
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          ...content[0].children,
+                          const Spacer(),
+                          ...content[1].children,
+                          
+                        ],
+                      );
+              },
+            ),
+          ],
+
+          SizedBox(height: isCompact ? 12 : 16),
+
+          // --- Botones de acción ---
+          _buildActionButtons(context, user, false, isCompact),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
+
+
+Widget _buildPickedUserCard(
+  BuildContext context,
+  RouteUser user,
+  bool isCompact,
+) {
+  final hours = user.distanceInMinutes ~/ 60;
+  final mins = user.distanceInMinutes % 60;
+
+  final Color fillColor = user.distanceInMinutes <= 5
+      ? Colors.green.shade700
+      : user.distanceInMinutes <= 10
+          ? Colors.orange.shade700
+          : Colors.red.shade700;
+
+  final now = DateTime.now();
+  final eta = now.add(Duration(minutes: user.distanceInMinutes));
+  final etaEnd = eta.add(const Duration(minutes: 5));
+
+  String fmtH(DateTime t) =>
+      '${t.hour.toString().padLeft(2, "0")}:${t.minute.toString().padLeft(2, "0")}';
+
+  final double horizontalPadding = isCompact ? 12 : 20;
+  final double verticalPadding = isCompact ? 10 : 16;
+
+  final TextStyle nameStyle = TextStyle(
+    fontSize: isCompact ? 18 : 22,
+    fontWeight: FontWeight.w600,
+    color: Colors.black87,
+  );
+  final TextStyle labelStyle = TextStyle(
+    fontSize: isCompact ? 14 : 16,
+    fontWeight: FontWeight.bold,
+    color: Colors.black87,
+  );
+  final TextStyle valueStyle = TextStyle(
+    fontSize: isCompact ? 14 : 16,
+    fontWeight: FontWeight.w400,
+    color: Colors.black54,
+  );
+  final TextStyle badgeStyle = TextStyle(
+    fontSize: isCompact ? 14 : 18,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
+  );
+
+  return Center(
+    child: Container(
+      margin: EdgeInsets.symmetric(
+        vertical: isCompact ? 8 : 12,
+        horizontal: isCompact ? 16 : 24,
+      ),
+      padding: EdgeInsets.symmetric(
+        vertical: verticalPadding,
+        horizontal: horizontalPadding,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 6,
+            spreadRadius: 2,
+            offset: Offset(2, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+        LayoutBuilder(
+            builder: (context, constraints) {
+              final callButton = Tooltip(
+                message: 'Llamar al usuario',
+                child: IconButton(
+                  icon: Icon(
+                    Icons.call,
+                    size: isCompact ? 20 : 24,
+                    color: Colors.green,
+                  ),
+                  onPressed: () async {
+                    await _callNumber(user.phoneNumber);
+                  },
+                ),
+              );
+
+              return Row(
+                children: [
+                  CircleAvatar(
+                  backgroundColor: Colors.blue.withOpacity(0.1),
+                  radius: 16,
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.blue,
+                    semanticLabel: 'Icono conductor',
+                  ),
+                ),
+                  SizedBox(width: isCompact ? 8 : 12),
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${user.name} ${user.surnames}',
+                            style: nameStyle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.security,
+                                size: nameStyle.fontSize != null ? nameStyle.fontSize! * 0.7 : 12,
+                                color: Colors.green.shade300,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Usuario verificado',
+                                style: TextStyle(
+                                  fontSize: nameStyle.fontSize != null ? nameStyle.fontSize! * 0.7 : 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.green.shade300,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: isCompact ? 8 : 16),
+                  callButton,
+                ],
+              );
+            },
+          ),
+
+          SizedBox(height: isCompact ? 12 : 16),
+          Divider(color: Colors.grey.shade300, thickness: 1),
+          SizedBox(height: isCompact ? 12 : 16),
+
+          // Badge parada
+         Align(
+          alignment: Alignment.center,
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: isCompact ? 12 : 16,
+              vertical: isCompact ? 6 : 10,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.cyan.shade700,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min, // 👈 ¡Esto es clave!
+              children: [
+                Icon(Icons.person_pin_circle, size: isCompact ? 18 : 22, color: Colors.white),
+                const SizedBox(width: 4),
+                Text('Parada ${user.numPick}', style: badgeStyle),
+              ],
+            ),
+          ),
+        ),
+
+          SizedBox(height: isCompact ? 14 : 20),
+
+          // Dirección
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.location_on, size: isCompact ? 18 : 22, color: Colors.blue),
+              SizedBox(width: isCompact ? 6 : 8),
+              Text('Dirección:', style: labelStyle),
+              SizedBox(width: isCompact ? 6 : 10),
+              Expanded(
+                child: Text(
+                  Utils().formatAddress(user.address),
+                  style: valueStyle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isCompact ? 16 : 20),
+
+          // Tiempo y distancia o mensaje de no disponible
+          if (user.distanceInKm != 0.0) ...[
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 450;
+                final content = [
+                  Row(
+                    children: [
+                      Icon(Icons.access_time, size: isCompact ? 18 : 22, color: Colors.blue),
+                      SizedBox(width: isCompact ? 6 : 8),
+                      Text('Tiempo estimado:', style: labelStyle),
+                      SizedBox(width: isCompact ? 6 : 10),
+                      Text(
+                        (hours > 0) ? '${hours}h ${mins}m' : '${mins}m',
+                        style: TextStyle(
+                          fontSize: isCompact ? 14 : 16,
+                          fontWeight: FontWeight.bold,
+                          color: fillColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Icon(Icons.map, size: isCompact ? 18 : 22, color: Colors.blue),
+                      SizedBox(width: isCompact ? 6 : 8),
+                      Text('Distancia:', style: labelStyle),
+                      SizedBox(width: isCompact ? 6 : 10),
+                      Text(
+                        '${user.distanceInKm.toStringAsFixed(1)} km',
+                        style: TextStyle(
+                          fontSize: isCompact ? 14 : 16,
+                          fontWeight: FontWeight.bold,
+                          color: fillColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ];
+               return isNarrow
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      content[0],
+                      SizedBox(height: isCompact ? 16 : 20),  // <-- espacio entre las filas
+                      content[1],
+                    ],
+                  )
+                : Row(
+                    children: [
+                      ...content[0].children,
+                      const Spacer(),
+                      ...content[1].children,
+                    ],
+                  );
+
+              },
+            ),
+            SizedBox(height: isCompact ? 12 : 16),
+
+            // Barra de progreso con ícono de bus
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final barWidth = constraints.maxWidth;
+                final progress = ((15 - user.distanceInMinutes) / 15).clamp(0.0, 1.0);
+                final busSize = isCompact ? 28.0 : 48.0;
+                final left = progress * (barWidth - busSize);
+
+                return SizedBox(
+                  height: busSize + (isCompact ? 4 : 8),
+                  child: Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: busSize / 2 - (isCompact ? 3 : 5),
+                        child: Container(
+                          height: isCompact ? 6 : 10,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 0,
+                        width: progress * barWidth,
+                        top: busSize / 2 - (isCompact ? 3 : 5),
+                        child: Container(
+                          height: isCompact ? 6 : 10,
+                          decoration: BoxDecoration(
+                            color: fillColor.withOpacity(0.85),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: left,
+                        top: 0,
+                        child: Icon(
+                          Icons.directions_bus,
+                          size: busSize * 0.6,
+                          color: fillColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            SizedBox(height: isCompact ? 12 : 16),
+
+            // Hora estimada de llegada
+            Align(
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.schedule, size: isCompact ? 16 : 18, color: Colors.black54),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Llegada: ${fmtH(eta)} – ${fmtH(etaEnd)}',
+                    style: TextStyle(
+                      fontSize: isCompact ? 12 : 14,
+                      fontStyle: FontStyle.italic,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: isCompact ? 16 : 20),
+          ] else ...[
+            Text(
+              'Tiempo estimado: No disponible',
+              style: TextStyle(
+                fontSize: isCompact ? 14 : 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.red.shade400,
+              ),
+            ),
+            SizedBox(height: isCompact ? 8 : 12),
+            Text(
+              'Distancia: No disponible',
+              style: TextStyle(
+                fontSize: isCompact ? 14 : 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.red.shade400,
+              ),
+            ),
+            SizedBox(height: isCompact ? 16 : 20),
+          ],
+
+          // Mapa
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: double.infinity,
+              height: isCompact ? 160 : 240,
+              child: MapComponent(
+                isDriver: true,
+                routeColor: fillColor,
+              ),
+            ),
+          ),
+          SizedBox(height: isCompact ? 16 : 24),
+
+          // Botones de acción
+          _buildActionButtons(context, user, true, isCompact),
+        ],
+      ),
+    ),
+  );
+}
+
+
+
 
   Widget _buildActionButtons(
   BuildContext context,

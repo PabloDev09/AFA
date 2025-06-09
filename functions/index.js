@@ -181,27 +181,34 @@ export const borrarRutasAntiguas = onSchedule(
       await batch.commit();
       console.log(`Deleted ${snap.size} old rutas`);
     }
+  }
+);
 
-    const snapDriver = await db.collection('ruta_conductor')
+export const borrarRutasConductorAntiguas = onSchedule(
+  { region: 'europe-west1', schedule: '0 0 * * *', timeZone: 'Europe/Madrid' },
+  async () => {
+    const hoyTs = Timestamp.now();
+    
+    const snap = await db.collection('ruta_conductor')
                          .where('createdAt', '<', hoyTs)
                          .get();
 
-    if (!snapDriver.empty) {
-      const batch = snapDriver.batch();
-      snapDriver.docs.forEach(d => batch.delete(d.ref));
+    if (!snap.empty) {
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
       await batch.commit();
-      console.log(`Deleted ${snapDriver.size} old rutas conductor`);
+      console.log(`Deleted ${snap.size} old rutas`);
     }
   }
 );
 
-export const borrarCancelacionRutasAntiguas = onSchedule(
+export const borrarRutasCanceladasAntiguas = onSchedule(
   { region: 'europe-west1', schedule: '0 0 * * *', timeZone: 'Europe/Madrid' },
   async () => {
 
     const hoyTs = Timestamp.now();
 
-    const snap = await db.collection('rutacancelada')
+    const snap = await db.collection('ruta_cancelada')
                          .where('cancelDate', '<', hoyTs)
                          .get();
 

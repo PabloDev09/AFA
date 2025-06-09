@@ -144,8 +144,8 @@ Widget _buildUserCard(BuildContext context, User user) {
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   child: SizedBox(
-                    width: 350,
-                    height: 330,
+                    width: 700,
+                    height: 630,
                     child: _buildUserContainer(context, user, fontSize),
                   ),
                 ),
@@ -165,30 +165,53 @@ Widget _buildUserContainer(BuildContext context, User user, double fontSize) {
       decoration: const BoxDecoration(
         color: Colors.white,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: _buildUserContent(context, user, fontSize),
-      ),
+      child: _buildUserContent(context, user, fontSize),
     ),
   );
 }
 
 Widget _buildUserContent(BuildContext context, User user, double fontSize) {
-  Map<IconData, Color> iconColors = {
-    Icons.person: Colors.blue.shade300,
-    Icons.email: Colors.green.shade300,
-    Icons.phone: Colors.orange.shade300,
-    Icons.location_on: Colors.red.shade300,
-  };
-
   return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      // Cabecera con fondo degradado y avatar
+      Container(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF2196F3), Color(0xFF063970)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(12),
+            topRight: Radius.circular(12),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Avatar redondeado
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.3),
+              ),
+              child: Icon(
+                Icons.person,
+                size: 40,
+                color: Colors.white.withOpacity(0.9),
+              ),
+            ),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,197 +221,249 @@ Widget _buildUserContent(BuildContext context, User user, double fontSize) {
                     style: TextStyle(
                       fontSize: fontSize,
                       fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Tooltip(
-                    message: 'Rol',
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.security,
-                          size: fontSize * 0.6,
-                          color: Colors.purple.shade800,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          user.rol,
-                          style: TextStyle(
-                            fontSize: fontSize * 0.6,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.purple.shade800,
-                          ),
+                      color: Colors.white,
+                      shadows: const [
+                        Shadow(
+                          color: Colors.black38,
+                          offset: Offset(0, 2),
+                          blurRadius: 4,
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.security,
+                        size: fontSize * 0.7,
+                        color: Colors.green.shade300,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        user.rol,
+                        style: TextStyle(
+                          fontSize: fontSize * 0.7,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green.shade300,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            if(user.rol == 'Usuario')...[
-              const SizedBox(width: 8),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [ 
-                  Tooltip(
-                    message: 'Ruta',
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.alt_route,
-                          size: fontSize * 0.8,
-                          color: Colors.indigo.shade700,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          user.numRoute == 0 ? 'Sin asignar' : '${user.numRoute}',
-                          style: TextStyle(
-                            fontSize: user.numRoute == 0 ? fontSize * 0.65: fontSize * 0.8,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.indigo.shade700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Tooltip(
-                    message: 'Parada',
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.location_on,
-                          size: fontSize * 0.8,
-                          color: Colors.cyan.shade800,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          user.numPick == 0 ? 'Sin asignar' : '${user.numPick}',
-                          style: TextStyle(
-                            fontSize: user.numPick == 0 ? fontSize * 0.65 : fontSize * 0.8,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.cyan.shade800,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            // Icono de edición rápida
+            IconButton(
+              icon: Icon(Icons.edit, color: Colors.white, size: fontSize * 0.9),
+              tooltip: 'Editar perfil',
+              onPressed: () => _editUser(context, user),
             ),
-            ]
           ],
         ),
       ),
-      const Divider(),
-      SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 5.0),
-        child: Column(
+
+      // Espacio entre cabecera y cuerpo
+      const SizedBox(height: 12),
+
+      if(user.rol == 'Usuario')
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
           children: [
-            _buildUserInfoRow(Icons.person,'Usuario', user.username, fontSize, iconColors),
-            _buildUserInfoRow(Icons.email,'Correo', user.mail, fontSize, iconColors),
-            _buildUserInfoRow(Icons.phone,'Teléfono', user.phoneNumber, fontSize, iconColors),
-            _buildUserInfoRow(Icons.location_on,'Dirección', Utils().formatAddress(user.address), fontSize, iconColors),
+            Expanded(
+              child: _infoBadge(
+                icon: Icons.alt_route,
+                iconBgColor: Colors.indigo.shade600,
+                label: user.numRoute == 0 ? 'Sin ruta' : 'Ruta ${user.numRoute}',
+                fontSize: fontSize * 0.75,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _infoBadge(
+                icon: Icons.person_pin_circle,
+                iconBgColor: Colors.cyan.shade600,
+                label: user.numPick == 0 ? 'Sin parada' : 'Parada ${user.numPick}',
+                fontSize: fontSize * 0.75,
+              ),
+            ),
           ],
         ),
       ),
+
+      const SizedBox(height: 16),
+
+      // Lista de información (아이콘 + texto) dentro de un Card ligero
+      Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            children: [
+              _buildUserInfoTile(
+                icon: Icons.person,
+                label: 'Usuario',
+                value: user.username,
+                fontSize: fontSize,
+              ),
+              _buildUserInfoTile(
+                icon: Icons.email,
+                label: 'Correo',
+                value: user.mail,
+                fontSize: fontSize,
+              ),
+              _buildUserInfoTile(
+                icon: Icons.phone,
+                label: 'Teléfono',
+                value: user.phoneNumber,
+                fontSize: fontSize,
+              ),
+              _buildUserInfoTile(
+                icon: Icons.location_on,
+                label: 'Dirección',
+                value: Utils().formatAddress(user.address),
+                fontSize: fontSize,
+              ),
+            ],
+          ),
+        ),
+      ),
+
       const Spacer(),
-      const SizedBox(height: 4),
-      _buildActionButtons(context, user),
+
+      // Botones de acción en fila con degradado inverso
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF063970), Color(0xFF2196F3)],
+              begin: Alignment.topRight,
+              end: Alignment.bottomLeft,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 6,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildIconButton(Icons.password, 'Cambiar contraseña', fontSize * 1.1, () {
+                _changePassword(context, user);
+              }),
+            ],
+          ),
+        ),
+      ),
     ],
   );
 }
 
-  /// Fila de información para cada dato (usuario, email, etc.).
-  Widget _buildUserInfoRow(
-    IconData icon,
-    String label,
-    String value,
-    double fontSize,
-    Map<IconData, Color> iconColors,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Tooltip(
-              message: label,
-              child: Icon(
-                icon,
-                size: fontSize * 1.2, 
-                color: iconColors[icon],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: fontSize * 0.8,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-          ],
+/// Badge rectangular con icono a la izquierda y texto a la derecha
+Widget _infoBadge({
+  required IconData icon,
+  required Color iconBgColor,
+  required String label,
+  required double fontSize,
+}) {
+  return Container(
+    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+    decoration: BoxDecoration(
+      color: iconBgColor,
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: iconBgColor.withOpacity(0.4),
+          blurRadius: 4,
+          offset: const Offset(0, 2),
         ),
-      ),
-    );
-  }
-
-Widget _buildActionButtons(BuildContext context, User user) {
-  return LayoutBuilder(
-    builder: (context, constraints) {
-      double iconSize = constraints.maxWidth * 0.15;
-      iconSize = iconSize.clamp(20, 30);
-
-      return Container(
-        width: double.infinity,
-        alignment: Alignment.bottomCenter,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF063970), Color(0xFF2196F3)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      ],
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: fontSize * 1.2, color: Colors.white),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
-          borderRadius: BorderRadius.circular(8),
         ),
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildIconButton(Icons.edit, 'Editar', iconSize, () {
-              _editUser(context, user);
-            }),
-            _buildIconButton(Icons.password, 'Cambiar contraseña', iconSize, () {
-              _changePassword(context, user);
-            }),
-          ],
-        ),
-      );
-    },
+      ],
+    ),
   );
 }
 
-Widget _buildIconButton(IconData icon, String tooltip, double size, VoidCallback onPressed) {
-  return IconButton(
-    icon: Icon(icon, color: Colors.white, size: size),
-    tooltip: tooltip,
-    onPressed: onPressed,
+/// ListTile personalizado para cada fila de información
+Widget _buildUserInfoTile({
+  required IconData icon,
+  required String label,
+  required String value,
+  required double fontSize,
+}) {
+  return ListTile(
+    dense: true,
+    leading: Container(
+      width: fontSize * 1.6,
+      height: fontSize * 1.6,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.blue.shade50,
+      ),
+      child: Icon(icon, color: Colors.blue.shade400, size: fontSize * 1.0),
+    ),
+    title: Text(
+      label,
+      style: TextStyle(
+        fontSize: fontSize * 0.85,
+        fontWeight: FontWeight.bold,
+        color: Colors.grey.shade800,
+      ),
+    ),
+    subtitle: Text(
+      value,
+      style: TextStyle(
+        fontSize: fontSize * 0.75,
+        color: Colors.black87,
+      ),
+      overflow: TextOverflow.ellipsis,
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
   );
 }
+
+/// IconButton estilizado para la zona de acciones
+Widget _buildIconButton(IconData icon, String tooltip, double size, VoidCallback onPressed) {
+  return Tooltip(
+    message: tooltip,
+    child: Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(0.2),
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: Colors.white, size: size),
+        onPressed: onPressed,
+      ),
+    ),
+  );
+}
+
   
 void _changePassword(BuildContext context, User user) {
   String currentPass = '';

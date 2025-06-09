@@ -39,8 +39,10 @@ class UserRouteProvider extends ChangeNotifier {
   Timer? _conditionTimer;
 
   Future<void> startListening() async {
+    isRouteActive = true;
+    _notificationProvider.addNotification("La ruta ha comenzado.", false, false);
     _conditionTimer?.cancel();
-    _conditionTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+    _conditionTimer = Timer.periodic(const Duration(seconds: 45), (timer) async {
       isUpdating = true;
       notifyListeners();
 
@@ -68,7 +70,7 @@ class UserRouteProvider extends ChangeNotifier {
       isRouteActive = auxIsRouteActive;
 
       // 3) Recargamos datos de usuario y conductor
-      await _getUserAndDriver(routeUser.username);
+      await getUserAndDriver(routeUser.username);
 
       // 4) Notificamos cambios de problema
       if (hasProblem != auxHasProblem) {
@@ -130,7 +132,7 @@ class UserRouteProvider extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
     try {
-      await _getUserAndDriver(username);
+      await getUserAndDriver(username);
       isRouteActive = true;
       await startListening();
       _notificationProvider.addNotification("La ruta está activa.", false, false);
@@ -156,7 +158,7 @@ class UserRouteProvider extends ChangeNotifier {
     if (username == null) return;
     isUpdating = true;
     notifyListeners();
-    await _getUserAndDriver(username);
+    await getUserAndDriver(username);
     isUpdating = false;
     notifyListeners();
   }
@@ -191,13 +193,13 @@ class UserRouteProvider extends ChangeNotifier {
 
   Future<void> cancelCurrentPickup() async {
     await _routeService.cancelCurrentPickup(routeUser.username, routeUser.numRoute);
-    await _getUserAndDriver(routeUser.username);
+    await getUserAndDriver(routeUser.username);
     _notificationProvider.addNotification("La recogida de hoy ha sido cancelada.", false, false);
   }
 
   Future<void> removeCancelCurrentPickup() async {
     await _routeService.removeCancelCurrentPickup(routeUser.username, routeUser.numRoute);
-    await _getUserAndDriver(routeUser.username);
+    await getUserAndDriver(routeUser.username);
     _notificationProvider.addNotification("La recogida de hoy ha sido reanudada.", false, false);
   }
 
@@ -258,17 +260,40 @@ class UserRouteProvider extends ChangeNotifier {
     return const LatLng(0, 0); 
   }
 
-  Future<void> _getUserAndDriver(String username) async {
+  Future<void> getUserAndDriver(String username) async {
     // Leemos usuario
     final user = await _routeService.getRouteUser(username);
+    await getCancelDates(username);
     if (user != null) {
       routeUser = user;
+    }
+    else {
+      clearRoutes();
+      _notificationProvider.addNotification(
+        "La ruta ha finalizado.",
+        false,
+        false
+      );
+      notifyListeners();
+      return;
     }
     // Leemos conductor correspondiente a su numRoute
     final driver = await _driverRouteService.getDriverByNumRoute(routeUser.numRoute);
     if (driver != null) {
       routeDriver = driver;
     }
+    else
+    {
+      clearRoutes();
+      _notificationProvider.addNotification(
+        "La ruta ha finalizado.",
+        false,
+        false
+      );
+      notifyListeners();
+      return;
+    }
+    
     notifyListeners();
   }
 

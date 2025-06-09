@@ -163,14 +163,6 @@ class ActiveUserComponent extends StatelessWidget {
   /// Muestra la información del usuario activo, incluyendo su rol.
   /// Se ha modificado para que los botones de acción queden siempre en la parte inferior.
 Widget _buildUserContent(BuildContext context, User user, double fontSize) {
-  Map<IconData, Color> iconColors = {
-    Icons.person: Colors.blue.shade300,
-    Icons.email: Colors.green.shade300,
-    Icons.phone: Colors.orange.shade300,
-    Icons.location_on: Colors.red.shade300,
-    // Rol eliminado de aquí
-  };
-
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -201,7 +193,7 @@ Widget _buildUserContent(BuildContext context, User user, double fontSize) {
                       Icon(
                         Icons.security,
                         size: fontSize * 0.6,
-                        color: Colors.purple.shade800,
+                        color: Colors.green.shade300,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -209,7 +201,7 @@ Widget _buildUserContent(BuildContext context, User user, double fontSize) {
                         style: TextStyle(
                           fontSize: fontSize * 0.6,
                           fontWeight: FontWeight.w600,
-                          color: Colors.purple.shade800,
+                        color: Colors.green.shade300,
                         ),
                       ),
                     ],
@@ -254,7 +246,7 @@ Widget _buildUserContent(BuildContext context, User user, double fontSize) {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.location_on,
+                            Icons.person_pin_circle,
                             size: fontSize * 0.8,
                             color: Colors.cyan.shade800,
                           ),
@@ -286,10 +278,10 @@ Widget _buildUserContent(BuildContext context, User user, double fontSize) {
           padding: const EdgeInsets.symmetric(horizontal: 5.0),
           child: Column(
             children: [
-              _buildUserInfoRow(Icons.person,'Usuario', user.username, fontSize, iconColors),
-              _buildUserInfoRow(Icons.email,'Correo', user.mail, fontSize, iconColors),
-              _buildUserInfoRow(Icons.phone,'Teléfono', user.phoneNumber, fontSize, iconColors),
-              _buildUserInfoRow(Icons.location_on,'Dirección', Utils().formatAddress(user.address), fontSize, iconColors),
+              _buildUserInfoRow(Icons.person,'Usuario', user.username, fontSize),
+              _buildUserInfoRow(Icons.email,'Correo', user.mail, fontSize),
+              _buildUserInfoRow(Icons.phone,'Teléfono', user.phoneNumber, fontSize),
+              _buildUserInfoRow(Icons.location_on,'Dirección', Utils().formatAddress(user.address), fontSize),
             ],
           ),
         ),
@@ -308,7 +300,6 @@ Widget _buildUserInfoRow(
   String label,
   String value,
   double fontSize,
-  Map<IconData, Color> iconColors,
 ) {
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
@@ -323,7 +314,7 @@ Widget _buildUserInfoRow(
             child: Icon(
               icon,
               size: fontSize * 1.2, 
-              color: iconColors[icon],
+              color: Colors.blue.shade500,
             ),
           ),
           const SizedBox(width: 8),

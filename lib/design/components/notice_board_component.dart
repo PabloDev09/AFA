@@ -210,7 +210,7 @@ class _NoticeBoardComponentState extends State<NoticeBoardComponent> {
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF063970), Color(0xFF66B3FF)],
+                colors: [Color(0xFF063970),Color(0xFF2196F3),],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),

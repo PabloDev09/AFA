@@ -154,13 +154,6 @@ Widget build(BuildContext context) {
   }
 
   Widget _buildUserContent(BuildContext context, User user, double fontSize) {
-    Map<IconData, Color> iconColors = {
-      Icons.person: Colors.blue.shade300,
-      Icons.email: Colors.green.shade300,
-      Icons.phone: Colors.orange.shade300,
-      Icons.location_on: Colors.red.shade300,
-    };
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -187,10 +180,10 @@ Widget build(BuildContext context) {
             padding: const EdgeInsets.symmetric(horizontal: 5.0),
             child: Column(
               children: [
-              _buildUserInfoRow(Icons.person,'Usuario', user.username, fontSize, iconColors),
-              _buildUserInfoRow(Icons.email,'Correo', user.mail, fontSize, iconColors),
-              _buildUserInfoRow(Icons.phone,'Teléfono', user.phoneNumber, fontSize, iconColors),
-              _buildUserInfoRow(Icons.location_on,'Dirección', Utils().formatAddress(user.address), fontSize, iconColors),
+              _buildUserInfoRow(Icons.person,'Usuario', user.username, fontSize),
+              _buildUserInfoRow(Icons.email,'Correo', user.mail, fontSize),
+              _buildUserInfoRow(Icons.phone,'Teléfono', user.phoneNumber, fontSize),
+              _buildUserInfoRow(Icons.location_on,'Dirección', Utils().formatAddress(user.address), fontSize),
               ],
             ),
           ),
@@ -205,8 +198,7 @@ Widget build(BuildContext context) {
     IconData icon,
     String label,
     String value,
-    double fontSize,
-    Map<IconData, Color> iconColors,
+    double fontSize
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -221,7 +213,7 @@ Widget build(BuildContext context) {
               child: Icon(
                 icon,
                 size: fontSize * 1.2, 
-                color: iconColors[icon],
+                color: Colors.blue.shade500,
               ),
             ),
             const SizedBox(width: 8),

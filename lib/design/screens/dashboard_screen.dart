@@ -359,7 +359,7 @@ void _showCreateRouteDialog() {
       title: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF063970), Color(0xFF2196F3)],
+            colors: [Color(0xFF2E7D32), Color(0xFF66BB6A),],          
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -411,7 +411,7 @@ void _showCreateRouteDialog() {
               child: Container(
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF063970), Color(0xFF2196F3)],
+                    colors: [Color(0xFF2E7D32), Color(0xFF66BB6A),],          
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -610,13 +610,29 @@ Widget buildActionButton({
   final double iconSize = showText ? 24 : 18;
 
   // ✅ Gradiente condicional según el texto
-  final Gradient buttonGradient = (label.toLowerCase() == 'eliminar ruta')
-      ? const LinearGradient(
-          colors: [Color(0xFFB71C1C), Color(0xFFE53935)],
-        )
-      : const LinearGradient(
-          colors: [Colors.blueAccent, Colors.lightBlue],
+  final Gradient buttonGradient;
+
+        if(label.toLowerCase() == 'crear ruta')
+        {
+          buttonGradient =
+           const LinearGradient(
+            colors: [Color(0xFF2E7D32), Color(0xFF66BB6A),],                  
+            );
+        }
+        else if(label.toLowerCase() == 'eliminar ruta')
+        {
+          buttonGradient =
+          const LinearGradient(
+          colors: [Colors.green, Colors.lightGreen],
         );
+        }
+        else
+        {
+          buttonGradient =
+          const LinearGradient(
+          colors: [Color(0xFFB71C1C), Color(0xFFE53935)],
+        );
+        }
 
   final Widget content = showText
       ? Row(
@@ -782,13 +798,6 @@ Widget buildActionButton({
             if (_showActiveUsers)
               buildActionButton(
                 context: context,
-                icon: Icons.delete,
-                label: 'Eliminar Ruta',
-                onTap: _showDeleteRouteDialog,
-              ),
-            if (_showActiveUsers)
-              buildActionButton(
-                context: context,
                 icon: Icons.add,
                 label: 'Crear Ruta',
                 onTap: _showCreateRouteDialog,
@@ -799,6 +808,13 @@ Widget buildActionButton({
                 icon: Icons.alt_route,
                 label: 'Asignar Ruta',
                 onTap: _showAssignRouteDialog,
+              ),
+            if (_showActiveUsers)
+              buildActionButton(
+                context: context,
+                icon: Icons.delete,
+                label: 'Eliminar Ruta',
+                onTap: _showDeleteRouteDialog,
               ),
             IconButton(
               icon: const Icon(Icons.feed, color: Colors.white),

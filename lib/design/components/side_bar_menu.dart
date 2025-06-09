@@ -76,25 +76,72 @@ class _SidebarMenuState extends State<SidebarMenu> {
   }
 
   Widget _buildUserProfile() {
+      const TextStyle nameStyle = TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: Colors.black87,
+      );
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+         Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.person, color: Colors.blue, size: 30),
-              const SizedBox(width: 10),
+              CircleAvatar(
+                backgroundColor: Colors.blue.withOpacity(0.1),
+                radius: 16,
+                child: const Icon(
+                  Icons.person,
+                  color: Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 6),
               Flexible(
-                child: Text(
-                  '${Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.name} ${Utils().getSurnameInitials(Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.surnames)}',
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                fit: FlexFit.loose,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.name} '
+                        '${Utils().getSurnameInitials(Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.surnames)}',
+                        style: nameStyle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.security,
+                            size: nameStyle.fontSize != null ? nameStyle.fontSize! * 0.7 : 12,
+                            color: Colors.green.shade300,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.rol} verificado',
+                            style: TextStyle(
+                              fontSize: nameStyle.fontSize != null ? nameStyle.fontSize! * 0.7 : 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green.shade300,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
+        ),
+
           const SizedBox(height: 16),
           MouseRegion(
             cursor: SystemMouseCursors.click,
@@ -117,7 +164,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
                   
                   // Primero cerramos el drawer
                   Navigator.of(context).pop();
-
+    
                   // Después navegamos en la siguiente frame para evitar usar contexto desactivado
                   Future.microtask(() {
                     if (mounted) {

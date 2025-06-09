@@ -42,6 +42,7 @@ class DriverRouteProvider extends ChangeNotifier {
       driverLocation = LatLng(pos.latitude, pos.longitude);
       notifyListeners();
     } catch (e) {
+      debugPrint("Error al obtener la ubicación del conductor: $e");
       _notificationProvider.addNotification(
         "Error al obtener la ubicación del conductor.",
         true,
@@ -101,8 +102,24 @@ class DriverRouteProvider extends ChangeNotifier {
       if (created) {
         await _updateRouteDriver(username);
         await _getAllUsers(routeDriver.numRoute);
-        _notificationProvider.addNotification("Ruta iniciada.", false, false);
         await startListening();
+        if(pendingUsers.isEmpty) {
+          _notificationProvider.addNotification(
+            "No hay usuarios disponibles a recoger.",
+            true,
+            false
+          );
+          return;
+        }
+        else 
+        {
+          _notificationProvider.addNotification(
+            "Ruta iniciada.",
+            false,
+            false
+          );
+        }
+        _notificationProvider.addNotification("Ruta iniciada.", false, false);
       } else {
         _notificationProvider.addNotification(
           "Ya existe una ruta activa con ese número.",
@@ -121,7 +138,7 @@ class DriverRouteProvider extends ChangeNotifier {
     isLoading = true;
     if (driverLocation == null || routeDriver.username.isEmpty) {
       _notificationProvider.addNotification(
-        "No hay ruta para reanudar o ubicación no disponible.",
+        "No hay ruta para reanudar o la ubicación no está disponible.",
         true,
         false
       );
@@ -148,7 +165,8 @@ class DriverRouteProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final driver = await _driverRouteService.getDriverByUsername(username);
-      routeDriver = driver!;
+      if(driver == null) return false;
+      routeDriver = driver;
       return await _routeService.canContinueRoute(routeDriver.numRoute);
     } 
     finally 
@@ -160,7 +178,7 @@ class DriverRouteProvider extends ChangeNotifier {
 
   Future<void> stopRoute() async {
     await _routeService.deleteRoute(routeDriver.numRoute);
-    await _driverRouteService.removeDriverFromRoute(routeDriver.username);
+    await _driverRouteService.removeDriver(routeDriver.username);
     await _clearAllUsers();
     await stopListening();
     _notificationProvider.addNotification("Ruta finalizada.", false, false);
@@ -335,13 +353,6 @@ class DriverRouteProvider extends ChangeNotifier {
     final driver = await _driverRouteService.getDriverByUsername(username);
     if (driver != null) {
       routeDriver = driver;
-    } else {
-      routeDriver = Utils().routeDriverNull;
-      _notificationProvider.addNotification(
-        "No se pudo cargar la información del conductor.",
-        true,
-        false
-      );
     }
     notifyListeners();
   }

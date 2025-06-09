@@ -1236,11 +1236,14 @@ Future<void> _showRouteSelectionDialog(DriverRouteProvider routeProvider) async 
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (selectedRoute == null) return;
-                    Navigator.pop(context, true);
-                    routeProvider.startRoute(username, selectedRoute!);
-                    setState(() {}); 
+                  onPressed: () async{
+                  if (selectedRoute == null) return;
+
+                  await routeProvider.startRoute(username, selectedRoute!);
+                  if (!context.mounted) return;
+
+                  Navigator.pop(context, true);
+                  setState(() {});
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,

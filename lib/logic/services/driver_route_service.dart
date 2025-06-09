@@ -61,7 +61,6 @@ class DriverRouteService {
     if (await driverHasRoute(username, numRoute)) return ;
     User? user = await _userService.getUserByUsername(username);
     if (user == null) return ;
-    
     RouteDriver driver = RouteDriver(
       fcmToken: user.fcmToken,
       username: user.username,
@@ -75,6 +74,8 @@ class DriverRouteService {
       createdAt: Timestamp.now(),
     );
     await _collectionReferenceRoute.add(driver.toMap());
+    
+
   }
 
     Future<void> deleteDriver(String username) async 
@@ -102,9 +103,19 @@ final QuerySnapshot snap = await _collectionReferenceRoute
 }
 
 
-  Future<void> removeDriverFromRoute(String username) async {
+  Future<void> removeDriver(String username) async {
     QuerySnapshot snap = await _collectionReferenceRoute
         .where('username', isEqualTo: username)
+        .limit(1)
+        .get();
+    if (snap.docs.isNotEmpty) {
+      await snap.docs.first.reference.delete();
+    }
+  }
+
+    Future<void> removeDriverFromRoute(int numRoute) async {
+    QuerySnapshot snap = await _collectionReferenceRoute
+        .where('numRoute', isEqualTo: numRoute)
         .limit(1)
         .get();
     if (snap.docs.isNotEmpty) {

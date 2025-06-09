@@ -52,6 +52,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> with TickerProviderStat
     { 
       if(await userRouteProvider.canResumeRouteUser(username))
       {
+        await userRouteProvider.getUserAndDriver(username);
         await userRouteProvider.startListening();
       }
       await userRouteProvider.getCancelDates(username);
@@ -424,51 +425,6 @@ Future<void> _showSlidingNotification(
   });
 }
 
-
-  // Helper widget for each info item
-Widget _buildInfoItem({
-  required IconData icon,
-  required Color iconBgColor,
-  required Color iconShadowColor,
-  required String label,
-}) {
-  return Row(
-    children: [
-      Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: iconBgColor,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: iconShadowColor.withOpacity(0.8),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Icon(icon, size: 22, color: Colors.white),
-      ),
-      const SizedBox(width: 10),
-      Text(
-        label,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-          shadows: [
-            Shadow(
-              color: Colors.black38,
-              offset: Offset(0, 1),
-              blurRadius: 2,
-            ),
-          ],
-        ),
-      ),
-    ],
-  );
-}
-
  
   Widget _dayBuilder(BuildContext context, DateTime day, DateTime focusedDay) 
   {
@@ -565,51 +521,53 @@ Widget build(BuildContext context) {
 
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          'Información de ruta',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 21,
-                            letterSpacing: 1.1,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black45,
-                                offset: Offset(0, 2),
-                                blurRadius: 3,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.cyan.shade600,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.cyan.shade800.withOpacity(0.4),
+                                offset: const Offset(0, 2),
+                                blurRadius: 4,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.person_pin_circle,
+                                size: 22,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                Provider.of<AuthUserProvider>(context, listen: false)
+                                            .userFireStore!
+                                            .numPick ==
+                                        0
+                                    ? 'Parada sin asignar'
+                                    : 'Parada ${Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.numPick}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 15),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _buildInfoItem(
-                              icon: Icons.alt_route,
-                              iconBgColor: Colors.indigo.shade600,
-                              iconShadowColor: Colors.indigo.shade800,
-                              label: Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.numRoute == 0
-                                  ? 'Ruta sin asignar'
-                                  : 'Ruta ${Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.numRoute}',
-                            ),
-                            _buildInfoItem(
-                              icon: Icons.location_on,
-                              iconBgColor: Colors.cyan.shade600,
-                              iconShadowColor: Colors.cyan.shade800,
-                              label: Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.numPick == 0
-                                  ? 'Parada sin asignar'
-                                  : 'Parada ${Provider.of<AuthUserProvider>(context, listen: false).userFireStore!.numPick}',
-                            ),
-                          ],
-                        ),
                       ],
                     ),
                   ),
+
+
                 const SizedBox(height: 20),
                 Consumer<UserRouteProvider>(
                   builder: (context, routeProvider, child) {
@@ -923,7 +881,8 @@ Widget _buildCalendar(UserRouteProvider userRouteProvider) {
 
             // Botón Cancelar / Reanudar
             if (!(userRouteProvider.isRouteActive &&
-                  isSameDay(_selectedDay, DateTime.now())))
+                  isSameDay(_selectedDay, DateTime.now()) || _selectedDay.day < DateTime.now().day))
+                  ...[
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 switchInCurve: Curves.easeOutBack,
@@ -983,6 +942,10 @@ Widget _buildCalendar(UserRouteProvider userRouteProvider) {
                   },
                 ),
               ),
+                  ]
+            else ...[
+              const SizedBox(height: 30,),
+            ],
 
             // — Botón “Actualizar Ruta” (solo si hay ruta activa) —
             if (userRouteProvider.isRouteActive && isSameDay(_selectedDay, DateTime.now())) ...[
