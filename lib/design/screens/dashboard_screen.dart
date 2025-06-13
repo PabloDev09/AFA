@@ -623,14 +623,14 @@ Widget buildActionButton({
         {
           buttonGradient =
           const LinearGradient(
-          colors: [Colors.green, Colors.lightGreen],
+          colors: [Color(0xFFB71C1C), Color(0xFFE53935)],
         );
         }
         else
         {
           buttonGradient =
           const LinearGradient(
-          colors: [Color(0xFFB71C1C), Color(0xFFE53935)],
+          colors: [Color(0xFF063970), Color(0xFF2196F3)],
         );
         }
 
