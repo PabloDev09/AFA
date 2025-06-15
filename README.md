@@ -24,6 +24,7 @@ _Accesible desde cualquier navegador con conexión._
 | **Firebase Auth**| Inicio de sesión con Google / Contraseña    |
 | **Firestore**    | Base de datos en tiempo real                |
 | **Firebase Cloud Messaging** | Notificaciones push personalizadas     |
+| **Nodemailer**   | Notificaciones por correo                   |
 | **Firebase Storage** | Almacenamiento de documentos compartidos |
 | **Google Maps API** | Cálculo de distancias y rutas             |
 
@@ -76,10 +77,15 @@ El proyecto está desplegado en Firebase Hosting:
 
 ```
 📁 lib/
-  ├── screens/        # Vistas por rol
-  ├── services/       # Funciones Firebase
-  ├── widgets/        # Componentes comunes
-  ├── models/         # Estructuras de datos
+│
+├── 📁 design/ – Elementos visuales
+│ ├── 📁 screens/ – Pantallas principales por rol (Usuario, Conductor, Administrador)
+│ └── 📁 components/ – Widgets reutilizables (mapas, sidebar, funcionalidades concretas, etc.)
+│
+├── 📁 logic/ – Lógica de negocio
+│ ├── 📁 providers/ – Gestión de estado y lógica reactiva
+│ └── 📁 services/ – Funciones de conexión con Firebase (Auth, Firestore, Storage, etc.)
+
 
 📁 web/               # Config Flutter Web
 🗂️ firebase.json      # Configuración del hosting
@@ -99,7 +105,7 @@ Este sistema nace para responder a los siguientes retos planteados por la asocia
 
 ---
 
-## 👨‍💻 AutorES
+## 👨‍💻 Autores
 
-Desarrollado por **Jesús Soto y Pablo Martínez**   
+🛠️ Proyecto creado por **Jesús Soto y Pablo Martínez**
 📍 TFG | AFA | 2025
